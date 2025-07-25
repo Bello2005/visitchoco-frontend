@@ -1,19 +1,21 @@
-// src/pages/Login.tsx
+// src/pages/Register.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "../../styles/Login/Login.css"; // We'll create this CSS file next
+import "../../styles/Register/Register.css"; // We'll create this CSS file next
 
-export function Login() {
+export function Register() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   const [activeInput, setActiveInput] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Background animation effect
+  // Background animation effect (same as login)
   useEffect(() => {
-    const canvas = document.getElementById("login-bg") as HTMLCanvasElement;
+    const canvas = document.getElementById("register-bg") as HTMLCanvasElement;
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
@@ -116,60 +118,69 @@ export function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/auth/login`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ name, email, password }),
         }
       );
       const body = await res.text();
-
+      
       if (!res.ok) {
-        let message = "Login failed";
+        let message = "Registro fallido";
         try {
           const json = JSON.parse(body);
           message = json.message || message;
-        } catch (e) {
-          // If body is not JSON, ignore and use default message
-        }
+        } catch {}
         throw new Error(message);
       }
-
-      const { token, role } = JSON.parse(body);
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("userRole", role);
+      
+      setSuccess("Usuario registrado correctamente. Ahora puedes iniciar sesión.");
       setLoading(false);
-      if (role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/user/dashboard");
-      }
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       setLoading(false);
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Login failed");
+        setError("Registro fallido");
       }
     }
   };
 
   return (
-    <div className="login-container">
-      <canvas id="login-bg" className="login-bg"></canvas>
+    <div className="register-container">
+      <canvas id="register-bg" className="register-bg"></canvas>
       
-      <div className="login-card">
-        <div className="login-header">
-          <h1>Bienvenido a Chocó</h1>
-          <p>Paraíso de biodiversidad y cultura</p>
+      <div className="register-card">
+        <div className="register-header">
+          <h1>Únete a Chocó</h1>
+          <p>Descubre la magia de nuestro paraíso</p>
         </div>
         
-        <form onSubmit={handleSubmit} className="login-form">
-          {error && <div className="login-error">{error}</div>}
+        <form onSubmit={handleSubmit} className="register-form">
+          {error && <div className="register-error">{error}</div>}
+          {success && <div className="register-success">{success}</div>}
+          
+          <div className={`form-group ${activeInput === "name" ? "active" : ""}`}>
+            <label htmlFor="name">Nombre completo</label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onFocus={() => setActiveInput("name")}
+              onBlur={() => setActiveInput(null)}
+              required
+              disabled={loading}
+            />
+            <div className="form-underline"></div>
+          </div>
           
           <div className={`form-group ${activeInput === "email" ? "active" : ""}`}>
             <label htmlFor="email">Correo electrónico</label>
@@ -201,40 +212,36 @@ export function Login() {
             <div className="form-underline"></div>
           </div>
           
-          <button type="submit" className="login-button" disabled={loading}>
+          <button
+            type="submit"
+            className="register-button"
+            disabled={loading}
+          >
             {loading ? (
               <span className="spinner">
                 <div className="double-bounce1"></div>
                 <div className="double-bounce2"></div>
               </span>
             ) : (
-              "Iniciar sesión"
+              "Registrarse"
             )}
           </button>
           
-          <div className="login-footer">
+          <div className="register-footer">
             <button 
               type="button" 
-              className="register-button"
-              onClick={() => navigate("/register")}
+              className="login-button"
+              onClick={() => navigate("/login")}
               disabled={loading}
             >
-              ¿No tienes cuenta? <span>Regístrate</span>
-            </button>
-            <button 
-              type="button" 
-              className="forgot-password"
-              onClick={() => navigate("/forgot-password")}
-              disabled={loading}
-            >
-              ¿Olvidaste tu contraseña?
+              ¿Ya tienes cuenta? <span>Inicia sesión</span>
             </button>
           </div>
         </form>
         
-        <div className="login-decoration">
-          <div className="decoration-leaf decoration-leaf-1"></div>
-          <div className="decoration-leaf decoration-leaf-2"></div>
+        <div className="register-decoration">
+          <div className="decoration-bird decoration-bird-1"></div>
+          <div className="decoration-bird decoration-bird-2"></div>
           <div className="decoration-wave"></div>
         </div>
       </div>
