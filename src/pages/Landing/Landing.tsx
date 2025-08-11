@@ -1,17 +1,17 @@
 // src/pages/Landing.tsx
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import '../../styles/Landing/Landing.css'; // Import the CSS for the landing page
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "../../styles/Landing/Landing.css"; // Import the CSS for the landing page
 
 export function Landing() {
   const navigate = useNavigate();
 
   useEffect(() => {
     // Efecto de partículas para el fondo
-    const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement;
+    const canvas = document.getElementById("hero-canvas") as HTMLCanvasElement;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     canvas.width = window.innerWidth;
@@ -19,11 +19,11 @@ export function Landing() {
 
     // Colores inspirados en Chocó
     const colors = [
-      { r: 0, g: 82, b: 77 },   // Verde jungla
+      { r: 0, g: 82, b: 77 }, // Verde jungla
       { r: 0, g: 128, b: 128 }, // Verde agua
       { r: 210, g: 180, b: 140 }, // Arena
-      { r: 255, g: 215, b: 0 },  // Oro
-      { r: 0, g: 104, b: 139 }   // Azul océano
+      { r: 255, g: 215, b: 0 }, // Oro
+      { r: 0, g: 104, b: 139 }, // Azul océano
     ];
 
     // Sistema de partículas
@@ -82,7 +82,9 @@ export function Landing() {
 
           if (distance < 120) {
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(${particles[i].color.r}, ${particles[i].color.g}, ${particles[i].color.b}, ${0.7 - distance / 120})`;
+            ctx.strokeStyle = `rgba(${particles[i].color.r}, ${
+              particles[i].color.g
+            }, ${particles[i].color.b}, ${0.7 - distance / 120})`;
             ctx.lineWidth = 0.4;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
@@ -101,10 +103,10 @@ export function Landing() {
       canvas.height = window.innerHeight;
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -112,10 +114,10 @@ export function Landing() {
     <div className="landing-page">
       {/* Fondo animado */}
       <canvas id="hero-canvas" className="hero-canvas"></canvas>
-      
+
       {/* Capa de overlay para contraste */}
       <div className="hero-overlay"></div>
-      
+
       {/* Navegación */}
       <nav className="main-nav">
         <div className="nav-logo">
@@ -123,16 +125,18 @@ export function Landing() {
           <span className="logo-text">VisitChocó</span>
         </div>
         <div className="nav-links">
-          <button className="nav-link" onClick={() => navigate('/login')}>Ingresar</button>
-          <button 
-            className="nav-link primary" 
-            onClick={() => navigate('/register')}
+          <button className="nav-link" onClick={() => navigate("/login")}>
+            Ingresar
+          </button>
+          <button
+            className="nav-link primary"
+            onClick={() => navigate("/login")}
           >
             Registrarse
           </button>
         </div>
       </nav>
-      
+
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
@@ -142,12 +146,13 @@ export function Landing() {
             <span className="title-line">de Colombia</span>
           </h1>
           <p className="hero-subtitle">
-            Donde la selva, el mar y la cultura se unen en una experiencia inolvidable
+            Donde la selva, el mar y la cultura se unen en una experiencia
+            inolvidable
           </p>
           <div className="hero-cta">
-            <button 
+            <button
               className="cta-button primary"
-              onClick={() => navigate('/register')}
+              onClick={() => navigate("/login")}
             >
               Comienza tu aventura
             </button>
@@ -156,29 +161,30 @@ export function Landing() {
             </button>
           </div>
         </div>
-        
+
         <div className="hero-decoration">
           <div className="floating-bird"></div>
           <div className="floating-leaf"></div>
         </div>
       </section>
-      
+
       {/* Sección de características */}
       <section className="features-section">
         <div className="section-header">
           <h2 className="section-title">Por qué visitar Chocó</h2>
           <div className="section-divider"></div>
         </div>
-        
+
         <div className="features-grid">
           <div className="feature-card">
             <div className="feature-icon">🌿</div>
             <h3 className="feature-title">Biodiversidad Única</h3>
             <p className="feature-text">
-              Hogar del 10% de las especies del planeta en solo el 0.1% de su superficie
+              Hogar del 10% de las especies del planeta en solo el 0.1% de su
+              superficie
             </p>
           </div>
-          
+
           <div className="feature-card">
             <div className="feature-icon">🏝️</div>
             <h3 className="feature-title">Playas Paradisíacas</h3>
@@ -186,7 +192,7 @@ export function Landing() {
               Arenas doradas y aguas cristalinas en el Pacífico colombiano
             </p>
           </div>
-          
+
           <div className="feature-card">
             <div className="feature-icon">🎶</div>
             <h3 className="feature-title">Cultura Vibrante</h3>
@@ -194,7 +200,7 @@ export function Landing() {
               Tradiciones afrocolombianas que vibran en cada rincón
             </p>
           </div>
-          
+
           <div className="feature-card">
             <div className="feature-icon">🍫</div>
             <h3 className="feature-title">Sabores Auténticos</h3>
@@ -204,7 +210,7 @@ export function Landing() {
           </div>
         </div>
       </section>
-      
+
       {/* Sección de galería */}
       <section className="gallery-section">
         <div className="gallery-container">
@@ -228,19 +234,20 @@ export function Landing() {
           </div>
         </div>
       </section>
-      
+
       {/* Sección de testimonios */}
       <section className="testimonials-section">
         <div className="section-header">
           <h2 className="section-title">Historias que inspiran</h2>
           <div className="section-divider"></div>
         </div>
-        
+
         <div className="testimonials-slider">
           <div className="testimonial-card">
             <div className="testimonial-quote">"</div>
             <p className="testimonial-text">
-              Chocó me robó el corazón. Sus paisajes, su gente y su energía son simplemente mágicos.
+              Chocó me robó el corazón. Sus paisajes, su gente y su energía son
+              simplemente mágicos.
             </p>
             <div className="testimonial-author">
               <div className="author-avatar"></div>
@@ -252,21 +259,22 @@ export function Landing() {
           </div>
         </div>
       </section>
-      
+
       {/* CTA Final */}
       <section className="final-cta">
         <h2 className="cta-title">¿Listo para tu aventura en Chocó?</h2>
         <p className="cta-subtitle">
-          Regístrate ahora y recibe nuestro itinerario exclusivo con los mejores lugares
+          Regístrate ahora y recibe nuestro itinerario exclusivo con los mejores
+          lugares
         </p>
-        <button 
+        <button
           className="cta-button primary large"
-          onClick={() => navigate('/register')}
+          onClick={() => navigate("/login")}
         >
           Empieza ahora
         </button>
       </section>
-      
+
       {/* Footer */}
       <footer className="main-footer">
         <div className="footer-content">
@@ -296,11 +304,20 @@ export function Landing() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} VisitChocó. Todos los derechos reservados.</p>
+          <p>
+            © {new Date().getFullYear()} VisitChocó. Todos los derechos
+            reservados.
+          </p>
           <div className="social-icons">
-            <a href="#" className="social-icon">📱</a>
-            <a href="#" className="social-icon">📸</a>
-            <a href="#" className="social-icon">📘</a>
+            <a href="#" className="social-icon">
+              📱
+            </a>
+            <a href="#" className="social-icon">
+              📸
+            </a>
+            <a href="#" className="social-icon">
+              📘
+            </a>
           </div>
         </div>
       </footer>

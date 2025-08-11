@@ -27,5 +27,6 @@ export function AdminDashboard() {
   if (error) return <p className="text-red-600">{error}</p>;
   if (!message) return <p>Loading...</p>;
 
-  return <h1 className="text-2xl font-bold">{message}</h1>;
+  // Mostrar saludo personalizado para admin
+  return <h1 className="text-2xl font-bold">Hola admin</h1>;
 }

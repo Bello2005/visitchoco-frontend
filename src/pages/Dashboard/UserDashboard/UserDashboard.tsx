@@ -35,5 +35,6 @@ export function UserDashboard() {
   if (error) return <p className="text-red-600">{error}</p>;
   if (!message) return <p>Loading...</p>;
 
-  return <h1 className="text-2xl font-bold">{message}</h1>;
+  // Mostrar saludo personalizado para usuario
+  return <h1 className="text-2xl font-bold">Hola usuario</h1>;
 }
