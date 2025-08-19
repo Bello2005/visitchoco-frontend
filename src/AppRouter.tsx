@@ -1,6 +1,6 @@
-import React from "react";
+import { Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login/Login";
+import { Login } from "./pages/Login/Login";
 import Register from "./pages/Register/Register";
 import Map from "./pages/Map/Map";
 import Animals from "./pages/Animals/Animals";
@@ -9,21 +9,24 @@ import Festival from "./pages/Festival/Festival";
 import { Landing } from "./pages/Landing/Landing";
 import { AdminDashboard } from "./pages/Dashboard/AdminDashboard";
 import { UserDashboard } from "./pages/Dashboard/UserDashboard";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 const AppRouter = () => (
   <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/mapa" element={<Map />} />
-      <Route path="/animales" element={<Animals />} />
-      <Route path="/turismo" element={<Tourism />} />
-      <Route path="/fiesta" element={<Festival />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/user/dashboard" element={<UserDashboard />} />
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/mapa" element={<Map />} />
+        <Route path="/animales" element={<Animals />} />
+        <Route path="/turismo" element={<Tourism />} />
+        <Route path="/fiesta" element={<Festival />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Suspense>
   </BrowserRouter>
 );
 
