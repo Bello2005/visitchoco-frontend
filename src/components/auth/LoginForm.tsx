@@ -79,7 +79,7 @@ export const LoginForm = ({
                 touched.email && errors.email
                   ? "border-rose-400"
                   : "border-white/20"
-              } rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:border-blue-400 focus:outline-none transition-all duration-200`}
+              } rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:outline-none transition-all duration-200`}
               placeholder="tu@email.com"
             />
           </div>
@@ -101,7 +101,7 @@ export const LoginForm = ({
               onChange={(e) => handleChange("password", e.target.value)}
               onBlur={() => handleBlur("password")}
               required
-              className={`w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:border-blue-400 focus:outline-none transition-all duration-200`}
+              className={`w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:outline-none transition-all duration-200`}
               placeholder="••••••••"
             />
             <button

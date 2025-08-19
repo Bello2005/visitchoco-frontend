@@ -1,14 +1,75 @@
-/* Importación de estilos de páginas */
 @import "./styles/pages/Login/Login.css";
 @import "./styles/pages/Register/Register.css";
-
-/* Importación de componentes personalizados */
 @import "./styles/components.css";
-
+@import "./styles/components/gallery.css";
+@import "./styles/components/input.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Animaciones para la sección Final CTA */
+@layer utilities {
+  @keyframes float {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes float-delay {
+    0% {
+      transform: translateY(-10px);
+    }
+    50% {
+      transform: translateY(10px);
+    }
+    100% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delay {
+    animation: float-delay 7s ease-in-out infinite;
+  }
+
+  .animate-float-delay-2 {
+    animation: float 8s ease-in-out infinite;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-delay {
+  0% {
+    transform: translateY(-10px);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(-10px);
+  }
+}
 
 :root {
   --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -19,4 +80,45 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   line-height: var(--line-height);
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thumb-rounded-full::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+  }
+
+  .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+    background-color: rgb(209 213 219);
+  }
+
+  .scrollbar-thumb-gray-400::-webkit-scrollbar-thumb {
+    background-color: rgb(156 163 175);
+  }
+
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(209 213 219);
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(156 163 175);
+  }
 }

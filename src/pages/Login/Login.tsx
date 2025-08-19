@@ -6,8 +6,8 @@ import { RiHotelLine } from "react-icons/ri";
 import { BiLeaf } from "react-icons/bi";
 import { IoIosWater } from "react-icons/io";
 import { TbBeach } from "react-icons/tb";
-import { Background } from "../../components/layout/Background";
-import { Footer } from "../../components/layout/Footer";
+import { Background } from "../../components/common/Background";
+import { Footer } from "../../components/landing/Footer";
 import { Logo } from "../../components/brand/Logo";
 import { AuthTabs } from "../../components/auth/AuthTabs";
 import { FeatureGrid } from "../../components/features/FeatureGrid";
@@ -132,17 +132,23 @@ const ChocoLuxuryLogin = () => {
       localStorage.setItem("userRole", role);
       console.log("[LOGIN] Token y role guardados en localStorage");
       setLoading(false);
+      // Convertir el rol a número para comparación consistente
+      const roleNumber = Number(role);
+      const welcomeMessage =
+        roleNumber === 1
+          ? "¡Bienvenido, administrador!"
+          : "¡Bienvenido, usuario!";
       if (isMobile) {
-        alert("¡Bienvenido al Chocó! Has iniciado sesión");
-        console.log("[LOGIN] Redirigiendo a dashboard", role);
-        if (role === "admin") {
+        alert(welcomeMessage);
+        console.log("[LOGIN] Redirigiendo a dashboard", roleNumber);
+        if (roleNumber === 1) {
           window.location.href = "/admin/dashboard";
         } else {
           window.location.href = "/user/dashboard";
         }
         setLoading(false);
       } else {
-        toast.success("¡Bienvenido al Chocó! Has iniciado sesión", {
+        toast.success(welcomeMessage, {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -154,8 +160,8 @@ const ChocoLuxuryLogin = () => {
           icon: () => <span style={{ fontSize: 24 }}>🐋</span>,
         });
         setTimeout(() => {
-          console.log("[LOGIN] Redirigiendo a dashboard", role);
-          if (role === "admin") {
+          console.log("[LOGIN] Redirigiendo a dashboard", roleNumber);
+          if (roleNumber === 1) {
             navigate("/admin/dashboard");
           } else {
             navigate("/user/dashboard");
@@ -187,8 +193,7 @@ const ChocoLuxuryLogin = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          firstName: values.firstName,
-          lastName: values.lastName,
+          name: `${values.firstName} ${values.lastName}`,
           email: values.email,
           password: values.password,
         }),

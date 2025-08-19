@@ -1,43 +1,114 @@
+/* Forzar autofill transparente en Chrome */
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0) inset !important;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0) inset !important;
+  background-color: transparent !important;
+  background-clip: padding-box !important;
+  -webkit-background-clip: padding-box !important;
+  -webkit-text-fill-color: white !important;
+  color: white !important;
+  border-color: #ffffff33 !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+/* Eliminar fondo azul de Chrome autofill y hacerlo transparente */
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  background-color: transparent !important;
+  -webkit-text-fill-color: white !important;
+  color: white !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+/* Estilo de placeholder para todos los inputs */
+input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+input::-webkit-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+input::-moz-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+input:-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+input::-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+/* Estilos de componentes personalizados */
 @layer components {
-  /* Estilos del scrollbar personalizado */
+  /* Scrollbar personalizado */
   .scrollbar-custom {
+    @apply scrollbar-thin scrollbar-track-gray-200 scrollbar-thumb-gray-400;
+  }
+
+  .scrollbar-custom:hover {
+    @apply scrollbar-thumb-gray-500;
+  }
+
+  /* Scrollbar tema oscuro */
+  .scrollbar-custom-dark {
+    @apply scrollbar-thin scrollbar-track-gray-700 scrollbar-thumb-gray-500;
+  }
+
+  .scrollbar-custom-dark:hover {
+    @apply scrollbar-thumb-gray-400;
+  }
+
+  /* Scrollbar tema marca */
+  .scrollbar-custom-brand {
     @apply scrollbar-thin;
+    @apply scrollbar-track-choco-light/20;
+    @apply scrollbar-thumb-choco-medium;
   }
 
-  .scrollbar-custom::-webkit-scrollbar {
-    @apply w-1.5;
+  .scrollbar-custom-brand:hover {
+    @apply scrollbar-thumb-choco-dark;
   }
 
-  .scrollbar-custom::-webkit-scrollbar-track {
-    @apply bg-white/10 rounded;
-  }
-
-  .scrollbar-custom::-webkit-scrollbar-thumb {
-    @apply bg-emerald-400/50 rounded hover:bg-emerald-400/70;
-  }
-
-  /* Estilos de checkbox personalizado */
+  /* Checkbox personalizado */
   .checkbox-custom {
-    @apply h-5 w-5 accent-emerald-500 border border-white/20 rounded-md focus:ring-2 focus:ring-emerald-400/40 transition-all shadow-sm;
+    @apply h-5 w-5;
+    @apply accent-emerald-500;
+    @apply border border-white/20;
+    @apply rounded-md;
+    @apply focus:ring-2 focus:ring-emerald-400/40;
+    @apply transition-all;
+    @apply shadow-sm;
     appearance: none;
     background-color: transparent;
   }
 
   .checkbox-custom:checked {
-    @apply bg-emerald-400 border-emerald-400;
+    @apply bg-emerald-400;
+    @apply border-emerald-400;
   }
 
-  /* Estilos de input personalizado */
+  /* Input personalizado */
   .input-custom {
-    @apply bg-white/10 border border-white/20;
+    @apply bg-white/10;
+    @apply border border-white/20;
   }
 
+  .input-custom:-webkit-autofill::first-line,
+  .input-custom:-webkit-autofill::placeholder {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    opacity: 1 !important;
+  }
   .input-custom:-webkit-autofill {
     -webkit-text-fill-color: white;
     transition: background-color 9999s ease-in-out 0s;
-  }
-
-  .input-custom:-webkit-autofill::placeholder {
-    @apply text-blue-400;
   }
 }

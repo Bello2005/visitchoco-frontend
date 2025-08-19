@@ -1,0 +1,80 @@
+/* Animations */
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes float-delay {
+  0% { transform: translateY(-10px); }
+  50% { transform: translateY(10px); }
+  100% { transform: translateY(-10px); }
+}
+
+/* Icon styles */
+.floating-icon {
+  opacity: 0.2;
+  filter: blur(1px);
+}
+
+/* Animation classes */
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: float-delay 7s ease-in-out infinite;
+}
+
+.animate-float-delay-2 {
+  animation: float 8s ease-in-out infinite;
+}
+  position: relative;
+  z-index: 1;
+}
+  position: relative;
+  isolation: isolate;
+}
+
+.cta-gradient-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.3) 100%);
+  z-index: -1;
+}
+
+.cta-button-primary {
+  background: #00b894;
+  box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+  transition: all 0.3s ease;
+}
+
+.cta-button-primary:hover {
+  background: #00d1a7;
+  box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+  transform: translateY(-2px);
+}
+
+.cta-button-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.cta-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.trust-indicator-avatar {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.decorative-blur {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.6;
+}

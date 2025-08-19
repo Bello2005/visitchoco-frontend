@@ -16,7 +16,12 @@ module.exports = {
     },
   },
   plugins: [
-    require("@tailwindcss/forms")
-  ]
+    // @ts-ignore
+    require("@tailwindcss/forms"),
+    require("tailwind-scrollbar"),
   ],
+  important: true,
+  corePlugins: {
+    preflight: true,
+  },
 };
