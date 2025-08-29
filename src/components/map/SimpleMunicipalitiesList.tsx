@@ -1,39 +1,77 @@
 import React from "react";
-import type { Region } from "../../data/chocoRegions";
+import type { Municipality } from "../../services/municipality.service";
 import { motion } from "framer-motion";
-import { ZoneColors } from "../../data/chocoRegions";
 
 interface SimpleMunicipalitiesListProps {
-  regions: Region[];
-  selectedRegion?: Region;
-  onSelectRegion: (region: Region) => void;
+  municipalities: Municipality[];
+  selectedMunicipality: Municipality | null;
+  onSelectMunicipality: (municipality: Municipality) => void;
 }
 
-export const SimpleMunicipalitiesList: React.FC<
-  SimpleMunicipalitiesListProps
-> = ({ regions, selectedRegion, onSelectRegion }) => {
+const SimpleMunicipalitiesList: React.FC<SimpleMunicipalitiesListProps> = ({
+  municipalities,
+  selectedMunicipality,
+  onSelectMunicipality,
+}) => {
   return (
-    <div className="space-y-2 h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full">
-      {regions.map((region) => (
+    <div className="space-y-1.5 overflow-y-auto px-0.5">
+      {municipalities.map((municipality) => (
         <motion.button
-          key={region.id}
-          onClick={() => onSelectRegion(region)}
-          className={`w-full text-left p-2 rounded-lg transition-all flex items-center gap-2 ${
-            selectedRegion?.id === region.id
-              ? "bg-blue-50 border border-blue-200"
-              : "hover:bg-gray-50"
-          }`}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          key={municipality.id}
+          className={`group w-full p-3 rounded-xl text-left transition-all duration-200 
+            ${
+              selectedMunicipality?.id === municipality.id
+                ? "bg-gradient-to-r from-blue-50 to-blue-50/50 shadow-sm"
+                : "hover:bg-gray-50/80"
+            }
+            focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-1`}
+          onClick={() => onSelectMunicipality(municipality)}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
-          <span className="text-xl">{region.emoji}</span>
-          <div className="flex-grow">
-            <span className="block text-gray-800">{region.name}</span>
-          </div>
           <div
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: ZoneColors[region.zone] }}
-          />
+            className={`flex flex-col relative pl-3 ${
+              selectedMunicipality?.id === municipality.id
+                ? "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-8 before:w-1 before:bg-blue-500 before:rounded-full"
+                : ""
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <h3
+                className={`font-medium transition-colors duration-200 ${
+                  selectedMunicipality?.id === municipality.id
+                    ? "text-blue-700"
+                    : "text-gray-700 group-hover:text-gray-900"
+                }`}
+              >
+                {municipality.name}
+              </h3>
+              <motion.div
+                animate={{
+                  rotate: selectedMunicipality?.id === municipality.id ? 90 : 0,
+                }}
+                className={`transition-colors duration-200 ${
+                  selectedMunicipality?.id === municipality.id
+                    ? "text-blue-500"
+                    : "text-gray-400 group-hover:text-gray-500"
+                }`}
+              >
+                →
+              </motion.div>
+            </div>
+            {municipality.description && (
+              <p
+                className={`text-sm mt-1 line-clamp-2 transition-colors duration-200 ${
+                  selectedMunicipality?.id === municipality.id
+                    ? "text-blue-600/80"
+                    : "text-gray-500 group-hover:text-gray-600"
+                }`}
+              >
+                {municipality.description}
+              </p>
+            )}
+          </div>
         </motion.button>
       ))}
     </div>

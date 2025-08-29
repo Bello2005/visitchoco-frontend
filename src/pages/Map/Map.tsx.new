@@ -1,0 +1,197 @@
+import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { useMediaQuery } from "react-responsive";
+import { MapContainer, TileLayer, Popup, Circle } from "react-leaflet";
+import { Map as LeafletMapType } from "leaflet";
+import {
+  municipalityService,
+  type Municipality,
+} from "../../services/municipality.service";
+
+// Estilos
+import "leaflet/dist/leaflet.css";
+import "react-tooltip/dist/react-tooltip.css";
+import "../../styles/components/scroll.css";
+
+// Componentes
+import { MainNav } from "../../components/landing/MainNav";
+import EmojiMarker from "../../components/map/EmojiMarker";
+import GeneralData from "../../components/map/GeneralData";
+import InfoPanel from "../../components/map/InfoPanel";
+import SimpleMunicipalitiesList from "../../components/map/SimpleMunicipalitiesList";
+
+// Definir los municipios principales por código DANE
+const mainMunicipalitiesCodes = [
+  "27001", // Quibdó
+  "27361", // Istmina
+  "27075", // Bahía Solano
+  "27495", // Nuquí
+  "27800", // Unguía
+];
+
+const Map: React.FC = () => {
+  const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
+  const [selectedMunicipality, setSelectedMunicipality] =
+    useState<Municipality | null>(null);
+  const [visibleMarkers, setVisibleMarkers] = useState<string[]>([]);
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
+  const isMobile = useMediaQuery({ maxWidth: 768 });
+  const mapRef = useRef<LeafletMapType>(null);
+
+  useEffect(() => {
+    const fetchMunicipalities = async () => {
+      try {
+        const data = await municipalityService.getAllMunicipalities();
+        setMunicipalities(data);
+        if (data.length > 0) {
+          const initialMarkers = data
+            .filter((m) => mainMunicipalitiesCodes.includes(m.cod_dane || ""))
+            .map((m) => m.name);
+          setVisibleMarkers(initialMarkers);
+        }
+      } catch (error) {
+        console.error("Error fetching municipalities:", error);
+      }
+    };
+
+    fetchMunicipalities();
+  }, []);
+
+  const handleRegionClick = (municipality: Municipality) => {
+    setSelectedMunicipality(municipality);
+    setVisibleMarkers((prev) => {
+      if (prev.includes(municipality.name)) return prev;
+      return [...prev, municipality.name];
+    });
+    mapRef.current?.setView(
+      [municipality.lat, municipality.lon],
+      mapRef.current.getZoom()
+    );
+  };
+
+  return (
+    <div className="relative h-screen w-screen overflow-hidden bg-gray-100">
+      <MainNav />
+
+      <div className="relative h-full">
+        {/* Mapa */}
+        <MapContainer
+          center={[5.6919, -76.6583]}
+          zoom={7.5}
+          style={{ height: "100%", width: "100%" }}
+          zoomControl={false}
+          ref={mapRef}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+
+          {municipalities
+            .filter((m) => visibleMarkers.includes(m.name))
+            .map((municipality) => (
+              <EmojiMarker
+                key={`marker-${municipality.id}`}
+                position={[municipality.lat, municipality.lon]}
+                emoji={municipality.emoji || "📍"}
+                eventHandlers={{
+                  mouseover: () => setSelectedMunicipality(municipality),
+                  click: () => handleRegionClick(municipality),
+                }}
+              >
+                <Popup>
+                  <div className="text-center">
+                    <h3 className="font-bold text-lg">
+                      {municipality.emoji || "📍"} {municipality.name}
+                    </h3>
+                    <p className="text-sm">{municipality.description}</p>
+                  </div>
+                </Popup>
+              </EmojiMarker>
+            ))}
+
+          {selectedMunicipality && (
+            <Circle
+              center={[selectedMunicipality.lat, selectedMunicipality.lon]}
+              radius={5000}
+              pathOptions={{
+                color: "#2196F3",
+                weight: 2,
+                opacity: 0.7,
+                fillColor: "#2196F3",
+                fillOpacity: 0.1,
+              }}
+            />
+          )}
+        </MapContainer>
+
+        {/* Panel de lista de municipios (Desktop) */}
+        {!isMobile && (
+          <div className="absolute top-20 left-4 z-[1000]">
+            <div className="bg-white rounded-lg shadow-lg w-96 max-h-[80vh] overflow-y-auto p-4">
+              <h2 className="text-xl font-bold mb-4">Municipios del Chocó</h2>
+              <SimpleMunicipalitiesList
+                municipalities={municipalities}
+                selectedMunicipality={selectedMunicipality}
+                onSelectMunicipality={handleRegionClick}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Panel de información (Desktop) */}
+        {!isMobile && selectedMunicipality && (
+          <div className="absolute top-20 right-4 z-[1000] w-96">
+            <div className="bg-white rounded-lg shadow-lg p-4 space-y-4">
+              <GeneralData municipality={selectedMunicipality} />
+              <InfoPanel municipality={selectedMunicipality} />
+            </div>
+          </div>
+        )}
+
+        {/* Panel móvil */}
+        {isMobile && isPanelVisible && (
+          <motion.div
+            className="fixed bottom-16 left-0 right-0 mx-4 mb-4 bg-white rounded-2xl shadow-lg p-4 z-[999] border border-gray-100 max-h-[50vh]"
+            style={{
+              background: "rgba(255, 255, 255, 0.95)",
+              backdropFilter: "blur(10px)",
+            }}
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: "spring", stiffness: 100 }}
+          >
+            <div className="max-h-[40vh] overflow-y-auto">
+              {selectedMunicipality ? (
+                <div className="space-y-4">
+                  <GeneralData municipality={selectedMunicipality} />
+                  <InfoPanel municipality={selectedMunicipality} />
+                </div>
+              ) : (
+                <SimpleMunicipalitiesList
+                  municipalities={municipalities}
+                  selectedMunicipality={selectedMunicipality}
+                  onSelectMunicipality={handleRegionClick}
+                />
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Botón móvil */}
+        {isMobile && (
+          <motion.button
+            className="fixed bottom-4 right-4 p-4 bg-blue-500 text-white rounded-full shadow-lg z-[1001]"
+            onClick={() => setIsPanelVisible(!isPanelVisible)}
+            whileTap={{ scale: 0.95 }}
+          >
+            {isPanelVisible ? "↓" : "↑"}
+          </motion.button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Map;
