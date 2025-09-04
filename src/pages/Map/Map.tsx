@@ -16,6 +16,14 @@ import { DesktopPanels } from "../../components/map/DesktopPanels";
 import { MobilePanel } from "../../components/map/MobilePanel";
 import { MapMarkers } from "../../components/map/MapMarkers";
 import MunicipalityBoundaries from "../../components/map/MunicipalityBoundaries";
+import { IndigenousReserveBoundaries } from "../../components/map/IndigenousReserveBoundaries";
+import { FilterBar } from "../../components/map/FilterBar";
+import { EthnicFilter } from "../../components/map/filters/EthnicFilter";
+import type { FilterCategory } from "../../types/filters";
+import type { IndigenousReserve } from "../../services/indigenousReserve.service";
+import indigenousReserveService from "../../services/indigenousReserve.service";
+import type { EthnicDistribution } from "../../services/ethnicDistribution.service";
+import { ethnicDistributionService } from "../../services/ethnicDistribution.service";
 
 // Coordenadas centrales del Chocó y configuración del mapa
 const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
@@ -26,24 +34,36 @@ const Map: React.FC = () => {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] =
     useState<Municipality | null>(null);
+  const [reserves, setReserves] = useState<IndigenousReserve[]>([]);
+  const [selectedReserve, setSelectedReserve] =
+    useState<IndigenousReserve | null>(null);
+  const [currentFilter, setCurrentFilter] = useState<FilterCategory>("general");
   const [visibleMarkers, setVisibleMarkers] = useState<string[]>([]);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const mapRef = useRef<LeafletMapType>(null);
 
   useEffect(() => {
-    const fetchMunicipalities = async () => {
+    const fetchData = async () => {
       try {
-        const data = await municipalityService.getAllMunicipalities();
-        setMunicipalities(data);
+        // Cargar municipios
+        const municipalitiesData =
+          await municipalityService.getAllMunicipalities();
+        setMunicipalities(municipalitiesData);
+
+        // Cargar reservas indígenas
+        const reservesData =
+          await indigenousReserveService.getAllIndigenousReserves();
+        setReserves(reservesData);
+
         // Inicialmente no mostrar ningún marcador
         setVisibleMarkers([]);
       } catch (error) {
-        console.error("Error fetching municipalities:", error);
+        console.error("Error fetching data:", error);
       }
     };
 
-    fetchMunicipalities();
+    fetchData();
   }, []);
 
   const resetMapView = () => {
@@ -94,21 +114,40 @@ const Map: React.FC = () => {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
-          {/* Límites municipales */}
-          <MunicipalityBoundaries
-            municipalities={municipalities}
-            selectedMunicipality={selectedMunicipality}
-            onMunicipalityClick={handleRegionClick}
-          />
+          {/* Límites según el filtro */}
+          {currentFilter === "indigenous" ? (
+            <IndigenousReserveBoundaries
+              reserves={reserves}
+              selectedReserve={selectedReserve}
+              onReserveClick={(reserve) => {
+                setSelectedReserve(reserve);
+                // Centrar el mapa en la reserva
+                if (mapRef.current && reserve.lat && reserve.lon) {
+                  mapRef.current.setView(
+                    [reserve.lat, reserve.lon],
+                    MUNICIPALITY_ZOOM
+                  );
+                }
+              }}
+            />
+          ) : (
+            <MunicipalityBoundaries
+              municipalities={municipalities}
+              selectedMunicipality={selectedMunicipality}
+              onMunicipalityClick={handleRegionClick}
+            />
+          )}
 
-          {/* Marcadores de municipios */}
-          <MapMarkers
-            municipalities={municipalities}
-            visibleMarkers={visibleMarkers}
-            selectedMunicipality={selectedMunicipality}
-            onMarkerClick={handleRegionClick}
-            onMarkerHover={setSelectedMunicipality}
-          />
+          {/* Marcadores de municipios (solo mostrar si no estamos en vista de reservas) */}
+          {currentFilter !== "indigenous" && (
+            <MapMarkers
+              municipalities={municipalities}
+              visibleMarkers={visibleMarkers}
+              selectedMunicipality={selectedMunicipality}
+              onMarkerClick={handleRegionClick}
+              onMarkerHover={setSelectedMunicipality}
+            />
+          )}
         </MapContainer>
 
         {/* Paneles de escritorio */}
@@ -118,6 +157,19 @@ const Map: React.FC = () => {
             selectedMunicipality={selectedMunicipality}
             onSelectMunicipality={handleRegionClick}
             onReset={resetMapView}
+            onFilterChange={setCurrentFilter}
+            currentFilter={currentFilter}
+            reserves={reserves}
+            selectedReserve={selectedReserve}
+            onSelectReserve={(reserve) => {
+              setSelectedReserve(reserve);
+              if (mapRef.current && reserve.lat && reserve.lon) {
+                mapRef.current.setView(
+                  [reserve.lat, reserve.lon],
+                  MUNICIPALITY_ZOOM
+                );
+              }
+            }}
           />
         )}
 

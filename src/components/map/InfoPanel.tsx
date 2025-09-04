@@ -1,16 +1,22 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { Municipality } from "../../services/municipality.service";
+import type { EthnicDistribution } from "../../services/ethnicDistribution.service";
+import { ethnicDistributionService } from "../../services/ethnicDistribution.service";
+import { EthnicDetails } from "./EthnicDetails";
+import { EthnicFilters } from "./EthnicFilters";
 import type {
-  FilterType,
+  FilterCategory as FilterType,
   IndigenousReserve,
   TouristSpot,
 } from "../../types/filters";
+import type { WeatherData } from "../../services/weather.service";
 
 interface InfoPanelProps {
   selectedMunicipality: Municipality;
   activeFilter?: FilterType;
   selectedReserves?: IndigenousReserve[];
   selectedSpots?: TouristSpot[];
+  weatherData?: WeatherData;
 }
 
 const InfoPanel: React.FC<InfoPanelProps> = ({
@@ -18,7 +24,50 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
   activeFilter = "general",
   selectedReserves = [],
   selectedSpots = [],
+  weatherData,
 }) => {
+  const [ethnicDistributions, setEthnicDistributions] = useState<
+    EthnicDistribution[]
+  >([]);
+  const [selectedYear, setSelectedYear] = useState<number>(2023);
+  const [selectedRaceCodes, setSelectedRaceCodes] = useState<string[]>([
+    "INDIGENA",
+    "AFRO",
+  ]);
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchEthnicData = async () => {
+      if (selectedMunicipality?.cod_dane && activeFilter === "indigenous") {
+        setIsLoading(true);
+        try {
+          const data =
+            await ethnicDistributionService.getEthnicDistributionByMunicipality(
+              selectedMunicipality.cod_dane
+            );
+          setEthnicDistributions(data);
+
+          // Obtener años únicos disponibles
+          const years = Array.from(new Set(data.map((d) => d.year))).sort(
+            (a, b) => b - a
+          );
+          setAvailableYears(years);
+
+          // Establecer el año más reciente disponible
+          if (years.length > 0) {
+            setSelectedYear(years[0]);
+          }
+        } catch (error) {
+          console.error("Error fetching ethnic data:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchEthnicData();
+  }, [selectedMunicipality?.cod_dane, activeFilter]);
   return (
     <div
       className="bg-white/98 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100/40 p-5 space-y-4 max-h-[700px] overflow-y-auto transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] hover:border-gray-200/60 focus-within:shadow-[0_8px_40px_rgb(0,0,0,0.16)] focus-within:border-sky-200/60 scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300 scrollbar-track-transparent motion-safe:animate-fadeIn"
@@ -77,7 +126,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
       </div>
 
       {/* Contenido según el filtro activo */}
-      {activeFilter === "general" && (
+      {activeFilter === "general" && weatherData && (
         <div className="space-y-4">
           {selectedMunicipality.main_activity && (
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-gray-100/60">
@@ -98,65 +147,80 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
             </div>
           )}
 
-          {/* Widget de Clima si está disponible */}
-          {selectedMunicipality.weather && (
-            <div className="bg-gradient-to-r from-blue-50/50 to-sky-50/50 rounded-2xl p-4 border border-blue-100/20">
-              <h3 className="text-sm text-gray-500 mb-2">Clima</h3>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {selectedMunicipality.weather.current?.temp ||
-                      selectedMunicipality.weather.temperature ||
-                      "N/A"}
-                    °C
-                  </p>
-                  {selectedMunicipality.weather.current?.feels_like && (
-                    <p className="text-sm text-gray-600">
-                      Sensación térmica:{" "}
-                      {selectedMunicipality.weather.current.feels_like}°C
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* La información del clima ahora se muestra en el panel principal */}
         </div>
       )}
 
       {activeFilter === "indigenous" && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">
-            Reservas Indígenas
-          </h3>
-          {selectedReserves.length > 0 ? (
-            selectedReserves.map((reserve) => (
-              <div
-                key={reserve.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2"
-              >
-                <h4 className="font-medium text-gray-800">{reserve.name}</h4>
-                {reserve.mainEthnicGroup && (
-                  <p className="text-sm text-gray-600">
-                    Etnia principal: {reserve.mainEthnicGroup}
-                  </p>
+        <div className="space-y-6">
+          {/* Controles y Filtros */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100/60">
+            <EthnicFilters
+              selectedRaceCodes={selectedRaceCodes}
+              onRaceCodeChange={setSelectedRaceCodes}
+              availableYears={availableYears}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+            />
+          </div>
+
+          {/* Detalles de Distribución Étnica */}
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Cargando datos étnicos...</p>
+            </div>
+          ) : ethnicDistributions.length > 0 ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100/60">
+              <EthnicDetails
+                distributions={ethnicDistributions.filter((d) =>
+                  selectedRaceCodes.includes(d.race_code)
                 )}
-                {reserve.population && (
-                  <p className="text-sm text-gray-500">
-                    Población: {reserve.population.toLocaleString()} habitantes
-                  </p>
-                )}
-                {reserve.description && (
-                  <p className="text-sm text-gray-600 mt-2">
-                    {reserve.description}
-                  </p>
-                )}
-              </div>
-            ))
+                year={selectedYear}
+              />
+            </div>
           ) : (
-            <p className="text-center text-gray-500 py-4">
-              No hay reservas indígenas registradas en este municipio.
-            </p>
+            <div className="text-center py-8 text-gray-500">
+              No se encontraron datos étnicos para este municipio
+            </div>
           )}
+
+          {/* Reservas Indígenas */}
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-gray-800 mb-4">
+              Reservas Indígenas
+            </h3>
+            {selectedReserves.length > 0 ? (
+              selectedReserves.map((reserve) => (
+                <div
+                  key={reserve.id}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-2"
+                >
+                  <h4 className="font-medium text-gray-800">{reserve.name}</h4>
+                  {reserve.mainEthnicGroup && (
+                    <p className="text-sm text-gray-600">
+                      Etnia principal: {reserve.mainEthnicGroup}
+                    </p>
+                  )}
+                  {reserve.population && (
+                    <p className="text-sm text-gray-500">
+                      Población: {reserve.population.toLocaleString()}{" "}
+                      habitantes
+                    </p>
+                  )}
+                  {reserve.description && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      {reserve.description}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-gray-500 py-4">
+                No hay reservas indígenas registradas en este municipio.
+              </p>
+            )}
+          </div>
         </div>
       )}
 

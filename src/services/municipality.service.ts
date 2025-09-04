@@ -18,6 +18,7 @@ interface Transportation {
 
 export interface Municipality {
   id: number;
+  cod_dane: string;
   name: string;
   description: string | null;
   image_url: string | null;

@@ -14,7 +14,7 @@ const SimpleMunicipalitiesList: React.FC<SimpleMunicipalitiesListProps> = ({
   onSelectMunicipality,
 }) => {
   return (
-    <div className="space-y-1.5 overflow-y-auto px-0.5">
+    <div className="space-y-2 overflow-y-auto px-0.5 -mx-1">
       {municipalities.map((municipality) => (
         <motion.button
           key={municipality.id}
