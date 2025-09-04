@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import type { FilterCategory } from '../../../types/filters';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import type { FilterCategory } from "../../../types/filters";
 
 interface Filter {
   id: FilterCategory;
@@ -26,7 +26,8 @@ export const FilterBarV2: React.FC<FilterBarProps> = ({
   isExternalSelection = false,
 }) => {
   const [activeFilter, setActiveFilter] = useState(selectedFilter);
-  const [lastExternalFilter, setLastExternalFilter] = useState<FilterCategory | null>(null);
+  const [lastExternalFilter, setLastExternalFilter] =
+    useState<FilterCategory | null>(null);
 
   const filters: Filter[] = [
     {
@@ -131,11 +132,9 @@ export const FilterBarV2: React.FC<FilterBarProps> = ({
           >
             {/* Icon */}
             <span className="text-xl">{filter.icon}</span>
-            
+
             {/* Label */}
-            <span className="text-sm font-medium flex-1">
-              {filter.name}
-            </span>
+            <span className="text-sm font-medium flex-1">{filter.name}</span>
 
             {/* Arrow indicator */}
             {activeFilter === filter.id && (

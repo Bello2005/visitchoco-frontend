@@ -362,10 +362,12 @@ export const DesktopPanels: React.FC<DesktopPanelsProps> = ({
           {/* Contenido con scroll */}
           <div
             className="flex-1 overflow-y-auto p-4 space-y-1.5 custom-scrollbar"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(156, 163, 175, 0.3) transparent'
-            } as React.CSSProperties}
+            style={
+              {
+                scrollbarWidth: "thin",
+                scrollbarColor: "rgba(156, 163, 175, 0.3) transparent",
+              } as React.CSSProperties
+            }
           >
             {/* Siempre mostramos la lista de municipios en el panel izquierdo */}
             {renderMunicipalitiesList()}
