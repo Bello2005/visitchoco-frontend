@@ -5,14 +5,6 @@ import type { IndigenousReserve } from "../../services/indigenousReserve.service
 import type { FilterCategory } from "../../types/filters";
 import type { WeatherData } from "../../services/weather.service";
 
-// Interfaz para los datos de transporte que vienen como JSONB de la base de datos
-interface TransportationData {
-  type: string;
-  description?: string;
-  schedule?: string;
-  price?: string;
-}
-
 import { weatherService } from "../../services/weather.service";
 import SimpleMunicipalitiesList from "../map/SimpleMunicipalitiesList";
 import { IndigenousReserveDetails } from "./IndigenousReserveDetails";
@@ -230,29 +222,6 @@ export const DesktopPanels: React.FC<DesktopPanelsProps> = ({
       </ul>
     );
   };
-
-  // Helper para dirección del viento
-  function getWindDirection(deg: number) {
-    const dirs = [
-      "N",
-      "NNE",
-      "NE",
-      "ENE",
-      "E",
-      "ESE",
-      "SE",
-      "SSE",
-      "S",
-      "SSW",
-      "SW",
-      "WSW",
-      "W",
-      "WNW",
-      "NW",
-      "NNW",
-    ];
-    return dirs[Math.round(deg / 22.5) % 16];
-  }
 
   return (
     <>

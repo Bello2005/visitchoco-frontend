@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import type { IndigenousReserve } from "../../services/indigenousReserve.service";
-import indigenousReserveService from "../../services/indigenousReserve.service";
+import type { IndigenousReserve } from "../../../services/indigenousReserve.service";
+import indigenousReserveService from "../../../services/indigenousReserve.service";
 import { motion } from "framer-motion";
 
 interface Municipality {
