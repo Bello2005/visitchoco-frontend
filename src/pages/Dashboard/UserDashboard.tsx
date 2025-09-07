@@ -17,10 +17,10 @@ export const UserDashboard = () => {
     }
 
     const fetchDashboardData = async () => {
-      const response = await authService.getDashboardData('user');
+      const response = await authService.getDashboardData("user");
       if (response.error) {
         setError(response.error);
-        if (response.error === 'Error de autenticación') {
+        if (response.error === "Error de autenticación") {
           navigate("/login");
         }
       }

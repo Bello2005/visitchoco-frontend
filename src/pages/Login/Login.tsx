@@ -130,16 +130,15 @@ const ChocoLuxuryLogin = () => {
       localStorage.setItem("userRole", role);
       console.log("[LOGIN] Token y role guardados en localStorage");
       setLoading(false);
-      // Convertir el rol a número para comparación consistente
-      const roleNumber = Number(role);
       const welcomeMessage =
-        roleNumber === 1
+        role === "admin"
           ? "¡Bienvenido, administrador!"
           : "¡Bienvenido, usuario!";
+
       if (isMobile) {
         alert(welcomeMessage);
-        console.log("[LOGIN] Redirigiendo a dashboard", roleNumber);
-        if (roleNumber === 1) {
+        console.log("[LOGIN] Redirigiendo a dashboard", role);
+        if (role === "admin") {
           window.location.href = "/admin/dashboard";
         } else {
           window.location.href = "/user/dashboard";
@@ -158,8 +157,8 @@ const ChocoLuxuryLogin = () => {
           icon: () => <span style={{ fontSize: 24 }}>🐋</span>,
         });
         setTimeout(() => {
-          console.log("[LOGIN] Redirigiendo a dashboard", roleNumber);
-          if (roleNumber === 1) {
+          console.log("[LOGIN] Redirigiendo a dashboard", role);
+          if (role === "admin") {
             navigate("/admin/dashboard");
           } else {
             navigate("/user/dashboard");
