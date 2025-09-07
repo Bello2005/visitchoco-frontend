@@ -26,7 +26,7 @@ class WeatherService {
   async getCurrentWeather(lat: number, lon: number): Promise<WeatherData> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/weather/current?lat=${lat}&lon=${lon}`
+        `${API_BASE_URL}/api/weather/current?lat=${lat}&lon=${lon}`
       );
 
       if (!response.ok) {

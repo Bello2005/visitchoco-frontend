@@ -29,7 +29,6 @@ export interface Municipality {
   emoji: string | null;
   zone: string | null;
   main_activity: string | null;
-  cod_dane?: string;
   attractions: Attraction[];
   transportation: Transportation[];
   weather: {

@@ -43,7 +43,7 @@ class EthnicDistributionService {
   // Obtener toda la distribución étnica
   async getAllEthnicDistribution(): Promise<EthnicDistribution[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ethnic`);
+      const response = await fetch(`${API_BASE_URL}/api/ethnic`);
       if (!response.ok) {
         throw new Error("Error al obtener la distribución étnica");
       }
@@ -59,7 +59,7 @@ class EthnicDistributionService {
     codDane: string
   ): Promise<EthnicDistribution[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ethnic/${codDane}`);
+      const response = await fetch(`${API_BASE_URL}/api/ethnic/${codDane}`);
       if (!response.ok) {
         throw new Error(
           "Error al obtener la distribución étnica del municipio"
@@ -75,7 +75,7 @@ class EthnicDistributionService {
   // Obtener el resumen étnico más reciente
   async getLatestEthnicSummary(): Promise<EthnicDistribution[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ethnic/latest`);
+      const response = await fetch(`${API_BASE_URL}/api/ethnic/latest`);
       if (!response.ok) {
         throw new Error("Error al obtener el resumen étnico");
       }
@@ -89,7 +89,7 @@ class EthnicDistributionService {
   // Obtener resumen total por etnia
   async getTotalEthnicSummary(): Promise<EthnicSummary[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ethnic/summary/total`);
+      const response = await fetch(`${API_BASE_URL}/api/ethnic/summary/total`);
       if (!response.ok) {
         throw new Error("Error al obtener el resumen total por etnia");
       }
@@ -117,7 +117,7 @@ class EthnicDistributionService {
   // Obtener estadísticas generales de distribución étnica
   async getEthnicStats(): Promise<EthnicStats[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/ethnic/stats`);
+      const response = await fetch(`${API_BASE_URL}/api/ethnic/stats`);
       if (!response.ok) {
         throw new Error("Error al obtener las estadísticas étnicas");
       }

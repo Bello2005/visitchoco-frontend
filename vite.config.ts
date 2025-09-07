@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   server: {
     // ...otros settings...
-    allowedHosts: ("718652bd4b2d.ngrok-free.app"),
+    allowedHosts: ["718652bd4b2d.ngrok-free.app"],
   },
   plugins: [react()],
 });
