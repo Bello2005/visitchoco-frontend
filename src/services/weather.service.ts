@@ -1,14 +1,37 @@
 import { API_BASE_URL } from "../config/api.config";
 
 export interface WeatherData {
-  temp: number;
-  feels_like: number;
-  temp_min: number;
-  temp_max: number;
-  humidity: number;
-  description: string;
-  icon: string;
-  wind_speed: number;
+  main: {
+    temp: number;
+    feels_like: number;
+    temp_min: number;
+    temp_max: number;
+    pressure: number;
+    humidity: number;
+  };
+  weather: [
+    {
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }
+  ];
+  wind: {
+    speed: number;
+    deg: number;
+  };
+  visibility: number;
+  clouds: {
+    all: number;
+  };
+  dt: number;
+  sys: {
+    sunrise: number;
+    sunset: number;
+  };
+  timezone: number;
+  uvi: number;
 }
 
 class WeatherService {

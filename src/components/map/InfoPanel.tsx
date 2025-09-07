@@ -12,7 +12,7 @@ import type {
 import type { WeatherData } from "../../services/weather.service";
 
 interface InfoPanelProps {
-  selectedMunicipality: Municipality;
+  municipality?: Municipality;
   activeFilter?: FilterType;
   selectedReserves?: IndigenousReserve[];
   selectedSpots?: TouristSpot[];
@@ -20,7 +20,7 @@ interface InfoPanelProps {
 }
 
 const InfoPanel: React.FC<InfoPanelProps> = ({
-  selectedMunicipality,
+  municipality,
   activeFilter = "general",
   selectedReserves = [],
   selectedSpots = [],

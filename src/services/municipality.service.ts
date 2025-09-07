@@ -18,17 +18,18 @@ interface Transportation {
 
 export interface Municipality {
   id: number;
-  cod_dane: string;
   name: string;
+  zone: string | null;
+  emoji: string | null;
+  cod_dane: string;
+  population?: number;
+  main_activity: string | null;
   description: string | null;
   image_url: string | null;
   audio_url: string | null;
   lat: number;
   lon: number;
   slug: string;
-  emoji: string | null;
-  zone: string | null;
-  main_activity: string | null;
   attractions: Attraction[];
   transportation: Transportation[];
   weather: {

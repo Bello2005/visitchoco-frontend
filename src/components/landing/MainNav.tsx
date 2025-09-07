@@ -15,6 +15,7 @@ import { Dialog, Transition } from "@headlessui/react";
 export interface MainNavProps {
   active?: "mapa" | "animales" | "turismo" | "fiesta" | string;
   initialQuery?: string;
+  onLogin?: () => void | Promise<void>;
 }
 
 const NAV_LINKS = [
@@ -24,10 +25,7 @@ const NAV_LINKS = [
   { id: "fiesta", label: "Fiesta", href: "/fiesta", icon: PartyPopper },
 ] as const;
 
-export function MainNav({
-  active = "",
-  initialQuery = "",
-}: MainNavProps) {
+export function MainNav({ active = "", initialQuery = "" }: MainNavProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [q, setQ] = useState(initialQuery);
   const [focusSearch, setFocusSearch] = useState(false);

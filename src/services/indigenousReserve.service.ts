@@ -10,12 +10,17 @@ export interface IndigenousReserve {
   plan_number: string;
   indigenous_people: string;
   cod_dane: string;
-  lat: number;
-  lon: number;
+  latitude: number;
+  longitude: number;
+  lng: number;
+  municipality: string;
   territory_geom: {
     type: "MultiPolygon";
     coordinates: number[][][][];
   };
+  mainEthnicGroup?: string;
+  population?: number;
+  description?: string;
 }
 
 class IndigenousReserveService {
