@@ -13,8 +13,12 @@ export function AdminDashboard() {
       return;
     }
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/admin/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
+    fetch(`https://visitchoco-backend.vercel.app/api/admin/dashboard`, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
     })
       .then((res) => {
         if (!res.ok) throw new Error(`Error ${res.status}`);

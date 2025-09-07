@@ -10,7 +10,7 @@ export class AuthService {
     try {
       console.log("[AUTH] Obteniendo datos del dashboard para rol:", role);
       const baseUrl = "https://visitchoco-backend.vercel.app";
-      const url = `${baseUrl}/api/auth/${role}/dashboard`;
+      const url = `${baseUrl}/api/${role}/dashboard`;
       console.log("[AUTH] URL del dashboard:", url);
 
       const token = localStorage.getItem("authToken");
@@ -23,14 +23,21 @@ export class AuthService {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      console.log("[AUTH] Estado de la respuesta:", response.status, response.statusText);
-      console.log("[AUTH] Headers de la respuesta:", Object.fromEntries(response.headers.entries()));
+      console.log(
+        "[AUTH] Estado de la respuesta:",
+        response.status,
+        response.statusText
+      );
+      console.log(
+        "[AUTH] Headers de la respuesta:",
+        Object.fromEntries(response.headers.entries())
+      );
 
       const textResponse = await response.text();
       console.log("[AUTH] Respuesta como texto:", textResponse);
@@ -38,11 +45,13 @@ export class AuthService {
       try {
         const jsonResponse = JSON.parse(textResponse);
         console.log("[AUTH] Respuesta parseada como JSON:", jsonResponse);
-        
+
         if (!response.ok) {
-          throw new Error(jsonResponse.message || "Error al obtener datos del dashboard");
+          throw new Error(
+            jsonResponse.message || "Error al obtener datos del dashboard"
+          );
         }
-        
+
         return jsonResponse;
       } catch (parseError) {
         console.error("[AUTH] Error al parsear respuesta JSON:", parseError);
