@@ -11,7 +11,9 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     const role = authService.getRole();
-    if (!authService.isAuthenticated() || role !== "1") {
+    console.log("[ADMIN-DASHBOARD] Rol actual:", role);
+    if (!authService.isAuthenticated() || role !== "admin") {
+      console.log("[ADMIN-DASHBOARD] Usuario no autenticado o no es admin");
       navigate("/login");
       return;
     }
