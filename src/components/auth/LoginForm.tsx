@@ -81,6 +81,7 @@ export const LoginForm = ({
                   : "border-white/20"
               } rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:outline-none transition-all duration-200`}
               placeholder="tu@email.com"
+              autoComplete="username"
             />
           </div>
         </div>
