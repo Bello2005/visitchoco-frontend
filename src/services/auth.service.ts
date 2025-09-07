@@ -1,5 +1,3 @@
-import { buildApiUrl } from "../utils/api";
-
 interface AuthResponse {
   message: string;
   error?: string;
@@ -8,14 +6,19 @@ interface AuthResponse {
 export class AuthService {
   private getHeaders() {
     const token = localStorage.getItem("authToken");
-    console.log("[AUTH] Token para headers:", token);
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+    console.log("[AUTH] Token en localStorage:", token);
+    
+    if (!token) {
+      console.error("[AUTH] No se encontró token en localStorage");
+      return {
+        "Content-Type": "application/json"
+      };
     }
+
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    };
 
     console.log("[AUTH] Headers construidos:", headers);
     return headers;
@@ -24,12 +27,17 @@ export class AuthService {
   async getDashboardData(role: "admin" | "user"): Promise<AuthResponse> {
     try {
       console.log("[AUTH] Obteniendo datos del dashboard para rol:", role);
-      const url = buildApiUrl(`/auth/${role}/dashboard`);
+      // Construir la URL manualmente para asegurarnos de que sea correcta
+      const baseUrl = "https://visitchoco-backend.vercel.app";
+      const url = `${baseUrl}/api/auth/${role}/dashboard`;
       console.log("[AUTH] URL del dashboard:", url);
+
+      const headers = this.getHeaders();
+      console.log("[AUTH] Headers de la petición:", headers);
 
       const response = await fetch(url, {
         method: "GET",
-        headers: this.getHeaders(),
+        headers: headers,
       });
 
       console.log("[AUTH] Respuesta del dashboard:", response);
