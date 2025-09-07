@@ -4,26 +4,6 @@ interface AuthResponse {
 }
 
 export class AuthService {
-  private getHeaders() {
-    const token = localStorage.getItem("authToken");
-    console.log("[AUTH] Token en localStorage:", token);
-
-    if (!token) {
-      console.error("[AUTH] No se encontró token en localStorage");
-      return {
-        "Content-Type": "application/json",
-      };
-    }
-
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-
-    console.log("[AUTH] Headers construidos:", headers);
-    return headers;
-  }
-
   async getDashboardData(role: "admin" | "user"): Promise<AuthResponse> {
     try {
       console.log("[AUTH] Obteniendo datos del dashboard para rol:", role);
@@ -32,12 +12,22 @@ export class AuthService {
       const url = `${baseUrl}/api/auth/${role}/dashboard`;
       console.log("[AUTH] URL del dashboard:", url);
 
-      const headers = this.getHeaders();
-      console.log("[AUTH] Headers de la petición:", headers);
+      const token = localStorage.getItem("authToken");
+      console.log("[AUTH] Token almacenado:", token ? "Presente" : "No encontrado");
+
+      const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
+      console.log("[AUTH] Headers de la petición:", {
+        ...headers,
+        Authorization: "Bearer [FILTERED]"
+      });
 
       const response = await fetch(url, {
         method: "GET",
         headers: headers,
+        credentials: "include"
       });
 
       console.log("[AUTH] Respuesta del dashboard:", response);
