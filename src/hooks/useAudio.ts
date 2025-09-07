@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 
-export const useAudio = (audioUrl: string) => {
+export const useAudio = (_audioUrl: string) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 

@@ -1,4 +1,4 @@
-import type { FeatureCollection, Feature, Polygon } from "geojson";
+import type { FeatureCollection, Polygon } from "geojson";
 
 interface RegionProperties {
   name: string;
