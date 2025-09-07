@@ -10,13 +10,13 @@ export const useAudio = (audioUrl: string) => {
     // Crear elemento de audio
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
-    
+
     // Manejar eventos de carga
     const handleCanPlay = () => {
       setIsLoading(false);
       setError(null);
     };
-    
+
     const handleError = () => {
       setIsLoading(false);
       setError("Error al cargar el audio");

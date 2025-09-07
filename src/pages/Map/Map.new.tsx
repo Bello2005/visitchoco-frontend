@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import "leaflet";
+import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
 import { useMediaQuery } from "react-responsive";
-import { MapContainer, TileLayer } from "react-leaflet";
+import {                 if (mapRef.current && reserve.latitude && reserve.longitude) {
+                    mapRef.current.setView(
+                      [reserve.latitude, reserve.longitude],Container, TileLayer } from "react-leaflet";
 import { Map as LeafletMapType } from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
-
 import { municipalityService } from "../../services/municipality.service";
 
 // Estilos
@@ -29,16 +30,7 @@ const CHOCO_DEFAULT_ZOOM = 7.5;
 const MUNICIPALITY_ZOOM = 9;
 
 const Map: React.FC = () => {
-  const [chocoGeoJson, setChocoGeoJson] = useState<{
-    type: "FeatureCollection";
-    features: Array<{
-      type: "Feature";
-      geometry: {
-        type: "Polygon" | "MultiPolygon";
-        coordinates: number[][][];
-      };
-    }>;
-  } | null>(null);
+  const [chocoGeoJson, setChocoGeoJson] = useState<any>(null);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] =
     useState<Municipality | null>(null);
@@ -53,7 +45,7 @@ const Map: React.FC = () => {
 
   // Cargar el GeoJSON del Chocó
   useEffect(() => {
-    fetch("/data/chocoRegion.geojson")
+    fetch("/src/data/chocoRegion.geojson")
       .then((res) => res.json())
       .then((data) => setChocoGeoJson(data));
   }, []);
@@ -84,8 +76,8 @@ const Map: React.FC = () => {
 
     const addMaskToMap = async () => {
       await import("leaflet-maskcanvas");
-      if (typeof window.L?.maskCanvas === "function") {
-        const maskLayer = window.L.maskCanvas({
+      if (window.L?.maskCanvas) {
+        const maskLayer = L.maskCanvas({
           radius: 1,
           color: "#4ade80",
           opacity: 1,
@@ -97,9 +89,7 @@ const Map: React.FC = () => {
         maskLayer.setData(
           coordinates.map(([lng, lat]: number[]) => [lat, lng])
         );
-        if (mapRef.current) {
-          maskLayer.addTo(mapRef.current);
-        }
+        maskLayer.addTo(mapRef.current);
       }
     };
 
@@ -154,9 +144,9 @@ const Map: React.FC = () => {
               selectedReserve={selectedReserve}
               onReserveClick={(reserve) => {
                 setSelectedReserve(reserve);
-                if (mapRef.current && reserve.latitude && reserve.longitude) {
+                if (mapRef.current && reserve.lat && reserve.lon) {
                   mapRef.current.setView(
-                    [reserve.latitude, reserve.longitude],
+                    [reserve.lat, reserve.lon],
                     MUNICIPALITY_ZOOM
                   );
                 }
@@ -195,9 +185,9 @@ const Map: React.FC = () => {
             selectedReserve={selectedReserve}
             onSelectReserve={(reserve) => {
               setSelectedReserve(reserve);
-              if (mapRef.current && reserve.latitude && reserve.longitude) {
+              if (mapRef.current && reserve.lat && reserve.lon) {
                 mapRef.current.setView(
-                  [reserve.latitude, reserve.longitude],
+                  [reserve.lat, reserve.lon],
                   MUNICIPALITY_ZOOM
                 );
               }
