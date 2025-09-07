@@ -1,0 +1,21 @@
+/* Estilos para inputs con autocompletado */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: inset 0 0 20px 20px rgb(17 24 39 / 1);
+}
+
+/* Para Firefox */
+input:autofill {
+  -webkit-text-fill-color: white !important;
+  box-shadow: inset 0 0 20px 20px rgb(17 24 39 / 1);
+}
+
+/* Para Edge */
+input:-ms-input-placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}

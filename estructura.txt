@@ -1,0 +1,62 @@
+.
+├── eslint.config.js
+├── estructura.txt
+├── index.html
+├── package.json
+├── package-lock.json
+├── postcss.config.cjs
+├── postcss.config.js
+├── public
+│   ├── output.css
+│   └── vite.svg
+├── README.md
+├── src
+│   ├── App.css
+│   ├── AppRouter.tsx
+│   ├── App.tsx
+│   ├── assets
+│   │   └── react.svg
+│   ├── components
+│   │   ├── auth
+│   │   ├── brand
+│   │   ├── common
+│   │   ├── features
+│   │   ├── landing
+│   │   └── Spinner.tsx
+│   ├── hooks
+│   │   ├── useAudio.ts
+│   │   ├── useFeatureRotation.ts
+│   │   └── useForm.ts
+│   ├── hooks copy
+│   │   ├── useAudio.ts
+│   │   ├── useFeatureRotation.ts
+│   │   └── useForm.ts
+│   ├── index.css
+│   ├── main.tsx
+│   ├── models
+│   │   ├── Palm
+│   │   └── whale
+│   ├── pages
+│   │   ├── Dashboard
+│   │   ├── Landing
+│   │   ├── Login
+│   │   └── Register
+│   ├── styles
+│   │   ├── components
+│   │   ├── components.css
+│   │   ├── constants
+│   │   ├── Landing
+│   │   ├── Login
+│   │   ├── Login.styles.tsx
+│   │   ├── pages
+│   │   └── Register
+│   └── vite-env.d.ts
+├── tailwind.config.cjs
+├── tailwind.config.js
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── visitchoco-sullstack.code-workspace
+└── vite.config.ts
+
+27 directories, 33 files

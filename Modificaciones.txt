@@ -1,0 +1,2 @@
+- cambiar el fondo de la landing
+- Mejorar la interfaz del mapa (mucha saturación, cambiar la forma en la que se muestran las reservas,cambiar el zoom total y el zoom minimo)
