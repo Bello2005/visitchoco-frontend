@@ -27,7 +27,7 @@ class IndigenousReserveService {
   // Obtener todas las reservas indígenas
   async getAllIndigenousReserves(): Promise<IndigenousReserve[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/indigenous`);
+      const response = await fetch(`${API_BASE_URL}/api/indigenous`);
       if (!response.ok) {
         throw new Error("Error al obtener las reservas indígenas");
       }
@@ -41,7 +41,7 @@ class IndigenousReserveService {
   // Obtener reserva indígena por ID
   async getIndigenousReserveById(id: number): Promise<IndigenousReserve> {
     try {
-      const response = await fetch(`${API_BASE_URL}/indigenous/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/indigenous/${id}`);
       if (!response.ok) {
         throw new Error("Error al obtener la reserva indígena");
       }
@@ -58,7 +58,7 @@ class IndigenousReserveService {
   ): Promise<IndigenousReserve[]> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/indigenous/municipality/${codDane}`
+        `${API_BASE_URL}/api/indigenous/municipality/${codDane}`
       );
       if (!response.ok) {
         throw new Error(
