@@ -77,7 +77,7 @@ const ChocoLuxuryLogin = () => {
     },
   ];
   const activeFeature = useFeatureRotation({ featuresLength: features.length });
-  const { audioRef, isPlaying, toggleAudio } = useAudio(
+  const { isPlaying, toggleAudio } = useAudio(
     "/audio/prueba/ambientSounds.mp3"
   );
 
@@ -333,7 +333,7 @@ const ChocoLuxuryLogin = () => {
           </div>
         </div>
         {/* Audio ambiental oculto */}
-        <audio ref={audioRef} preload="auto" loop style={{ display: "none" }} />
+
         <Footer isPlaying={isPlaying} onToggleAudio={toggleAudio} />
         {/* Estilos para animaciones y scrollbars personalizados */}
         <style>{`
