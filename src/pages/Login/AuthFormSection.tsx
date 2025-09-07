@@ -1,4 +1,4 @@
-import React from "react";
+
 import { Logo } from "../../components/brand/Logo";
 import { AuthTabs } from "../../components/auth/AuthTabs";
 import { LoginForm } from "../../components/auth/LoginForm";

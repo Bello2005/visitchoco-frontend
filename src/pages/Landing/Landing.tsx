@@ -1,4 +1,4 @@
-import React from "react";
+
 import { ParticlesBackground } from "../../components/landing/ParticlesBackground";
 import { MainNav } from "../../components/landing/MainNav";
 import { HeroSection } from "../../components/landing/HeroSection";
