@@ -96,8 +96,6 @@ function AppContent() {
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
-      window.removeEventListener("load", handleLoadComplete);
-      document.removeEventListener("readystatechange", handleLoadingState);
     };
   }, [location]);
 

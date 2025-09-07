@@ -62,11 +62,11 @@ export const IndigenousReserveDetails: React.FC<IndigenousReserveDetailsProps> =
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-600">Ubicación</h3>
         <div className="grid grid-cols-2 gap-4 mt-2">
-          {(reserve.lat !== undefined || reserve.latitude !== undefined) && (
+          {reserve.latitude !== undefined && (
             <div>
               <p className="text-sm text-gray-600">Latitud</p>
               <p className="text-lg text-gray-800">
-                {formatCoordinate(reserve.lat ?? reserve.latitude)}
+                {formatCoordinate(reserve.latitude)}
               </p>
             </div>
           )}
