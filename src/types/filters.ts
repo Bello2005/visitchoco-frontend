@@ -18,6 +18,8 @@ export interface IndigenousReserve {
   id: string;
   name: string;
   mainEthnicGroup: string;
+  latitude: number;
+  longitude: number;
   population?: number;
   description?: string;
   location?: {
