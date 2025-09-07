@@ -182,6 +182,7 @@ export const RegisterForm = ({
                   : "border-white/10"
               } rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:border-transparent focus:outline-none transition-all text-white placeholder-white/70`}
               placeholder="••••••••"
+              autoComplete="new-password"
             />
             <button
               type="button"
@@ -206,6 +207,7 @@ export const RegisterForm = ({
               value={values.confirmPassword}
               onChange={(e) => handleChange("confirmPassword", e.target.value)}
               onBlur={() => handleBlur("confirmPassword")}
+              autoComplete="new-password"
               className={`w-full px-4 py-3 bg-white/5 border ${
                 touched.confirmPassword && errors.confirmPassword
                   ? "border-rose-400"

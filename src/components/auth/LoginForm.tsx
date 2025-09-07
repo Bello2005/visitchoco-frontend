@@ -103,6 +103,7 @@ export const LoginForm = ({
               required
               className={`w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:outline-none transition-all duration-200`}
               placeholder="••••••••"
+              autoComplete="current-password"
             />
             <button
               type="button"
