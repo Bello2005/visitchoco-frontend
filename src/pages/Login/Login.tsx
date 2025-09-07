@@ -15,6 +15,7 @@ import { LoginForm } from "../../components/auth/LoginForm";
 import { RegisterForm } from "../../components/auth/RegisterForm";
 import { useAudio } from "../../hooks/useAudio";
 import { useFeatureRotation } from "../../hooks/useFeatureRotation";
+import { buildApiUrl } from "../../utils/api";
 
 const ChocoLuxuryLogin = () => {
   // Reset loading al desmontar (por si el usuario navega manualmente)
@@ -85,7 +86,7 @@ const ChocoLuxuryLogin = () => {
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
     const isMobile = window.innerWidth < 640;
-    const apiUrl = `${import.meta.env.VITE_API_URL}/auth/login`;
+    const apiUrl = buildApiUrl('/auth/login');
     console.log("[LOGIN] Iniciando login", values, { isMobile });
     console.log("[LOGIN] API URL:", apiUrl);
     try {
@@ -182,7 +183,7 @@ const ChocoLuxuryLogin = () => {
   }) => {
     setLoading(true);
     const isMobile = window.innerWidth < 640;
-    const apiUrl = `${import.meta.env.VITE_API_URL}/auth/register`;
+    const apiUrl = buildApiUrl('/auth/register');
     console.log("[REGISTER] Iniciando registro", values, { isMobile });
     console.log("[REGISTER] API URL:", apiUrl);
     try {
