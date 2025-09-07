@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ToastContainer, toast, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -15,8 +15,6 @@ import { LoginForm } from "../../components/auth/LoginForm";
 import { RegisterForm } from "../../components/auth/RegisterForm";
 import { useAudio } from "../../hooks/useAudio";
 import { useFeatureRotation } from "../../hooks/useFeatureRotation";
-import { ChocoToastContainer } from "./ChocoToastContainer";
-import { AuthFormSection } from "./AuthFormSection";
 
 const ChocoLuxuryLogin = () => {
   // Reset loading al desmontar (por si el usuario navega manualmente)
@@ -40,7 +38,6 @@ const ChocoLuxuryLogin = () => {
     } else if (tabParam !== "register" && activeTab !== "login") {
       setActiveTab("login");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, activeTab]);
 
   // Cuando cambia el tab, actualiza el parámetro en la URL

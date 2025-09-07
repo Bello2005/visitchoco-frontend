@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import L from "leaflet";
+import "leaflet";
 import { useMediaQuery } from "react-responsive";
 import { MapContainer, TileLayer } from "react-leaflet";
 import { Map as LeafletMapType } from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
+import type { Feature, FeatureCollection, Polygon } from "geojson";
 import { municipalityService } from "../../services/municipality.service";
 
 // Estilos
@@ -28,7 +29,16 @@ const CHOCO_DEFAULT_ZOOM = 7.5;
 const MUNICIPALITY_ZOOM = 9;
 
 const Map: React.FC = () => {
-  const [chocoGeoJson, setChocoGeoJson] = useState<any>(null);
+  const [chocoGeoJson, setChocoGeoJson] = useState<{
+    type: "FeatureCollection";
+    features: Array<{
+      type: "Feature";
+      geometry: {
+        type: "Polygon" | "MultiPolygon";
+        coordinates: number[][][];
+      };
+    }>;
+  } | null>(null);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] =
     useState<Municipality | null>(null);
@@ -74,8 +84,8 @@ const Map: React.FC = () => {
 
     const addMaskToMap = async () => {
       await import("leaflet-maskcanvas");
-      if (window.L?.maskCanvas) {
-        const maskLayer = L.maskCanvas({
+      if (typeof window.L !== "undefined" && window.L.maskCanvas) {
+        const maskLayer = window.L.maskCanvas({
           radius: 1,
           color: "#4ade80",
           opacity: 1,
@@ -87,7 +97,9 @@ const Map: React.FC = () => {
         maskLayer.setData(
           coordinates.map(([lng, lat]: number[]) => [lat, lng])
         );
-        maskLayer.addTo(mapRef.current);
+        if (mapRef.current) {
+          maskLayer.addTo(mapRef.current);
+        }
       }
     };
 
@@ -142,9 +154,9 @@ const Map: React.FC = () => {
               selectedReserve={selectedReserve}
               onReserveClick={(reserve) => {
                 setSelectedReserve(reserve);
-                if (mapRef.current && reserve.lat && reserve.lon) {
+                if (mapRef.current && reserve.latitude && reserve.longitude) {
                   mapRef.current.setView(
-                    [reserve.lat, reserve.lon],
+                    [reserve.latitude, reserve.longitude],
                     MUNICIPALITY_ZOOM
                   );
                 }
@@ -183,9 +195,9 @@ const Map: React.FC = () => {
             selectedReserve={selectedReserve}
             onSelectReserve={(reserve) => {
               setSelectedReserve(reserve);
-              if (mapRef.current && reserve.lat && reserve.lon) {
+              if (mapRef.current && reserve.latitude && reserve.longitude) {
                 mapRef.current.setView(
-                  [reserve.lat, reserve.lon],
+                  [reserve.latitude, reserve.longitude],
                   MUNICIPALITY_ZOOM
                 );
               }

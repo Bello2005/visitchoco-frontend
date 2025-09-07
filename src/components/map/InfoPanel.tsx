@@ -39,12 +39,12 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
 
   useEffect(() => {
     const fetchEthnicData = async () => {
-      if (selectedMunicipality?.cod_dane && activeFilter === "indigenous") {
+      if (municipality?.cod_dane && activeFilter === "indigenous") {
         setIsLoading(true);
         try {
           const data =
             await ethnicDistributionService.getEthnicDistributionByMunicipality(
-              selectedMunicipality.cod_dane
+              municipality.cod_dane
             );
           setEthnicDistributions(data);
 
@@ -67,7 +67,12 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
     };
 
     fetchEthnicData();
-  }, [selectedMunicipality?.cod_dane, activeFilter]);
+  }, [municipality?.cod_dane, activeFilter]);
+
+  if (!municipality) {
+    return null;
+  }
+
   return (
     <div
       className="bg-white/98 backdrop-blur-md rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100/40 p-5 space-y-4 max-h-[700px] overflow-y-auto transition-all duration-500 hover:shadow-[0_8px_40px_rgb(0,0,0,0.16)] hover:border-gray-200/60 focus-within:shadow-[0_8px_40px_rgb(0,0,0,0.16)] focus-within:border-sky-200/60 scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300 scrollbar-track-transparent motion-safe:animate-fadeIn"
@@ -85,24 +90,24 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
           <div className="space-y-2">
             <h2
               className="text-xl font-semibold text-gray-800 group flex items-center gap-2"
-              title={selectedMunicipality.name}
+              title={municipality.name}
             >
-              {selectedMunicipality.emoji && (
+              {municipality.emoji && (
                 <span
                   className="text-2xl"
                   role="img"
                   aria-label="Emoji representativo"
                 >
-                  {selectedMunicipality.emoji}
+                  {municipality.emoji}
                 </span>
               )}
               <span className="transition-colors group-hover:text-gray-900">
-                {selectedMunicipality.name}
+                {municipality.name}
               </span>
             </h2>
             <p
               className="text-sm text-gray-600 flex items-center gap-1.5 group"
-              title={`Zona: ${selectedMunicipality.zone || "No especificada"}`}
+              title={`Zona: ${municipality.zone || "No especificada"}`}
             >
               <svg
                 className="w-4 h-4 text-sky-500 transition-transform group-hover:scale-110"
@@ -118,7 +123,7 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
                 <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               <span className="transition-colors group-hover:text-gray-700">
-                Zona {selectedMunicipality.zone || "No especificada"}
+                Zona {municipality.zone || "No especificada"}
               </span>
             </p>
           </div>
@@ -128,22 +133,18 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
       {/* Contenido según el filtro activo */}
       {activeFilter === "general" && weatherData && (
         <div className="space-y-4">
-          {selectedMunicipality.main_activity && (
+          {municipality.main_activity && (
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-gray-100/60">
               <h3 className="text-sm text-gray-500 mb-1">
                 Actividad Principal
               </h3>
-              <p className="text-gray-800">
-                {selectedMunicipality.main_activity}
-              </p>
+              <p className="text-gray-800">{municipality.main_activity}</p>
             </div>
           )}
 
-          {selectedMunicipality.description && (
+          {municipality.description && (
             <div className="prose prose-sm max-w-none">
-              <p className="text-gray-600">
-                {selectedMunicipality.description}
-              </p>
+              <p className="text-gray-600">{municipality.description}</p>
             </div>
           )}
 
