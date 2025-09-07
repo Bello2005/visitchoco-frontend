@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+importReact, { useEffect, useRef, useState } from "react";
 import "leaflet";
 import { useMediaQuery } from "react-responsive";
 import { MapContainer, TileLayer } from "react-leaflet";
@@ -84,7 +84,7 @@ const Map: React.FC = () => {
 
     const addMaskToMap = async () => {
       await import("leaflet-maskcanvas");
-      if (typeof window.L !== "undefined" && window.L.maskCanvas) {
+        if (typeof window.L?.maskCanvas === 'function') {
         const maskLayer = window.L.maskCanvas({
           radius: 1,
           color: "#4ade80",

@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { useMediaQuery } from "react-responsive";
-import { MapContainer, TileLayer } from "react-leaflet";
+import {                 if (mapRef.current && reserve.latitude && reserve.longitude) {
+                    mapRef.current.setView(
+                      [reserve.latitude, reserve.longitude],Container, TileLayer } from "react-leaflet";
 import { Map as LeafletMapType } from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
 import { municipalityService } from "../../services/municipality.service";
