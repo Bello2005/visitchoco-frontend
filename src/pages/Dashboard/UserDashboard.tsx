@@ -1,19 +1,50 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AuthService } from "../../services/auth.service";
+
+const authService = new AuthService();
 
 export const UserDashboard = () => {
   const navigate = useNavigate();
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar si el usuario está autenticado
-    const token = localStorage.getItem("authToken");
-    const role = localStorage.getItem("userRole");
-
-    if (!token || Number(role) === 1) {
+    const role = authService.getRole();
+    if (!authService.isAuthenticated() || role === "1") {
       navigate("/login");
       return;
     }
+
+    const fetchDashboardData = async () => {
+      const response = await authService.getDashboardData('user');
+      if (response.error) {
+        setError(response.error);
+        if (response.error === 'Error de autenticación') {
+          navigate("/login");
+        }
+      }
+      setLoading(false);
+    };
+
+    fetchDashboardData();
   }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+        <p className="text-xl">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+        <p className="text-xl text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
