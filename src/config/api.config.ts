@@ -4,6 +4,6 @@ export const API_BASE_URL =
 
 // Rutas específicas
 export const API_ROUTES = {
-  municipalities: "/api/municipalities",
-  municipalityBySlug: (slug: string) => `/api/municipalities/${slug}`,
+  municipalities: "/municipalities",
+  municipalityBySlug: (slug: string) => `/municipalities/${slug}`,
 };
