@@ -8,20 +8,35 @@ interface AuthResponse {
 export class AuthService {
   private getHeaders() {
     const token = localStorage.getItem("authToken");
-    return {
+    console.log("[AUTH] Token para headers:", token);
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
     };
+
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    console.log("[AUTH] Headers construidos:", headers);
+    return headers;
   }
 
   async getDashboardData(role: "admin" | "user"): Promise<AuthResponse> {
     try {
-      const response = await fetch(buildApiUrl(`/auth/${role}/dashboard`), {
+      console.log("[AUTH] Obteniendo datos del dashboard para rol:", role);
+      const url = buildApiUrl(`/auth/${role}/dashboard`);
+      console.log("[AUTH] URL del dashboard:", url);
+
+      const response = await fetch(url, {
         method: "GET",
         headers: this.getHeaders(),
       });
 
+      console.log("[AUTH] Respuesta del dashboard:", response);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[AUTH] Error del dashboard:", errorText);
         throw new Error("Error de autenticación");
       }
 
