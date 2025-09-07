@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
 import { useMediaQuery } from "react-responsive";
 import { MapContainer, TileLayer } from "react-leaflet";
 import { Map as LeafletMapType } from "leaflet";
@@ -17,13 +18,9 @@ import { MobilePanel } from "../../components/map/MobilePanel";
 import { MapMarkers } from "../../components/map/MapMarkers";
 import MunicipalityBoundaries from "../../components/map/MunicipalityBoundaries";
 import { IndigenousReserveBoundaries } from "../../components/map/IndigenousReserveBoundaries";
-import { FilterBar } from "../../components/map/FilterBar";
-import { EthnicFilter } from "../../components/map/filters/EthnicFilter";
 import type { FilterCategory } from "../../types/filters";
 import type { IndigenousReserve } from "../../services/indigenousReserve.service";
 import indigenousReserveService from "../../services/indigenousReserve.service";
-import type { EthnicDistribution } from "../../services/ethnicDistribution.service";
-import { ethnicDistributionService } from "../../services/ethnicDistribution.service";
 
 // Coordenadas centrales del Chocó y configuración del mapa
 const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
@@ -31,6 +28,7 @@ const CHOCO_DEFAULT_ZOOM = 7.5;
 const MUNICIPALITY_ZOOM = 9;
 
 const Map: React.FC = () => {
+  const [chocoGeoJson, setChocoGeoJson] = useState<any>(null);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] =
     useState<Municipality | null>(null);
@@ -43,28 +41,58 @@ const Map: React.FC = () => {
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const mapRef = useRef<LeafletMapType>(null);
 
+  // Cargar el GeoJSON del Chocó
+  useEffect(() => {
+    fetch("/data/chocoRegion.geojson")
+      .then((res) => res.json())
+      .then((data) => setChocoGeoJson(data));
+  }, []);
+
+  // Cargar datos del backend
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Cargar municipios
         const municipalitiesData =
           await municipalityService.getAllMunicipalities();
         setMunicipalities(municipalitiesData);
 
-        // Cargar reservas indígenas
         const reservesData =
           await indigenousReserveService.getAllIndigenousReserves();
         setReserves(reservesData);
 
-        // Inicialmente no mostrar ningún marcador
         setVisibleMarkers([]);
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
   }, []);
+
+  // Efecto para agregar la máscara al mapa cuando el GeoJSON esté disponible
+  useEffect(() => {
+    if (!chocoGeoJson || !mapRef.current) return;
+
+    const addMaskToMap = async () => {
+      await import("leaflet-maskcanvas");
+      if (window.L?.maskCanvas) {
+        const maskLayer = L.maskCanvas({
+          radius: 1,
+          color: "#4ade80",
+          opacity: 1,
+          noMask: true,
+          useAbsoluteRadius: true,
+          lineColor: "#059669",
+        });
+        const coordinates = chocoGeoJson.features[0].geometry.coordinates[0];
+        maskLayer.setData(
+          coordinates.map(([lng, lat]: number[]) => [lat, lng])
+        );
+        maskLayer.addTo(mapRef.current);
+      }
+    };
+
+    addMaskToMap().catch(console.error);
+  }, [chocoGeoJson]);
 
   const resetMapView = () => {
     if (mapRef.current) {
@@ -82,14 +110,7 @@ const Map: React.FC = () => {
       );
     }
     setSelectedMunicipality(municipality);
-    // Mostrar solo el marcador del municipio seleccionado
     setVisibleMarkers([municipality.name]);
-
-    // Ajustar la vista del mapa con zoom
-    mapRef.current?.setView(
-      [municipality.lat, municipality.lon],
-      9 // Zoom más cercano para ver mejor el municipio
-    );
   };
 
   return (
@@ -121,7 +142,6 @@ const Map: React.FC = () => {
               selectedReserve={selectedReserve}
               onReserveClick={(reserve) => {
                 setSelectedReserve(reserve);
-                // Centrar el mapa en la reserva
                 if (mapRef.current && reserve.lat && reserve.lon) {
                   mapRef.current.setView(
                     [reserve.lat, reserve.lon],
