@@ -85,7 +85,7 @@ const ChocoLuxuryLogin = () => {
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
     const isMobile = window.innerWidth < 640;
-    const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/auth/login`;
+    const apiUrl = `${import.meta.env.VITE_API_URL}/auth/login`;
     console.log("[LOGIN] Iniciando login", values, { isMobile });
     console.log("[LOGIN] API URL:", apiUrl);
     try {
@@ -182,7 +182,7 @@ const ChocoLuxuryLogin = () => {
   }) => {
     setLoading(true);
     const isMobile = window.innerWidth < 640;
-    const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/auth/register`;
+    const apiUrl = `${import.meta.env.VITE_API_URL}/auth/register`;
     console.log("[REGISTER] Iniciando registro", values, { isMobile });
     console.log("[REGISTER] API URL:", apiUrl);
     try {
