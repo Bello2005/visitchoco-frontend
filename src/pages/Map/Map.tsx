@@ -84,7 +84,7 @@ const Map: React.FC = () => {
 
     const addMaskToMap = async () => {
       await import("leaflet-maskcanvas");
-        if (typeof window.L?.maskCanvas === 'function') {
+      if (typeof window.L?.maskCanvas === "function") {
         const maskLayer = window.L.maskCanvas({
           radius: 1,
           color: "#4ade80",

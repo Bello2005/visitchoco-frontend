@@ -18,9 +18,9 @@ export default defineConfig({
           icons: ["react-icons"],
           lottie: ["lottie-web"],
           utils: ["framer-motion", "react-toastify", "react-responsive"],
-        }
-      }
+        },
+      },
     },
-    chunkSizeWarningLimit: 800
-  }
+    chunkSizeWarningLimit: 800,
+  },
 });

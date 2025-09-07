@@ -1,17 +1,15 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Login } from "./pages/Login/Login";
+import Register from "./pages/Register/Register";
+import Map from "./pages/Map/Map";
+import Animals from "./pages/Animals/Animals";
+import Tourism from "./pages/Tourism/Tourism";
+import Festival from "./pages/Festival/Festival";
+import { Landing } from "./pages/Landing/Landing";
+import { AdminDashboard } from "./pages/Dashboard/AdminDashboard";
+import { UserDashboard } from "./pages/Dashboard/UserDashboard";
 import LoadingSpinner from "./components/LoadingSpinner";
-
-// Lazy loading de componentes
-const Login = lazy(() => import("./pages/Login/Login"));
-const Register = lazy(() => import("./pages/Register/Register"));
-const Map = lazy(() => import("./pages/Map/Map"));
-const Animals = lazy(() => import("./pages/Animals/Animals"));
-const Tourism = lazy(() => import("./pages/Tourism/Tourism"));
-const Festival = lazy(() => import("./pages/Festival/Festival"));
-const Landing = lazy(() => import("./pages/Landing/Landing"));
-const AdminDashboard = lazy(() => import("./pages/Dashboard/AdminDashboard"));
-const UserDashboard = lazy(() => import("./pages/Dashboard/UserDashboard"));
 
 const AppRouter = () => (
   <BrowserRouter>
