@@ -1,8 +1,5 @@
 /**
- * Con  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  // Asegurarse de que todas las rutas incluyan el prefijo /api
-  const apiPath = cleanPath.startsWith('/api/') ? cleanPath : `/api${cleanPath}`;
-  return `${baseUrl}${apiPath}`;ruye una URL de API asegurándose de que no haya barras duplicadas
+ * Construye una URL de API asegurándose de que no haya barras duplicadas y que tenga el prefijo /api
  * @param path La ruta de la API (debe comenzar con /)
  * @returns La URL completa de la API
  */
@@ -12,5 +9,7 @@ export const buildApiUrl = (path: string): string => {
     : import.meta.env.VITE_API_URL;
 
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${baseUrl}${cleanPath}`;
+  // Asegurarse de que todas las rutas incluyan el prefijo /api
+  const apiPath = cleanPath.startsWith('/api/') ? cleanPath : `/api${cleanPath}`;
+  return `${baseUrl}${apiPath}`;
 };
