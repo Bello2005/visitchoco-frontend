@@ -1,10 +1,10 @@
-importReact, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "leaflet";
 import { useMediaQuery } from "react-responsive";
 import { MapContainer, TileLayer } from "react-leaflet";
 import { Map as LeafletMapType } from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
-import type { Feature, FeatureCollection, Polygon } from "geojson";
+
 import { municipalityService } from "../../services/municipality.service";
 
 // Estilos
