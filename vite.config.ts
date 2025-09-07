@@ -8,4 +8,19 @@ export default defineConfig({
     allowedHosts: ["718652bd4b2d.ngrok-free.app"],
   },
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          leaflet: ["leaflet", "react-leaflet"],
+          swiper: ["swiper", "swiper/react"],
+          icons: ["react-icons"],
+          lottie: ["lottie-web"],
+          utils: ["framer-motion", "react-toastify", "react-responsive"],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 800
+  }
 });
