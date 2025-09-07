@@ -86,7 +86,7 @@ const ChocoLuxuryLogin = () => {
   const handleLogin = async (values: { email: string; password: string }) => {
     setLoading(true);
     const isMobile = window.innerWidth < 640;
-    const apiUrl = buildApiUrl('/auth/login');
+    const apiUrl = buildApiUrl("/auth/login");
     console.log("[LOGIN] Iniciando login", values, { isMobile });
     console.log("[LOGIN] API URL:", apiUrl);
     try {
@@ -183,7 +183,7 @@ const ChocoLuxuryLogin = () => {
   }) => {
     setLoading(true);
     const isMobile = window.innerWidth < 640;
-    const apiUrl = buildApiUrl('/auth/register');
+    const apiUrl = buildApiUrl("/auth/register");
     console.log("[REGISTER] Iniciando registro", values, { isMobile });
     console.log("[REGISTER] API URL:", apiUrl);
     try {

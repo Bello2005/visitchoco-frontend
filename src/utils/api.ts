@@ -10,6 +10,8 @@ export const buildApiUrl = (path: string): string => {
 
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   // Asegurarse de que todas las rutas incluyan el prefijo /api
-  const apiPath = cleanPath.startsWith('/api/') ? cleanPath : `/api${cleanPath}`;
+  const apiPath = cleanPath.startsWith("/api/")
+    ? cleanPath
+    : `/api${cleanPath}`;
   return `${baseUrl}${apiPath}`;
 };
