@@ -7,17 +7,17 @@ export class AuthService {
   private getHeaders() {
     const token = localStorage.getItem("authToken");
     console.log("[AUTH] Token en localStorage:", token);
-    
+
     if (!token) {
       console.error("[AUTH] No se encontró token en localStorage");
       return {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       };
     }
 
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     };
 
     console.log("[AUTH] Headers construidos:", headers);
