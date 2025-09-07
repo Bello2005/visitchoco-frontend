@@ -1,10 +1,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { useMediaQuery } from "react-responsive";
-import {                 if (mapRef.current && reserve.latitude && reserve.longitude) {
-                    mapRef.current.setView(
-                      [reserve.latitude, reserve.longitude],Container, TileLayer } from "react-leaflet";
+import type { FeatureCollection, Polygon } from "geojson";
+import { MapContainer, TileLayer } from "react-leaflet";
 import { Map as LeafletMapType } from "leaflet";
+
+// Extender la definición de tipos de Leaflet para incluir maskCanvas
+declare module "leaflet" {
+  namespace L {
+    function maskCanvas(options: {
+      radius: number;
+      color: string;
+      opacity: number;
+      noMask: boolean;
+      useAbsoluteRadius: boolean;
+      lineColor: string;
+    }): MaskCanvasLayer;
+
+    interface MaskCanvasLayer {
+      setData(data: number[][]): void;
+      addTo(map: LeafletMapType): this;
+    }
+  }
+}
 import type { Municipality } from "../../services/municipality.service";
 import { municipalityService } from "../../services/municipality.service";
 
@@ -30,7 +48,8 @@ const CHOCO_DEFAULT_ZOOM = 7.5;
 const MUNICIPALITY_ZOOM = 9;
 
 const Map: React.FC = () => {
-  const [chocoGeoJson, setChocoGeoJson] = useState<any>(null);
+  const [chocoGeoJson, setChocoGeoJson] =
+    useState<FeatureCollection<Polygon> | null>(null);
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] =
     useState<Municipality | null>(null);
@@ -76,7 +95,8 @@ const Map: React.FC = () => {
 
     const addMaskToMap = async () => {
       await import("leaflet-maskcanvas");
-      if (window.L?.maskCanvas) {
+      // Verificar si la funcionalidad de maskCanvas está disponible
+      if (typeof L.maskCanvas === "function") {
         const maskLayer = L.maskCanvas({
           radius: 1,
           color: "#4ade80",
@@ -85,11 +105,16 @@ const Map: React.FC = () => {
           useAbsoluteRadius: true,
           lineColor: "#059669",
         });
-        const coordinates = chocoGeoJson.features[0].geometry.coordinates[0];
-        maskLayer.setData(
-          coordinates.map(([lng, lat]: number[]) => [lat, lng])
-        );
-        maskLayer.addTo(mapRef.current);
+        const feature = chocoGeoJson.features[0];
+        if (feature.geometry.type === "Polygon") {
+          const coordinates = feature.geometry.coordinates[0];
+          maskLayer.setData(
+            coordinates.map(([lng, lat]: number[]) => [lat, lng])
+          );
+        }
+        if (mapRef.current) {
+          maskLayer.addTo(mapRef.current);
+        }
       }
     };
 
@@ -144,9 +169,9 @@ const Map: React.FC = () => {
               selectedReserve={selectedReserve}
               onReserveClick={(reserve) => {
                 setSelectedReserve(reserve);
-                if (mapRef.current && reserve.lat && reserve.lon) {
+                if (mapRef.current && reserve.latitude && reserve.longitude) {
                   mapRef.current.setView(
-                    [reserve.lat, reserve.lon],
+                    [reserve.latitude, reserve.longitude],
                     MUNICIPALITY_ZOOM
                   );
                 }
@@ -185,9 +210,9 @@ const Map: React.FC = () => {
             selectedReserve={selectedReserve}
             onSelectReserve={(reserve) => {
               setSelectedReserve(reserve);
-              if (mapRef.current && reserve.lat && reserve.lon) {
+              if (mapRef.current && reserve.latitude && reserve.longitude) {
                 mapRef.current.setView(
-                  [reserve.lat, reserve.lon],
+                  [reserve.latitude, reserve.longitude],
                   MUNICIPALITY_ZOOM
                 );
               }
