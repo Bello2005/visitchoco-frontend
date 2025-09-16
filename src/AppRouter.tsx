@@ -10,6 +10,7 @@ import { Landing } from "./pages/Landing/Landing";
 import { AdminDashboard } from "./pages/Dashboard/AdminDashboard";
 import { UserDashboard } from "./pages/Dashboard/UserDashboard";
 import LoadingSpinner from "./components/LoadingSpinner";
+import DashboardJosser from "./pages/Dashboard/DashbosrdJosser/DashboardJosser";
 
 const AppRouter = () => (
   <BrowserRouter>
@@ -22,6 +23,7 @@ const AppRouter = () => (
         <Route path="/animales" element={<Animals />} />
         <Route path="/turismo" element={<Tourism />} />
         <Route path="/fiesta" element={<Festival />} />
+        <Route path="/admin-josser" element={<DashboardJosser />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="*" element={<Navigate to="/" />} />

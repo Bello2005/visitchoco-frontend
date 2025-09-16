@@ -4,14 +4,11 @@
  * @returns La URL completa de la API
  */
 export const buildApiUrl = (path: string): string => {
-  const baseUrl = import.meta.env.VITE_API_URL.endsWith("/")
-    ? import.meta.env.VITE_API_URL.slice(0, -1)
-    : import.meta.env.VITE_API_URL;
+  const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000"; // fallback
+  const baseUrl = rawBaseUrl.endsWith("/") ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
 
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  // Asegurarse de que todas las rutas incluyan el prefijo /api
-  const apiPath = cleanPath.startsWith("/api/")
-    ? cleanPath
-    : `/api${cleanPath}`;
+  const apiPath = cleanPath.startsWith("/api/") ? cleanPath : `/api${cleanPath}`;
+  
   return `${baseUrl}${apiPath}`;
 };

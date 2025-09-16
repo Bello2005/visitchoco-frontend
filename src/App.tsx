@@ -11,6 +11,7 @@ import Tourism from "./pages/Tourism/Tourism";
 import Festival from "./pages/Festival/Festival";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
+import DashboardJosser from "./pages/Dashboard/DashbosrdJosser/DashboardJosser";
 
 function AppContent() {
   const location = useLocation();
@@ -116,6 +117,7 @@ function AppContent() {
         <Route path="/animales" element={<Animals />} />
         <Route path="/turismo" element={<Tourism />} />
         <Route path="/fiesta" element={<Festival />} />
+        <Route path="/admin-josser" element={<DashboardJosser />} />
       </Routes>
     </>
   );
