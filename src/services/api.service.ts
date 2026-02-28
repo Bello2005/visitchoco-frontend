@@ -1,7 +1,9 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config/api.config";
 
-// Crear una instancia de axios con la configuración base
+const isDev = import.meta.env.DEV;
+
+// Instancia central de axios para toda la aplicación
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -9,39 +11,31 @@ export const api = axios.create({
   },
 });
 
-// Interceptores para logging y manejo de errores
+// Inyectar token de autenticación y logging en desarrollo
 api.interceptors.request.use(
   (config) => {
-    console.log("=== REQUEST ===");
-    console.log("URL:", config.url);
-    console.log("Method:", config.method);
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (isDev) {
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+    }
     return config;
   },
-  (error) => {
-    console.error("Error en la petición:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Interceptor para manejar errores globalmente
+// Manejo global de errores de respuesta
 api.interceptors.response.use(
-  (response) => {
-    console.log("=== RESPONSE ===");
-    console.log("Status:", response.status);
-    console.log("Data:", response.data);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // Aquí puedes manejar errores globalmente
     if (error.response) {
-      // El servidor respondió con un código de error
-      console.error("Error de API:", error.response.data);
+      console.error(`[API] Error ${error.response.status}:`, error.response.data);
     } else if (error.request) {
-      // La petición fue hecha pero no se recibió respuesta
-      console.error("No se recibió respuesta del servidor");
+      console.error("[API] Sin respuesta del servidor");
     } else {
-      // Algo sucedió al configurar la petición
-      console.error("Error al configurar la petición:", error.message);
+      console.error("[API] Error de configuración:", error.message);
     }
     return Promise.reject(error);
   }
