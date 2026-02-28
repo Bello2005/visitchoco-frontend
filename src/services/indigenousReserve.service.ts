@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../config/api.config";
+import { api } from "./api.service";
 
 export interface IndigenousReserve {
   id: number;
@@ -24,52 +24,19 @@ export interface IndigenousReserve {
 }
 
 class IndigenousReserveService {
-  // Obtener todas las reservas indígenas
   async getAllIndigenousReserves(): Promise<IndigenousReserve[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/indigenous`);
-      if (!response.ok) {
-        throw new Error("Error al obtener las reservas indígenas");
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+    const { data } = await api.get<IndigenousReserve[]>("/api/indigenous");
+    return data;
   }
 
-  // Obtener reserva indígena por ID
   async getIndigenousReserveById(id: number): Promise<IndigenousReserve> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/indigenous/${id}`);
-      if (!response.ok) {
-        throw new Error("Error al obtener la reserva indígena");
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+    const { data } = await api.get<IndigenousReserve>(`/api/indigenous/${id}`);
+    return data;
   }
 
-  // Obtener reservas indígenas por municipio
-  async getIndigenousReservesByMunicipality(
-    codDane: string
-  ): Promise<IndigenousReserve[]> {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/indigenous/municipality/${codDane}`
-      );
-      if (!response.ok) {
-        throw new Error(
-          "Error al obtener las reservas indígenas del municipio"
-        );
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
+  async getIndigenousReservesByMunicipality(codDane: string): Promise<IndigenousReserve[]> {
+    const { data } = await api.get<IndigenousReserve[]>(`/api/indigenous/municipality/${codDane}`);
+    return data;
   }
 }
 

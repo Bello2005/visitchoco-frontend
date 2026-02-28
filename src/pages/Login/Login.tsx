@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ToastContainer, toast, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { RiHotelLine } from "react-icons/ri";
 import { BiLeaf } from "react-icons/bi";
 import { IoIosWater } from "react-icons/io";
@@ -18,6 +19,7 @@ import { useFeatureRotation } from "../../hooks/useFeatureRotation";
 import { buildApiUrl } from "../../utils/api";
 
 const ChocoLuxuryLogin = () => {
+  const { login } = useAuth();
   // Reset loading al desmontar (por si el usuario navega manualmente)
   useEffect(() => {
     return () => setLoading(false);
@@ -126,9 +128,8 @@ const ChocoLuxuryLogin = () => {
       }
       const { token, role } = JSON.parse(body);
       console.log("[LOGIN] Login exitoso", { token, role });
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("userRole", role);
-      console.log("[LOGIN] Token y role guardados en localStorage");
+      login({ token, role });
+      console.log("[LOGIN] Token y role guardados en AuthContext + localStorage");
       setLoading(false);
       const welcomeMessage =
         role === "admin"

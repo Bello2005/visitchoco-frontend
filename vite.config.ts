@@ -1,10 +1,10 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    // ...otros settings...
     allowedHosts: ["718652bd4b2d.ngrok-free.app"],
   },
   plugins: [react()],
@@ -16,11 +16,16 @@ export default defineConfig({
           leaflet: ["leaflet", "react-leaflet"],
           swiper: ["swiper", "swiper/react"],
           icons: ["react-icons"],
-          lottie: ["lottie-web"],
+          lottie: ["lottie-react"],
           utils: ["framer-motion", "react-toastify", "react-responsive"],
         },
       },
     },
     chunkSizeWarningLimit: 800,
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
   },
 });

@@ -12,6 +12,8 @@ import Festival from "./pages/Festival/Festival";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
 import DashboardJosser from "./pages/Dashboard/DashbosrdJosser/DashboardJosser";
+import { PrivateRoute } from "./components/common/PrivateRoute";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
 function AppContent() {
   const location = useLocation();
@@ -22,12 +24,10 @@ function AppContent() {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const checkLoadingStatus = async () => {
-      // Esperar a que el DOM esté listo
       if (document.readyState !== "complete") {
         return false;
       }
 
-      // Esperar a que todas las imágenes estén cargadas
       const images = Array.from(document.images);
       const imagePromises = images.map((img) => {
         if (img.complete) return Promise.resolve();
@@ -36,7 +36,6 @@ function AppContent() {
         });
       });
 
-      // Esperar a que todos los vídeos estén cargados
       const videos = Array.from(document.getElementsByTagName("video"));
       const videoPromises = videos.map((video) => {
         if (video.readyState >= 3) return Promise.resolve();
@@ -49,13 +48,12 @@ function AppContent() {
         await Promise.all([...imagePromises, ...videoPromises]);
         return true;
       } catch {
-        return true; // En caso de error, asumimos que la carga está completa
+        return true;
       }
     };
 
     const handleContentLoad = async () => {
       if (!mounted) return;
-
       const isFullyLoaded = await checkLoadingStatus();
       if (mounted && isFullyLoaded) {
         setIsLoading(false);
@@ -67,18 +65,14 @@ function AppContent() {
       await handleContentLoad();
     };
 
-    // Iniciar el proceso de carga
     initializeLoading();
 
-    // Configurar los listeners para cambios en el estado de carga
     window.addEventListener("load", handleContentLoad);
     document.addEventListener("readystatechange", handleContentLoad);
 
     // Timeout de seguridad (3 segundos)
     timeoutId = setTimeout(() => {
-      if (mounted) {
-        setIsLoading(false);
-      }
+      if (mounted) setIsLoading(false);
     }, 3000);
 
     return () => {
@@ -87,39 +81,39 @@ function AppContent() {
       window.removeEventListener("load", handleContentLoad);
       document.removeEventListener("readystatechange", handleContentLoad);
     };
-    timeoutId = setTimeout(() => {
-      if (mounted) {
-        setIsLoading(false);
-      }
-    }, 2000);
-
-    // Limpiar los listeners y el estado
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-    };
   }, [location]);
 
   return (
-    <>
+    <ErrorBoundary>
       {isLoading && <LoadingSpinner />}
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/user/dashboard" element={<UserDashboard />} />
         <Route path="/mapa" element={<Map />} />
         <Route path="/animales" element={<Animals />} />
         <Route path="/turismo" element={<Tourism />} />
         <Route path="/fiesta" element={<Festival />} />
-        <Route path="*" element={<NotFound />} />
-        <Route path="/animales" element={<Animals />} />
-        <Route path="/turismo" element={<Tourism />} />
-        <Route path="/fiesta" element={<Festival />} />
         <Route path="/admin-josser" element={<DashboardJosser />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <PrivateRoute requiredRole="admin">
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/user/dashboard"
+          element={
+            <PrivateRoute requiredRole="user">
+              <UserDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 }
 
