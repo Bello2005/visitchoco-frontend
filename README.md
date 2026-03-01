@@ -20,7 +20,7 @@ Aplicación web interactiva para explorar el turismo, la biodiversidad y los dat
 | Estado/fetching | React Query 5 (`@tanstack/react-query`) |
 | HTTP client | Axios (instancia centralizada con interceptores) |
 | Autenticación | JWT en `localStorage` + `AuthContext` (useReducer) |
-| Mapas | Leaflet + React Leaflet |
+| Mapas | Leaflet + React Leaflet + Canvas GridLayer custom |
 | Animaciones | Framer Motion |
 | 3D | Three.js + `@react-three/fiber` + `@react-three/drei` |
 | Gráficas | Chart.js + react-chartjs-2 |
@@ -42,6 +42,10 @@ src/
 │   ├── features/       # Componentes de dominio (fauna, etnias, etc.)
 │   ├── landing/        # Secciones de la landing page
 │   └── map/            # Mapa interactivo, paneles, capas
+│       ├── GrayscaleTileLayer.tsx   # Canvas GridLayer: grayscale + Chocó a color + agua azul
+│       ├── MunicipalityBoundaries.tsx
+│       ├── IndigenousReserveBoundaries.tsx
+│       └── MapMarkers.tsx
 ├── context/
 │   └── AuthContext.tsx # Estado global de autenticación (useReducer)
 ├── hooks/
@@ -236,6 +240,9 @@ Variables a configurar en el dashboard de Vercel (Settings → Environment Varia
 ## Características principales
 
 - **Mapa interactivo** del Chocó con capas de municipios, reservas indígenas y datos geoespaciales (PostGIS + Leaflet)
+- **Efecto visual del mapa** — mapa base en escala de grises, con el departamento del Chocó en color completo y cuerpos de agua preservados en azul. Implementado con un Canvas GridLayer custom que procesa cada tile píxel a píxel
+- **Centrado automático** — el mapa ajusta su vista con `fitBounds` sobre el contorno real del Chocó (GeoJSON de GADM) compensando el ancho del panel lateral
+- **Restricciones de navegación** — zoom mínimo/máximo y límites de desplazamiento (`maxBounds`) para mantener el foco en el Chocó
 - **Datos étnicos** — visualización de la distribución étnica por municipio (DANE)
 - **Clima en tiempo real** por municipio (OpenWeatherMap)
 - **Login/registro** con JWT, roles de admin y usuario

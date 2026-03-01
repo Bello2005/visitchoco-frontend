@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "leaflet";
 import { useMediaQuery } from "react-responsive";
-import { MapContainer, TileLayer } from "react-leaflet";
-import { Map as LeafletMapType } from "leaflet";
+import { MapContainer } from "react-leaflet";
+import L, { Map as LeafletMapType } from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
 
 import { municipalityService } from "../../services/municipality.service";
@@ -11,9 +11,9 @@ import { municipalityService } from "../../services/municipality.service";
 import "leaflet/dist/leaflet.css";
 import "react-tooltip/dist/react-tooltip.css";
 import "../../styles/components/scroll.css";
-
 // Componentes
 import { MainNav } from "../../components/landing/MainNav";
+import { GrayscaleTileLayer } from "../../components/map/GrayscaleTileLayer";
 import { DesktopPanels } from "../../components/map/DesktopPanels";
 import { MobilePanel } from "../../components/map/MobilePanel";
 import { MapMarkers } from "../../components/map/MapMarkers";
@@ -28,14 +28,24 @@ const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
 const CHOCO_DEFAULT_ZOOM = 7.5;
 const MUNICIPALITY_ZOOM = 9;
 
+// Límites del mapa: bbox del Chocó con margen generoso
+// SW: [lat_sur, lng_oeste]  NE: [lat_norte, lng_este]
+const MAP_BOUNDS: [[number, number], [number, number]] = [
+  [2.5, -80.5],   // SW — margen sur y oeste
+  [10.5, -73.0],  // NE — margen norte y este
+];
+const MAP_MIN_ZOOM = 7;
+const MAP_MAX_ZOOM = 16;
+
 const Map: React.FC = () => {
   const [chocoGeoJson, setChocoGeoJson] = useState<{
     type: "FeatureCollection";
     features: Array<{
       type: "Feature";
+      properties: Record<string, unknown>;
       geometry: {
         type: "Polygon" | "MultiPolygon";
-        coordinates: number[][][];
+        coordinates: number[][][] | number[][][][];
       };
     }>;
   } | null>(null);
@@ -51,12 +61,25 @@ const Map: React.FC = () => {
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const mapRef = useRef<LeafletMapType>(null);
 
-  // Cargar el GeoJSON del Chocó
+  // Cargar el GeoJSON del Chocó y centrar el mapa con fitBounds
   useEffect(() => {
     fetch("/data/chocoRegion.geojson")
       .then((res) => res.json())
-      .then((data) => setChocoGeoJson(data));
-  }, []);
+      .then((data) => {
+        setChocoGeoJson(data);
+
+        if (mapRef.current && data?.features?.length) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const layer = L.geoJSON(data as any);
+          const bounds = layer.getBounds();
+          // Padding: left compensa el panel lateral (~320px), resto con margen
+          mapRef.current.fitBounds(bounds, {
+            paddingTopLeft: [isMobile ? 20 : 340, 20],
+            paddingBottomRight: [20, 20],
+          });
+        }
+      });
+  }, [isMobile]);
 
   // Cargar datos del backend
   useEffect(() => {
@@ -78,36 +101,15 @@ const Map: React.FC = () => {
     fetchData();
   }, []);
 
-  // Efecto para agregar la máscara al mapa cuando el GeoJSON esté disponible
-  useEffect(() => {
-    if (!chocoGeoJson || !mapRef.current) return;
-
-    const addMaskToMap = async () => {
-      await import("leaflet-maskcanvas");
-      if (typeof window.L?.maskCanvas === "function") {
-        const maskLayer = window.L.maskCanvas({
-          radius: 1,
-          color: "#4ade80",
-          opacity: 1,
-          noMask: true,
-          useAbsoluteRadius: true,
-          lineColor: "#059669",
-        });
-        const coordinates = chocoGeoJson.features[0].geometry.coordinates[0];
-        maskLayer.setData(
-          coordinates.map(([lng, lat]: number[]) => [lat, lng])
-        );
-        if (mapRef.current) {
-          maskLayer.addTo(mapRef.current);
-        }
-      }
-    };
-
-    addMaskToMap().catch(console.error);
-  }, [chocoGeoJson]);
-
   const resetMapView = () => {
-    if (mapRef.current) {
+    if (mapRef.current && chocoGeoJson?.features?.length) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const layer = L.geoJSON(chocoGeoJson as any);
+      mapRef.current.fitBounds(layer.getBounds(), {
+        paddingTopLeft: [isMobile ? 20 : 340, 20],
+        paddingBottomRight: [20, 20],
+      });
+    } else if (mapRef.current) {
       mapRef.current.setView(CHOCO_CENTER, CHOCO_DEFAULT_ZOOM);
     }
     setSelectedMunicipality(null);
@@ -136,15 +138,20 @@ const Map: React.FC = () => {
       <div className="flex-1 relative">
         {/* Mapa */}
         <MapContainer
-          center={[5.6919, -76.6583]}
-          zoom={7.5}
+          center={CHOCO_CENTER}
+          zoom={CHOCO_DEFAULT_ZOOM}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          maxBounds={MAP_BOUNDS}
+          maxBoundsViscosity={1.0}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
           ref={mapRef}
         >
-          <TileLayer
+          <GrayscaleTileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            chocoGeoJson={chocoGeoJson}
           />
 
           {/* Límites según el filtro */}
@@ -175,7 +182,6 @@ const Map: React.FC = () => {
             <MapMarkers
               municipalities={municipalities}
               visibleMarkers={visibleMarkers}
-              selectedMunicipality={selectedMunicipality}
               onMarkerClick={handleRegionClick}
               onMarkerHover={setSelectedMunicipality}
             />

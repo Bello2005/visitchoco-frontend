@@ -44,6 +44,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.85.3
         version: 5.90.21(react@19.2.4)
+      '@turf/simplify':
+        specifier: ^7.3.4
+        version: 7.3.4
       '@types/geojson':
         specifier: ^7946.0.16
         version: 7946.0.16
@@ -68,9 +71,6 @@ importers:
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
-      leaflet-maskcanvas:
-        specifier: ^1.0.0
-        version: 1.0.0(leaflet@1.9.4)
       lottie-react:
         specifier: ^2.4.1
         version: 2.4.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -1081,6 +1081,27 @@ packages:
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
 
+  '@turf/boolean-point-on-line@7.3.4':
+    resolution: {integrity: sha512-70gm5x6YQOZKcw0b/O4jjMwVWnFj+Zb6TXozLgZFDZShc8pgTQtZku7K+HKZ7Eya+7usHIB4IimZauomOMa+iw==}
+
+  '@turf/clean-coords@7.3.4':
+    resolution: {integrity: sha512-S61aJXLvPN/uZHtjzmJbLv7xhi28Sq3PshCIZSvno4Mo45bvl79Vg4aZskrG05AaSSbipplqfH+MZrkW9Xboeg==}
+
+  '@turf/clone@7.3.4':
+    resolution: {integrity: sha512-pwQ+RyQw986uu7IulY/18NRAebwZZScb084bvVqVkTrllwLSv4oVBqUxmUMiwtp+PNdiRGRFOvNyZqtRsiD+Jw==}
+
+  '@turf/helpers@7.3.4':
+    resolution: {integrity: sha512-U/S5qyqgx3WTvg4twaH0WxF3EixoTCfDsmk98g1E3/5e2YKp7JKYZdz0vivsS5/UZLJeZDEElOSFH4pUgp+l7g==}
+
+  '@turf/invariant@7.3.4':
+    resolution: {integrity: sha512-88Eo4va4rce9sNZs6XiMJowWkikM3cS2TBhaCKlU+GFHdNf8PFEpiU42VDU8q5tOF6/fu21Rvlke5odgOGW4AQ==}
+
+  '@turf/meta@7.3.4':
+    resolution: {integrity: sha512-tlmw9/Hs1p2n0uoHVm1w3ugw1I6L8jv9YZrcdQa4SH5FX5UY0ATrKeIvfA55FlL//PGuYppJp+eyg/0eb4goqw==}
+
+  '@turf/simplify@7.3.4':
+    resolution: {integrity: sha512-OoSwu3vI0H9P+GzLDaOJIL9v0V8ubeP8wQjM8GeMEZrq6U2uh9JWQnAU+jviT3ODcKF5H+88snpiMik585L0wA==}
+
   '@tweenjs/tween.js@23.1.3':
     resolution: {integrity: sha512-vJmvvwFxYuGnF2axRtPYocag6Clbb5YS7kLL+SO/TeVFzHqDIWrNKYtcsPMibjDx9O+bu+psAy9NKfWklassUA==}
 
@@ -1934,11 +1955,6 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
-
-  leaflet-maskcanvas@1.0.0:
-    resolution: {integrity: sha512-uADKXRd3NlTcvh9cX2J5YSRcuCgJjJpjKXgU+gaXjTX0De6gLxSZrK0kEzsRCOguC6VvVViXETQKCM+ArdecvA==}
-    peerDependencies:
-      leaflet: '>= 1.x'
 
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
@@ -3671,6 +3687,53 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.1
 
+  '@turf/boolean-point-on-line@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/clean-coords@7.3.4':
+    dependencies:
+      '@turf/boolean-point-on-line': 7.3.4
+      '@turf/helpers': 7.3.4
+      '@turf/invariant': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/clone@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/helpers@7.3.4':
+    dependencies:
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/invariant@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/meta@7.3.4':
+    dependencies:
+      '@turf/helpers': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
+  '@turf/simplify@7.3.4':
+    dependencies:
+      '@turf/clean-coords': 7.3.4
+      '@turf/clone': 7.3.4
+      '@turf/helpers': 7.3.4
+      '@turf/meta': 7.3.4
+      '@types/geojson': 7946.0.16
+      tslib: 2.8.1
+
   '@tweenjs/tween.js@23.1.3': {}
 
   '@types/aria-query@5.0.4': {}
@@ -4568,10 +4631,6 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
-
-  leaflet-maskcanvas@1.0.0(leaflet@1.9.4):
-    dependencies:
-      leaflet: 1.9.4
 
   leaflet@1.9.4: {}
 

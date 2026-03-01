@@ -1,12 +1,11 @@
 import React from "react";
-import { Circle, Popup } from "react-leaflet";
+import { Popup } from "react-leaflet";
 import type { Municipality } from "../../services/municipality.service";
 import EmojiMarker from "./EmojiMarker";
 
 interface MapMarkersProps {
   municipalities: Municipality[];
   visibleMarkers: string[];
-  selectedMunicipality: Municipality | null;
   onMarkerClick: (municipality: Municipality) => void;
   onMarkerHover: (municipality: Municipality) => void;
 }
@@ -14,7 +13,6 @@ interface MapMarkersProps {
 export const MapMarkers: React.FC<MapMarkersProps> = ({
   municipalities,
   visibleMarkers,
-  selectedMunicipality,
   onMarkerClick,
   onMarkerHover,
 }) => {
@@ -43,19 +41,6 @@ export const MapMarkers: React.FC<MapMarkersProps> = ({
           </EmojiMarker>
         ))}
 
-      {selectedMunicipality && (
-        <Circle
-          center={[selectedMunicipality.lat, selectedMunicipality.lon]}
-          radius={5000}
-          pathOptions={{
-            color: "#2196F3",
-            weight: 2,
-            opacity: 0.7,
-            fillColor: "#2196F3",
-            fillOpacity: 0.1,
-          }}
-        />
-      )}
     </>
   );
 };
