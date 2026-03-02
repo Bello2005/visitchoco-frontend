@@ -1,0 +1,34 @@
+/* Override default leaflet.markercluster styles */
+.clustered-dot-marker,
+.clustered-group-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background: transparent !important;
+}
+
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: transparent !important;
+}
+
+/* Clean popup style */
+.clean-popup .leaflet-popup-content-wrapper {
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 0;
+}
+
+.clean-popup .leaflet-popup-content {
+  margin: 10px 12px;
+  font-family: inherit;
+}
+
+.clean-popup .leaflet-popup-tip {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
