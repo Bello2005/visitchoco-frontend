@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import type { Map as LeafletMapType } from "leaflet";
 
 interface MapControlsProps {
-  mapRef: React.RefObject<LeafletMapType>;
+  mapRef: React.RefObject<LeafletMapType | null>;
   onReset: () => void;
   className?: string;
 }
