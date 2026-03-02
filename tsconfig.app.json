@@ -23,5 +23,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "src/components/map/_archive",
+    "src/pages/Map/Map.new.tsx"
+  ]
 }
