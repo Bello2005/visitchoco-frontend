@@ -20,7 +20,7 @@ Aplicación web interactiva para explorar el turismo, la biodiversidad y los dat
 | Estado/fetching | React Query 5 (`@tanstack/react-query`) |
 | HTTP client | Axios (instancia centralizada con interceptores) |
 | Autenticación | JWT en `localStorage` + `AuthContext` (useReducer) |
-| Mapas | Leaflet + React Leaflet + Canvas GridLayer custom |
+| Mapas | Leaflet + React Leaflet + leaflet.markercluster + Canvas GridLayer custom |
 | Animaciones | Framer Motion |
 | 3D | Three.js + `@react-three/fiber` + `@react-three/drei` |
 | Gráficas | Chart.js + react-chartjs-2 |
@@ -42,196 +42,194 @@ src/
 │   ├── features/       # Componentes de dominio (fauna, etnias, etc.)
 │   ├── landing/        # Secciones de la landing page
 │   └── map/            # Mapa interactivo, paneles, capas
-│       ├── GrayscaleTileLayer.tsx   # Canvas GridLayer: grayscale + Chocó a color + agua azul
-│       ├── MunicipalityBoundaries.tsx
+│       ├── GrayscaleTileLayer.tsx       # Canvas GridLayer: grayscale + Chocó en color + agua azul
+│       ├── MunicipalityBoundaries.tsx   # Boundaries con soporte de mapa de calor étnico
 │       ├── IndigenousReserveBoundaries.tsx
-│       └── MapMarkers.tsx
+│       ├── ClusteredMarkers.tsx         # Dot markers + leaflet.markercluster
+│       ├── panel/                       # Panel unificado
+│       │   ├── UnifiedPanel.tsx         # Desktop sidebar + MobilePanel (bottom sheet)
+│       │   ├── PanelHeader.tsx          # Logo + búsqueda + login + cerrar
+│       │   ├── SectionNav.tsx           # Tabs: Mapa / Animales / Turismo / Fiestas
+│       │   ├── FilterChips.tsx          # Chips horizontales de filtro
+│       │   ├── ItemList.tsx             # Lista de municipios o reservas
+│       │   ├── DetailView.tsx           # Vista de detalle con botón volver
+│       │   └── PanelToggleButton.tsx    # Botón flotante para reabrir el panel
+│       ├── detail/                      # Vistas de detalle por tipo
+│       │   ├── MunicipalityDetail.tsx   # Hero foto/fallback + tabs clima/transporte/población
+│       │   ├── ReserveDetail.tsx
+│       │   └── EthnicDetail.tsx         # Barras étnicas + correlación con heatmap
+│       └── overlay/
+│           └── MapControls.tsx          # Controles de zoom y reset
 ├── context/
-│   └── AuthContext.tsx # Estado global de autenticación (useReducer)
+│   └── AuthContext.tsx  # Estado global de autenticación (useReducer)
 ├── hooks/
-│   └── api/            # Hooks de React Query por dominio
+│   ├── useMapState.ts       # Estado centralizado del mapa + URL deep links (useSearchParams)
+│   ├── useEthnicHeatmap.ts  # Fetch lazy → Map<cod_dane, grupo étnico dominante>
+│   └── api/
 │       └── useMunicipalities.ts
 ├── pages/
-│   ├── Landing/        # Página de inicio
-│   ├── Login/          # Login con JWT
-│   ├── Register/       # Registro de usuario
-│   ├── Map/            # Mapa interactivo del Chocó
-│   ├── Animals/        # Fauna del departamento
-│   ├── Tourism/        # Atractivos turísticos
-│   ├── Festival/       # Festivales y eventos
-│   ├── Dashboard/      # Panel admin y usuario
-│   └── NotFound/       # 404
-├── services/           # Llamadas a la API (axios)
-│   ├── api.service.ts  # Instancia axios + interceptor de token
+│   ├── Landing/         # Página de inicio
+│   ├── Login/           # Login con JWT
+│   ├── Register/        # Registro de usuario
+│   ├── Map/             # Mapa interactivo del Chocó (full-canvas, sin navbar)
+│   ├── Animals/         # Fauna del departamento
+│   ├── Tourism/         # Atractivos turísticos
+│   ├── Festival/        # Festivales y eventos
+│   ├── Dashboard/       # Panel admin y usuario
+│   └── NotFound/        # 404
+├── services/
+│   ├── api.service.ts               # Instancia axios + interceptor de token
 │   ├── auth.service.ts
 │   ├── municipality.service.ts
 │   ├── ethnicDistribution.service.ts
 │   ├── indigenousReserve.service.ts
 │   └── weather.service.ts
-├── styles/             # CSS global, Tailwind, constantes
-├── test/               # Setup de Vitest (mock de localStorage)
-├── types/              # Tipos TypeScript globales
-└── utils/              # Funciones de utilidad
+├── styles/              # CSS global, Tailwind, constantes
+├── test/                # Setup de Vitest
+├── types/               # Tipos TypeScript globales (FilterCategory, etc.)
+└── utils/               # Funciones de utilidad
 ```
 
 ---
 
-## Autenticación
+## Mapa interactivo
 
-El flujo completo está gestionado por `AuthContext`:
+La página `/mapa` usa un layout **full-canvas** (`100dvh`) sin barra de navegación — todo el UI es un overlay sobre el mapa Leaflet.
+
+### Panel unificado
+
+| Dispositivo | Comportamiento |
+|-------------|---------------|
+| Desktop ≥769px | Sidebar izquierdo de 380px, abierto por defecto |
+| Mobile ≤768px | Bottom sheet deslizable desde abajo, cerrado por defecto, drag-to-dismiss |
+
+El estado completo del mapa vive en `useMapState.ts`:
+
+```
+panelView: "list" | "detail"
+  "list"   → ItemList  (municipios o reservas con búsqueda y filtros)
+  "detail" → DetailView (detalle del elemento seleccionado)
+```
+
+### Deep links (URL con estado)
+
+La URL refleja el estado del mapa en tiempo real para compartir y SEO:
+
+| URL | Comportamiento |
+|-----|----------------|
+| `/mapa?m=quibdo` | Abre el detalle de Quibdó directamente |
+| `/mapa?r=5` | Abre la reserva indígena con ID 5 |
+| `/mapa?filtro=indigenous` | Activa el filtro de reservas indígenas |
+| `/mapa?filtro=ethnic` | Activa el mapa de calor étnico |
+
+### Mapa de calor étnico
+
+Al activar el filtro **Etnias**, cada municipio se colorea con su grupo étnico dominante (fuente DANE). El fetch de datos es lazy (solo cuando el filtro está activo) mediante `useEthnicHeatmap`. Renderizado como mapa coroplético: borde blanco fino + relleno semi-transparente del color étnico.
+
+### Efecto visual del mapa base
+
+`GrayscaleTileLayer` procesa tiles de OSM píxel a píxel usando la Canvas API:
+- **Fuera del Chocó** → escala de grises, preservando azul del agua (`#aad3df`)
+- **Dentro del Chocó** → colores naturales del mapa (selva verde, ríos azules, relieve)
+
+---
+
+## Autenticación
 
 ```
 Login exitoso
   → API devuelve { token, role }
   → login({ token, role }) en AuthContext
   → localStorage.setItem("authToken") + localStorage.setItem("userRole")
-  → dispatch LOGIN → estado isAuthenticated: true
+  → dispatch LOGIN → isAuthenticated: true
 
 Logout
-  → logout() en AuthContext
-  → localStorage.removeItem de ambas keys
-  → dispatch LOGOUT → redirige a /
+  → logout() → removeItem → dispatch LOGOUT → redirige a /
 ```
 
 ### PrivateRoute
 
-Protege rutas que requieren autenticación o un rol específico:
-
 ```tsx
-// Solo usuarios autenticados
-<PrivateRoute><Dashboard /></PrivateRoute>
-
 // Solo administradores
 <PrivateRoute requiredRole="admin"><AdminDashboard /></PrivateRoute>
 ```
 
-Si no hay token o el rol no coincide, redirige automáticamente a `/login`.
-
 ### Interceptor de Axios
 
-Todas las llamadas a la API incluyen el token automáticamente:
-
+Todas las llamadas incluyen el token automáticamente:
 ```
 Authorization: Bearer <token>
 ```
-
-Configurado en `services/api.service.ts`. Todos los servicios usan la misma instancia centralizada.
 
 ---
 
 ## Páginas
 
-| Ruta | Componente | Auth | Descripción |
-|------|-----------|------|-------------|
-| `/` | `Landing` | No | Página principal con hero, secciones y CTA |
-| `/login` | `Login` | No | Formulario de login con animaciones 3D/Lottie |
-| `/register` | `Register` | No | Registro de nuevo usuario |
-| `/mapa` | `Map` | No | Mapa interactivo Leaflet con capas del Chocó |
-| `/animales` | `Animals` | No | Fauna del departamento |
-| `/turismo` | `Tourism` | No | Atractivos turísticos |
-| `/fiesta` | `Festival` | No | Festivales y eventos culturales |
-| `/admin/dashboard` | `AdminDashboard` | `admin` | Panel de administración |
-| `/user/dashboard` | `UserDashboard` | `user` | Panel de usuario |
-| `*` | `NotFound` | No | Página 404 |
+| Ruta | Auth | Descripción |
+|------|------|-------------|
+| `/` | No | Landing page con hero, secciones y CTA |
+| `/login` | No | Formulario de login con animaciones 3D/Lottie |
+| `/register` | No | Registro de nuevo usuario |
+| `/mapa` | No | Mapa interactivo full-canvas del Chocó |
+| `/animales` | No | Fauna del departamento |
+| `/turismo` | No | Atractivos turísticos |
+| `/fiesta` | No | Festivales y eventos culturales |
+| `/admin/dashboard` | `admin` | Panel de administración |
+| `/user/dashboard` | `user` | Panel de usuario |
+| `*` | No | 404 |
 
 ---
 
 ## Variables de entorno
 
-Crear un archivo `.env.local` (desarrollo) o `.env.production` en la raíz:
+Crear `.env.local` en la raíz:
 
 ```env
-# URL del backend
 VITE_API_BASE_URL=http://localhost:8000/api
-
-# reCAPTCHA v3 (Google)
 VITE_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
-
-# Supabase (storage de media, opcional)
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
-
-> Todas las variables del cliente deben tener el prefijo `VITE_` para que Vite las exponga.
 
 ---
 
 ## Instalación y desarrollo
 
-### Requisitos previos
-
-- Node.js 20+
-- pnpm 9+
-- Backend corriendo localmente en `http://localhost:8000`
-
 ```bash
-# 1. Instalar dependencias
+# Instalar dependencias
 pnpm install
 
-# 2. Configurar variables de entorno
-cp .env.example .env.local   # si existe, o crear manualmente
-# editar .env.local con los valores reales
+# Configurar variables de entorno
+cp .env.example .env.local   # completar con valores reales
 
-# 3. Iniciar en modo desarrollo (hot reload)
+# Desarrollo con hot reload
 pnpm dev
 
-# 4. Compilar para producción
+# Build producción
 pnpm build
 
-# 5. Previsualizar la build
-pnpm preview
+# Tests
+pnpm test
 ```
 
 ---
 
 ## Testing
 
-```bash
-# Ejecutar tests una vez
-pnpm test
-
-# Modo watch (re-ejecuta en cada cambio)
-pnpm test:watch
-```
-
 | Suite | Tests | Descripción |
 |-------|-------|-------------|
-| `src/context/AuthContext.test.tsx` | 4 | Estado inicial, login, logout, persistencia en localStorage |
-| `src/components/common/PrivateRoute.test.tsx` | 4 | Redirección sin token, sin rol, con rol correcto, con token válido |
-
-El setup de Vitest incluye un mock completo de `localStorage` compatible con jsdom v28 (`src/test/setup.ts`).
-
----
-
-## Estructura de estilos
-
-El proyecto usa **Tailwind CSS** + **MUI** como sistema de diseño principal.
-
-- Clases utilitarias Tailwind para layouts, espaciado y tipografía
-- Componentes MUI para elementos de UI complejos (inputs, selects, dialogs)
-- `@emotion/react` y `@emotion/styled` como peer dependencies de MUI (no se usan directamente)
-- CSS global en `src/index.css` e imports de CSS por página/componente
-
-Todo el código nuevo debe usar **Tailwind + MUI** exclusivamente.
+| `AuthContext.test.tsx` | 4 | Estado inicial, login, logout, persistencia en localStorage |
+| `PrivateRoute.test.tsx` | 4 | Sin token, sin rol, con rol correcto, token válido |
 
 ---
 
 ## Despliegue en Vercel
 
-El `vercel.json` configura rewrites para que React Router funcione correctamente como SPA:
-
 ```bash
-# Login (primera vez)
-vercel login
-
-# Despliegue preview
-vercel
-
-# Despliegue producción
 vercel --prod
 ```
 
-Variables a configurar en el dashboard de Vercel (Settings → Environment Variables):
+Variables en Vercel → Settings → Environment Variables:
 
 `VITE_API_BASE_URL` · `VITE_RECAPTCHA_SITE_KEY` · `VITE_SUPABASE_URL` · `VITE_SUPABASE_ANON_KEY`
 
@@ -239,14 +237,12 @@ Variables a configurar en el dashboard de Vercel (Settings → Environment Varia
 
 ## Características principales
 
-- **Mapa interactivo** del Chocó con capas de municipios, reservas indígenas y datos geoespaciales (PostGIS + Leaflet)
-- **Efecto visual del mapa** — mapa base en escala de grises, con el departamento del Chocó en color completo y cuerpos de agua preservados en azul. Implementado con un Canvas GridLayer custom que procesa cada tile píxel a píxel
-- **Centrado automático** — el mapa ajusta su vista con `fitBounds` sobre el contorno real del Chocó (GeoJSON de GADM) compensando el ancho del panel lateral
-- **Restricciones de navegación** — zoom mínimo/máximo y límites de desplazamiento (`maxBounds`) para mantener el foco en el Chocó
-- **Datos étnicos** — visualización de la distribución étnica por municipio (DANE)
-- **Clima en tiempo real** por municipio (OpenWeatherMap)
-- **Login/registro** con JWT, roles de admin y usuario
-- **Dashboard** diferenciado por rol
-- **Internacionalización** con i18next
-- **Animaciones** con Framer Motion y Lottie
-- **ErrorBoundary** global para capturar errores de render sin crashear la app
+- **Mapa full-canvas** — panel único unificado (sidebar en desktop, bottom sheet en mobile con drag-to-dismiss)
+- **Efecto visual del mapa** — tiles OSM en escala de grises fuera del Chocó, colores naturales dentro; procesado tile a tile con Canvas API
+- **Mapa de calor étnico** — boundaries coloreados por grupo dominante DANE al activar filtro Etnias (coroplético con borde blanco)
+- **Deep links** — `/mapa?m=quibdo` abre directamente un municipio; la URL se sincroniza al navegar
+- **Clusters de marcadores** — leaflet.markercluster con count visible + label "municipios"
+- **Hero visual** en detalle de municipio — foto real si disponible, gradiente teal + emoji como fallback
+- **Clima en tiempo real** por municipio vía OpenWeatherMap
+- **JWT auth** con roles admin/user e interceptor axios automático
+- **i18n** con i18next · **ErrorBoundary** global · **Framer Motion** para animaciones

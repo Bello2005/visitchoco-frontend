@@ -111,6 +111,19 @@
   }
 }
 
+/* Ping animation for selected map markers */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Prevent body scroll on map page */
+.map-fullscreen {
+  overflow: hidden;
+}
+
 :root {
   --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
   --line-height: 1.5;

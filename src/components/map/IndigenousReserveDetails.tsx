@@ -77,31 +77,25 @@ export const IndigenousReserveDetails: React.FC<
       <div className="mt-6">
         <h3 className="text-sm font-semibold text-gray-600">Ubicación</h3>
         <div className="grid grid-cols-2 gap-4 mt-2">
-          {reserve.latitude !== undefined && (
+          {reserve.lat !== undefined && (
             <div>
               <p className="text-sm text-gray-600">Latitud</p>
               <p className="text-lg text-gray-800">
-                {formatCoordinate(reserve.latitude)}
+                {formatCoordinate(reserve.lat)}
               </p>
             </div>
           )}
-          {(reserve.lng !== undefined || reserve.longitude !== undefined) && (
+          {reserve.lon !== undefined && (
             <div>
               <p className="text-sm text-gray-600">Longitud</p>
               <p className="text-lg text-gray-800">
-                {formatCoordinate(reserve.lng ?? reserve.longitude)}
+                {formatCoordinate(reserve.lon)}
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {reserve.municipality && (
-        <div>
-          <h3 className="text-sm font-semibold text-gray-600">Municipio</h3>
-          <p className="text-lg text-gray-800">{reserve.municipality}</p>
-        </div>
-      )}
     </div>
   );
 };

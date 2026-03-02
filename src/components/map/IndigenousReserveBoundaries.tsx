@@ -11,22 +11,25 @@ interface IndigenousReserveBoundariesProps {
 
 const RESERVE_STYLES = {
   default: {
-    color: "#10B981", // Verde esmeralda
+    color: "#D97706",
     weight: 1,
-    opacity: 0.5,
-    fillOpacity: 0.1,
+    opacity: 0.55,
+    fillOpacity: 0.08,
+    dashArray: "6 3",
   },
   selected: {
-    color: "#059669", // Verde esmeralda más oscuro
-    weight: 2,
-    opacity: 0.8,
-    fillOpacity: 0.2,
-  },
-  hover: {
-    color: "#047857", // Verde esmeralda aún más oscuro
+    color: "#B45309",
     weight: 2,
     opacity: 0.9,
-    fillOpacity: 0.3,
+    fillOpacity: 0.25,
+    dashArray: "6 3",
+  },
+  hover: {
+    color: "#92400E",
+    weight: 2,
+    opacity: 0.9,
+    fillOpacity: 0.20,
+    dashArray: "6 3",
   },
 };
 
