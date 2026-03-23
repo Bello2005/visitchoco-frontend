@@ -77,14 +77,13 @@ export function useMapState(): MapState {
       if (geoJson?.features?.length) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const layer = L.geoJSON(geoJson as any);
-        const leftPad = panelOpen && !isMobile ? 400 : 20;
-        const rightPad = 20;
-        const topPad = 80;
-        const bottomPad = isMobile ? 100 : 20;
         mapRef.current.fitBounds(layer.getBounds(), {
-          paddingTopLeft: [leftPad, topPad],
-          paddingBottomRight: [rightPad, bottomPad],
+          padding: [80, 80],
+          animate: false,
         });
+        if (panelOpen && !isMobile) {
+          mapRef.current.panBy([-185, 0], { animate: false });
+        }
       } else {
         mapRef.current.setView(CHOCO_CENTER, CHOCO_DEFAULT_ZOOM);
       }

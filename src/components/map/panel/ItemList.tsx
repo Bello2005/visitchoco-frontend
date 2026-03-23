@@ -100,27 +100,57 @@ const MunicipalityItem: React.FC<{
   municipality: Municipality;
   isSelected: boolean;
   onClick: () => void;
-}> = ({ municipality, isSelected, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`w-full px-3 py-2.5 rounded-lg text-left transition-all duration-150 relative group ${
-      isSelected
-        ? "bg-teal-50/80"
-        : "hover:bg-gray-50/80"
-    }`}
-  >
-    {isSelected && (
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-teal-500 rounded-full" />
-    )}
-    <div className="flex items-center gap-2.5">
-      <span className="text-base flex-shrink-0">{municipality.emoji || "📍"}</span>
-      <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium truncate ${isSelected ? "text-teal-700" : "text-gray-800"}`}>
-          {municipality.name}
-        </p>
-        {municipality.description && (
+}> = ({ municipality, isSelected, onClick }) => {
+  const PCI_UNESCO = ["Quibdó"];
+  const PCI_NACIONAL = ["Medio San Juan"];
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full px-3 py-2.5 rounded-lg text-left transition-all duration-150 relative group ${
+        isSelected
+          ? "bg-teal-50/80"
+          : "hover:bg-gray-50/80"
+      }`}
+    >
+      {isSelected && (
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-teal-500 rounded-full" />
+      )}
+      <div className="flex items-center gap-2.5">
+        {municipality.image_url ? (
+          <img
+            src={municipality.image_url}
+            alt={municipality.name}
+            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center text-xl bg-teal-50">
+            {municipality.emoji || "📍"}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center">
+            <p className={`text-sm font-medium truncate ${isSelected ? "text-teal-700" : "text-gray-800"}`}>
+              {municipality.name}
+            </p>
+            {PCI_UNESCO.includes(municipality.name) && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full ml-1 font-semibold flex-shrink-0">
+                UNESCO
+              </span>
+            )}
+            {PCI_NACIONAL.includes(municipality.name) && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0">
+                PCI
+              </span>
+            )}
+          </div>
+        {municipality.description?.trim() ? (
           <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5">
             {municipality.description}
+          </p>
+        ) : (
+          <p className="text-[11px] text-[#6b7280] italic mt-0.5">
+            Próximamente
           </p>
         )}
       </div>
@@ -137,7 +167,8 @@ const MunicipalityItem: React.FC<{
       </svg>
     </div>
   </button>
-);
+  );
+};
 
 const ReserveItem: React.FC<{
   reserve: IndigenousReserve;

@@ -1,3 +1,8 @@
+/* Grayscale tile layer */
+.grayscale-tiles {
+  filter: grayscale(100%);
+}
+
 /* Override default leaflet.markercluster styles */
 .clustered-dot-marker,
 .clustered-group-icon {
@@ -31,4 +36,21 @@
 
 .clean-popup .leaflet-popup-tip {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Municipality tooltip */
+.municipality-tooltip {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  color: white !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 4px 10px !important;
+  white-space: nowrap;
+}
+.municipality-tooltip::before {
+  display: none !important;
 }

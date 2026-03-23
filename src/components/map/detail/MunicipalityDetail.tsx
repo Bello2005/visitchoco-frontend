@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import type { Municipality } from "../../../services/municipality.service";
 import type { WeatherData } from "../../../services/weather.service";
 import { weatherService } from "../../../services/weather.service";
+import { api } from "../../../services/api.service";
 
 interface MunicipalityDetailProps {
   municipality: Municipality;
 }
 
-type Tab = "general" | "clima" | "transporte" | "poblacion";
+type Tab = "general" | "clima" | "transporte" | "poblacion" | "fiestas" | "cultura";
 
 export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
   municipality,
@@ -27,17 +28,19 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
       .finally(() => setWeatherLoading(false));
   }, [municipality?.lat, municipality?.lon]);
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: "general", label: "General", icon: "📍" },
-    { id: "clima", label: "Clima", icon: "🌤️" },
-    { id: "transporte", label: "Cómo llegar", icon: "🚗" },
-    { id: "poblacion", label: "Población", icon: "👥" },
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "general", label: "Info" },
+    { id: "clima", label: "Clima" },
+    { id: "transporte", label: "Cómo llegar" },
+    { id: "poblacion", label: "Población" },
+    { id: "fiestas", label: "Fiestas" },
+    { id: "cultura", label: "Cultura" },
   ];
 
   return (
     <div className="flex flex-col h-full">
       {/* Hero */}
-      <div className="flex-none relative h-32 overflow-hidden">
+      <div className="flex-none relative h-48 overflow-hidden">
         {municipality.image_url ? (
           <img
             src={municipality.image_url}
@@ -69,47 +72,37 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
             <span className="text-xs text-white/80 font-medium">{municipality.zone}</span>
           )}
         </div>
-      </div>
-
-      {/* Weather badge (below hero) */}
-      <div className="flex-none px-4 pt-3 pb-0">
-        {weatherLoading && (
-          <div className="h-9 bg-gray-100 rounded-xl animate-pulse" />
-        )}
+        {/* Weather badge inside hero */}
         {weatherData?.main && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-sky-50/80 rounded-xl border border-sky-100/60">
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/30 backdrop-blur-md rounded-2xl px-3 py-1.5">
             {weatherData.weather?.[0]?.icon && (
               <img
                 src={`https://openweathermap.org/img/wn/${weatherData.weather[0].icon}.png`}
                 alt={weatherData.weather[0].description}
-                className="w-7 h-7"
+                className="w-6 h-6"
               />
             )}
-            <span className="text-xl font-bold text-sky-700">
+            <span className="text-sm font-bold text-white">
               {Math.round(weatherData.main.temp)}°C
-            </span>
-            <span className="text-xs text-sky-600 capitalize flex-1">
-              {weatherData.weather?.[0]?.description}
             </span>
           </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex-none px-4 pt-3 pb-0">
-        <div className="flex gap-1 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+      <div className="flex-none mx-4 mt-3">
+        <div className="flex gap-0.5 overflow-x-auto bg-gray-50 rounded-2xl p-1" style={{ scrollbarWidth: "none" }}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors duration-150 ${
                 activeTab === tab.id
-                  ? "bg-teal-500 text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/80"
+                  ? "bg-white shadow-sm text-teal-700 font-semibold"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
+              {tab.label}
             </button>
           ))}
         </div>
@@ -122,14 +115,36 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
             {municipality.description && (
               <p className="text-sm text-gray-600 leading-relaxed">{municipality.description}</p>
             )}
-            {municipality.main_activity && (
-              <div>
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
-                  Actividad principal
-                </h3>
-                <p className="text-sm text-gray-700 font-medium">{municipality.main_activity}</p>
-              </div>
-            )}
+            <div className="grid grid-cols-2 gap-2.5">
+              {municipality.zone && (
+                <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-3 border border-teal-100/50">
+                  <span className="text-lg">📍</span>
+                  <p className="text-[10px] text-gray-500 mt-1">Zona</p>
+                  <p className="text-sm font-bold text-teal-800">{municipality.zone}</p>
+                </div>
+              )}
+              {municipality.main_activity && (
+                <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-3 border border-teal-100/50">
+                  <span className="text-lg">💼</span>
+                  <p className="text-[10px] text-gray-500 mt-1">Actividad principal</p>
+                  <p className="text-sm font-bold text-teal-800">{municipality.main_activity}</p>
+                </div>
+              )}
+              {municipality.lat && municipality.lon && (
+                <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-3 border border-teal-100/50">
+                  <span className="text-lg">🌐</span>
+                  <p className="text-[10px] text-gray-500 mt-1">Coordenadas</p>
+                  <p className="text-sm font-bold text-teal-800">{Number(municipality.lat).toFixed(2)}°, {Number(municipality.lon).toFixed(2)}°</p>
+                </div>
+              )}
+              {municipality.cod_dane && (
+                <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl p-3 border border-teal-100/50">
+                  <span className="text-lg">🏷️</span>
+                  <p className="text-[10px] text-gray-500 mt-1">Código DANE</p>
+                  <p className="text-sm font-bold text-teal-800">{municipality.cod_dane}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -143,6 +158,14 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
 
         {activeTab === "poblacion" && (
           <PopulationTab population={municipality.population} />
+        )}
+
+        {activeTab === "fiestas" && (
+          <FiestasTab municipalityId={municipality.id} />
+        )}
+
+        {activeTab === "cultura" && (
+          <CulturaTab municipioNombre={municipality.name} />
         )}
       </div>
     </div>
@@ -261,6 +284,212 @@ const PopulationTab: React.FC<{ population: unknown }> = ({ population }) => {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+};
+
+interface FestivalItem {
+  id: number;
+  name: string;
+  start_date: string;
+  end_date: string;
+  municipality_name: string;
+}
+
+const FiestasTab: React.FC<{ municipalityId: number }> = ({ municipalityId }) => {
+  const [items, setItems] = useState<FestivalItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get(`/api/festivals/municipality/${municipalityId}`)
+      .then((res) => setItems(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [municipalityId]);
+
+  if (loading)
+    return (
+      <div className="space-y-3 p-1">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+
+  if (items.length === 0)
+    return (
+      <div className="text-center py-10 text-gray-400">
+        <span className="text-4xl">🎉</span>
+        <p className="text-sm mt-3 font-medium">Información de fiestas próximamente</p>
+      </div>
+    );
+
+  return (
+    <div className="space-y-3 pb-4">
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-4"
+        >
+          <p className="text-sm font-bold text-purple-900">{item.name}</p>
+          {item.start_date && (
+            <p className="text-xs text-purple-600 mt-1">
+              📅 {item.start_date}{item.end_date ? ` — ${item.end_date}` : ""}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+interface PatrimonioItem {
+  id: number;
+  titulo: string;
+  subtitulo: string;
+  descripcion_corta: string;
+  descripcion_larga: string;
+  ambito: string;
+  fecha_declaracion: string;
+  organizacion_gestora: string;
+  fecha_celebracion: string;
+  elementos_clave: string[];
+  municipio_nombre: string;
+}
+
+const CulturaTab: React.FC<{ municipioNombre: string }> = ({ municipioNombre }) => {
+  const [items, setItems] = useState<PatrimonioItem[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get(`/api/patrimonio/inmaterial/${encodeURIComponent(municipioNombre)}`)
+      .then((res) => setItems(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, [municipioNombre]);
+
+  if (loading)
+    return (
+      <div className="space-y-3 p-1">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+
+  if (items.length === 0)
+    return (
+      <div className="text-center py-10 text-gray-400">
+        <span className="text-4xl">🏛️</span>
+        <p className="text-sm mt-3 font-medium">Información cultural próximamente</p>
+        <p className="text-xs mt-1 text-gray-300">
+          Estamos documentando el patrimonio de este municipio
+        </p>
+      </div>
+    );
+
+  return (
+    <div className="space-y-3 pb-4">
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className="rounded-2xl border overflow-hidden border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50"
+        >
+          <button
+            className="w-full text-left p-4"
+            onClick={() => setExpanded(expanded === item.id ? null : item.id)}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <span
+                  className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-2 ${
+                    item.ambito.includes("UNESCO")
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-amber-200 text-amber-800"
+                  }`}
+                >
+                  {item.ambito.includes("UNESCO") ? "🌍 UNESCO" : "🇨🇴 Patrimonio Nacional"}
+                </span>
+                <p className="text-sm font-bold text-amber-900 leading-tight">{item.titulo}</p>
+                <p className="text-xs text-amber-600 mt-0.5">{item.subtitulo}</p>
+              </div>
+              <span
+                className={`text-amber-400 text-lg transition-transform duration-200 ${
+                  expanded === item.id ? "rotate-180" : ""
+                }`}
+              >
+                ▾
+              </span>
+            </div>
+            <p className="text-xs text-amber-800 mt-2 leading-relaxed">
+              {item.descripcion_corta}
+            </p>
+          </button>
+
+          {expanded === item.id && (
+            <div className="px-4 pb-4 space-y-4 border-t border-amber-100 pt-3">
+              <p className="text-xs text-amber-900 leading-relaxed">{item.descripcion_larga}</p>
+
+              <div className="space-y-2">
+                {item.fecha_declaracion && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">📅</span>
+                    <div>
+                      <p className="text-xs font-semibold text-amber-700">Declaración</p>
+                      <p className="text-xs text-amber-600">{item.fecha_declaracion}</p>
+                    </div>
+                  </div>
+                )}
+                {item.organizacion_gestora && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">🏛️</span>
+                    <div>
+                      <p className="text-xs font-semibold text-amber-700">Organización gestora</p>
+                      <p className="text-xs text-amber-600">{item.organizacion_gestora}</p>
+                    </div>
+                  </div>
+                )}
+                {item.fecha_celebracion && (
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">🗓️</span>
+                    <div>
+                      <p className="text-xs font-semibold text-amber-700">Cuándo</p>
+                      <p className="text-xs text-amber-600">{item.fecha_celebracion}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {item.elementos_clave?.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-amber-700 mb-2">Elementos</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.elementos_clave.map((el, i) => (
+                      <span
+                        key={i}
+                        className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full"
+                      >
+                        {el}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {item.municipio_nombre === "Chocó" && (
+                <p className="text-xs text-amber-500 italic">
+                  Esta manifestación está presente en todo el departamento del Chocó
+                </p>
+              )}
+
+              <p className="text-xs text-gray-400">Fuente: Ministerio de Culturas 2025</p>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
