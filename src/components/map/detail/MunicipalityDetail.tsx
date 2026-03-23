@@ -37,6 +37,30 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
     { id: "cultura", label: "Cultura" },
   ];
 
+  const imagePosition: Record<string, string> = {
+    "acandi.jpg":              "center 60%",
+    "nuqui.jpg":               "center 65%",
+    "condoto.jpg":             "center 50%",
+    "bajo-baudo.jpg":          "center 40%",
+    "bahia-solano.jpg":        "center 45%",
+    "bojaya.jpg":              "center 50%",
+    "riosucio.jpg":            "center 50%",
+    "bagado.jpg":              "center 40%",
+    "atrato.jpg":              "center 55%",
+    "carmen-del-darien.jpg":   "center 45%",
+    "medio-atrato.jpg":        "center 50%",
+    "medio-baudo.jpg":         "center 50%",
+    "lloro.jpg":               "center 60%",
+    "unguia.jpg":              "center 50%",
+    "certegui.jpg":            "center 30%",
+    "quibdo.jpg":              "center 25%",
+    "el-carmen-de-atrato.jpg": "center 35%",
+    "canton-de-san-pablo.jpg": "center 50%",
+    "tado.jpg":                "center 45%",
+  };
+  const imgFilename = municipality.image_url?.split("/").pop() ?? "";
+  const objPosition = imagePosition[imgFilename] ?? "center 50%";
+
   return (
     <div className="flex flex-col h-full">
       {/* Hero */}
@@ -46,6 +70,7 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
             src={municipality.image_url}
             alt={municipality.name}
             className="w-full h-full object-cover"
+            style={{ objectPosition: objPosition }}
           />
         ) : (
           <div
