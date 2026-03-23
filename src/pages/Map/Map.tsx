@@ -5,15 +5,17 @@ import "../../styles/components/scroll.css";
 import "../../styles/components/markers.css";
 
 import { AnimatePresence } from "framer-motion";
-import { MapContainer } from "react-leaflet";
+import { GeoJSON, MapContainer, useMapEvents } from "react-leaflet";
 
 import { useMapState } from "../../hooks/useMapState";
+import type { MapState } from "../../hooks/useMapState";
 import { useEthnicHeatmap } from "../../hooks/useEthnicHeatmap";
 
 import { GrayscaleTileLayer } from "../../components/map/GrayscaleTileLayer";
 import MunicipalityBoundaries from "../../components/map/MunicipalityBoundaries";
 import { IndigenousReserveBoundaries } from "../../components/map/IndigenousReserveBoundaries";
 import { ClusteredMarkers } from "../../components/map/ClusteredMarkers";
+import { FiestaMarkers } from "../../components/map/FiestaMarkers";
 
 import { UnifiedPanel } from "../../components/map/panel/UnifiedPanel";
 import { PanelToggleButton } from "../../components/map/panel/PanelToggleButton";
@@ -27,6 +29,25 @@ const MAP_BOUNDS: [[number, number], [number, number]] = [
 ];
 const MAP_MIN_ZOOM = 7;
 const MAP_MAX_ZOOM = 16;
+
+type ChocoGeoJson = MapState["chocoGeoJson"];
+
+const ChocoOutline: React.FC<{ geoJson: ChocoGeoJson | null }> = ({ geoJson }) => {
+  if (!geoJson?.features?.length) return null;
+  return (
+    <GeoJSON
+      key="choco-outline"
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data={geoJson as any}
+      style={{ color: "#1a5c45", weight: 2.5, opacity: 0.9, fill: false }}
+    />
+  );
+};
+
+function MapClickHandler({ onMapClick }: { onMapClick: () => void }) {
+  useMapEvents({ click: () => onMapClick() });
+  return null;
+}
 
 const Map: React.FC = () => {
   const {
@@ -70,26 +91,23 @@ const Map: React.FC = () => {
       >
         <GrayscaleTileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; OpenStreetMap contributors'
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           chocoGeoJson={chocoGeoJson as any}
         />
 
-        {currentFilter === "indigenous" ? (
+        <MunicipalityBoundaries
+          municipalities={municipalities}
+          selectedMunicipality={selectedMunicipality}
+          onMunicipalityClick={(m) => { selectMunicipality(m); }}
+          ethnicHeatmap={currentFilter === "ethnic" ? ethnicHeatmap : undefined}
+        />
+
+        {currentFilter === "indigenous" && (
           <IndigenousReserveBoundaries
             reserves={reserves}
             selectedReserve={selectedReserve}
             onReserveClick={selectReserve}
-          />
-        ) : (
-          <MunicipalityBoundaries
-            municipalities={municipalities}
-            selectedMunicipality={selectedMunicipality}
-            onMunicipalityClick={(m) => {
-              selectMunicipality(m);
-              handleMapClick();
-            }}
-            ethnicHeatmap={currentFilter === "ethnic" ? ethnicHeatmap : undefined}
           />
         )}
 
@@ -100,6 +118,10 @@ const Map: React.FC = () => {
             onMarkerClick={selectMunicipality}
           />
         )}
+
+        <FiestaMarkers visible={currentFilter === "festivals"} />
+        <ChocoOutline geoJson={chocoGeoJson} />
+        <MapClickHandler onMapClick={handleMapClick} />
       </MapContainer>
 
       {/* OVERLAYS */}

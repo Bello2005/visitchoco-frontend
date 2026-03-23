@@ -54,8 +54,6 @@ const StarRating = ({ rating }: { rating: number }) => {
 };
 
 export const TestimonialsSection = () => {
-  console.log("Rendering TestimonialsSection");
-
   return (
     <section className="relative z-10 w-full bg-gradient-to-b from-emerald-50 to-white py-20 overflow-hidden">
       {/* Elementos decorativos */}

@@ -1,5 +1,6 @@
 import React from "react";
-import { GeoJSON } from "react-leaflet";
+import { GeoJSON, Tooltip } from "react-leaflet";
+import L from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
 import { ethnicDistributionService } from "../../services/ethnicDistribution.service";
 import type { HeatmapEntry } from "../../hooks/useEthnicHeatmap";
@@ -14,21 +15,24 @@ interface MunicipalityBoundariesProps {
 
 const MUNICIPALITY_STYLES = {
   default: {
-    color: "#0D9488",
-    weight: 1,
-    opacity: 0.5,
-    fillOpacity: 0.08,
-  },
-  selected: {
-    color: "#0F766E",
-    weight: 2,
-    opacity: 0.85,
-    fillOpacity: 0.22,
+    color: "rgba(255,255,255,0.55)",
+    weight: 0.8,
+    opacity: 1,
+    fillColor: "transparent",
+    fillOpacity: 0,
   },
   hover: {
-    color: "#115E59",
+    color: "#ffffff",
     weight: 2,
-    opacity: 0.9,
+    opacity: 1,
+    fillColor: "#000000",
+    fillOpacity: 0.12,
+  },
+  selected: {
+    color: "#ffffff",
+    weight: 2.5,
+    opacity: 1,
+    fillColor: "#000000",
     fillOpacity: 0.18,
   },
 };
@@ -69,7 +73,11 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
         fillOpacity: 0.55,
       };
     }
-    return MUNICIPALITY_STYLES.default;
+    return {
+      ...MUNICIPALITY_STYLES.default,
+      fillColor: "transparent",
+      fillOpacity: 0,
+    };
   };
 
   // Key includes heatmap size so GeoJSON re-creates when data loads (empty Map → populated Map)
@@ -90,17 +98,34 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
             data={municipality.geometry as Feature<MultiPolygon | Point>}
             style={() => getStyle(municipality)}
             eventHandlers={{
-              click: () => onMunicipalityClick(municipality),
+              click: (e) => {
+                L.DomEvent.stopPropagation(e);
+                onMunicipalityClick(municipality);
+              },
               mouseover: (e) => {
                 const layer = e.target;
                 layer.setStyle(MUNICIPALITY_STYLES.hover);
               },
               mouseout: (e) => {
                 const layer = e.target;
-                layer.setStyle(getStyle(municipality));
+                const style = getStyle(municipality);
+                layer.setStyle({
+                  ...style,
+                  fillColor: style.fillOpacity === 0 ? "transparent" : style.fillColor,
+                });
               },
             }}
-          />
+          >
+            <Tooltip
+              sticky
+              direction="top"
+              offset={[0, -8]}
+              opacity={1}
+              className="municipality-tooltip"
+            >
+              {municipality.name}
+            </Tooltip>
+          </GeoJSON>
         );
       })}
     </>
