@@ -9,6 +9,7 @@ import { SectionNav } from "./SectionNav";
 import { FilterChips } from "./FilterChips";
 import { ItemList } from "./ItemList";
 import { DetailView } from "./DetailView";
+import { FiestasPanel } from "./FiestasPanel";
 
 interface UnifiedPanelProps {
   municipalities: Municipality[];
@@ -129,47 +130,53 @@ export const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         <FilterChips currentFilter={currentFilter} onFilterChange={onFilterChange} />
 
         {/* Dynamic content area */}
-        <AnimatePresence mode="wait" custom={direction}>
-          {panelView === "list" ? (
-            <motion.div
-              key="list"
-              className="flex-1 min-h-0 flex flex-col"
-              custom={direction}
-              variants={contentVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-            >
-              <ItemList
-                municipalities={municipalities}
-                reserves={reserves}
-                currentFilter={currentFilter}
-                selectedMunicipality={selectedMunicipality}
-                selectedReserve={selectedReserve}
-                searchQuery={searchQuery}
-                onSelectMunicipality={onSelectMunicipality}
-                onSelectReserve={onSelectReserve}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="detail"
-              className="flex-1 min-h-0 flex flex-col"
-              custom={direction}
-              variants={contentVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-            >
-              <DetailView
-                currentFilter={currentFilter}
-                selectedMunicipality={selectedMunicipality}
-                selectedReserve={selectedReserve}
-                onBack={onNavigateToList}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {currentFilter === "festivals" ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <FiestasPanel />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait" custom={direction}>
+            {panelView === "list" ? (
+              <motion.div
+                key="list"
+                className="flex-1 min-h-0 flex flex-col"
+                custom={direction}
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                <ItemList
+                  municipalities={municipalities}
+                  reserves={reserves}
+                  currentFilter={currentFilter}
+                  selectedMunicipality={selectedMunicipality}
+                  selectedReserve={selectedReserve}
+                  searchQuery={searchQuery}
+                  onSelectMunicipality={onSelectMunicipality}
+                  onSelectReserve={onSelectReserve}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="detail"
+                className="flex-1 min-h-0 flex flex-col"
+                custom={direction}
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                <DetailView
+                  currentFilter={currentFilter}
+                  selectedMunicipality={selectedMunicipality}
+                  selectedReserve={selectedReserve}
+                  onBack={onNavigateToList}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
     </motion.div>
   );
@@ -254,47 +261,53 @@ const MobilePanel: React.FC<MobilePanelProps> = ({
 
         <FilterChips currentFilter={currentFilter} onFilterChange={onFilterChange} />
 
-        <AnimatePresence mode="wait" custom={direction}>
-          {panelView === "list" ? (
-            <motion.div
-              key="list"
-              className="flex-1 min-h-0 flex flex-col"
-              custom={direction}
-              variants={contentVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-            >
-              <ItemList
-                municipalities={municipalities}
-                reserves={reserves}
-                currentFilter={currentFilter}
-                selectedMunicipality={selectedMunicipality}
-                selectedReserve={selectedReserve}
-                searchQuery={searchQuery}
-                onSelectMunicipality={onSelectMunicipality}
-                onSelectReserve={onSelectReserve}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="detail"
-              className="flex-1 min-h-0 flex flex-col"
-              custom={direction}
-              variants={contentVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-            >
-              <DetailView
-                currentFilter={currentFilter}
-                selectedMunicipality={selectedMunicipality}
-                selectedReserve={selectedReserve}
-                onBack={onNavigateToList}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {currentFilter === "festivals" ? (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <FiestasPanel />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait" custom={direction}>
+            {panelView === "list" ? (
+              <motion.div
+                key="list"
+                className="flex-1 min-h-0 flex flex-col"
+                custom={direction}
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                <ItemList
+                  municipalities={municipalities}
+                  reserves={reserves}
+                  currentFilter={currentFilter}
+                  selectedMunicipality={selectedMunicipality}
+                  selectedReserve={selectedReserve}
+                  searchQuery={searchQuery}
+                  onSelectMunicipality={onSelectMunicipality}
+                  onSelectReserve={onSelectReserve}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="detail"
+                className="flex-1 min-h-0 flex flex-col"
+                custom={direction}
+                variants={contentVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                <DetailView
+                  currentFilter={currentFilter}
+                  selectedMunicipality={selectedMunicipality}
+                  selectedReserve={selectedReserve}
+                  onBack={onNavigateToList}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
       </div>
     </motion.div>
   );

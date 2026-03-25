@@ -383,17 +383,39 @@ interface PatrimonioItem {
   municipio_nombre: string;
 }
 
+interface MaterialItem {
+  id: number;
+  entidad_custodia: string;
+  numero_bienes: number;
+}
+interface RntData {
+  total_activos: number;
+  hoteles: number;
+  fincas_turisticas: number;
+  hostales: number;
+  agencias_viajes: number;
+  guias_turismo: number;
+  viviendas_turisticas: number;
+}
+
 const CulturaTab: React.FC<{ municipioNombre: string }> = ({ municipioNombre }) => {
   const [items, setItems] = useState<PatrimonioItem[]>([]);
+  const [material, setMaterial] = useState<MaterialItem[]>([]);
+  const [rnt, setRnt] = useState<RntData | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .get(`/api/patrimonio/inmaterial/${encodeURIComponent(municipioNombre)}`)
-      .then((res) => setItems(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+    const enc = encodeURIComponent(municipioNombre);
+    Promise.all([
+      api.get(`/api/patrimonio/inmaterial/${enc}`).then((r) => r.data).catch(() => []),
+      api.get(`/api/patrimonio/material/${enc}`).then((r) => r.data).catch(() => []),
+      api.get(`/api/patrimonio/rnt/${enc}`).then((r) => r.data).catch(() => null),
+    ]).then(([pciData, matData, rntData]) => {
+      setItems(Array.isArray(pciData) ? pciData : []);
+      setMaterial(Array.isArray(matData) ? matData : []);
+      setRnt(rntData ?? null);
+    }).finally(() => setLoading(false));
   }, [municipioNombre]);
 
   if (loading)
@@ -405,7 +427,7 @@ const CulturaTab: React.FC<{ municipioNombre: string }> = ({ municipioNombre }) 
       </div>
     );
 
-  if (items.length === 0)
+  if (!rnt && items.length === 0 && material.length === 0)
     return (
       <div className="text-center py-10 text-gray-400">
         <span className="text-4xl">🏛️</span>
@@ -417,7 +439,89 @@ const CulturaTab: React.FC<{ municipioNombre: string }> = ({ municipioNombre }) 
     );
 
   return (
-    <div className="space-y-3 pb-4">
+    <div className="space-y-5 pb-4">
+      {/* RNT — Oferta turística */}
+      {rnt && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Oferta turística registrada
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col items-center p-3 rounded-2xl bg-teal-50 border border-teal-100">
+              <span className="text-lg mb-1">🏨</span>
+              <span className="text-lg font-bold text-teal-700">{rnt.total_activos}</span>
+              <span className="text-xs text-gray-400 text-center mt-0.5">Total RNT activos</span>
+            </div>
+            {rnt.hoteles > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-lg mb-1">🏩</span>
+                <span className="text-lg font-bold text-gray-700">{rnt.hoteles}</span>
+                <span className="text-xs text-gray-400 text-center mt-0.5">Hoteles</span>
+              </div>
+            )}
+            {rnt.fincas_turisticas > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-lg mb-1">🌿</span>
+                <span className="text-lg font-bold text-gray-700">{rnt.fincas_turisticas}</span>
+                <span className="text-xs text-gray-400 text-center mt-0.5">Fincas turísticas</span>
+              </div>
+            )}
+            {rnt.hostales > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-lg mb-1">🛏️</span>
+                <span className="text-lg font-bold text-gray-700">{rnt.hostales}</span>
+                <span className="text-xs text-gray-400 text-center mt-0.5">Hostales</span>
+              </div>
+            )}
+            {rnt.agencias_viajes > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-lg mb-1">✈️</span>
+                <span className="text-lg font-bold text-gray-700">{rnt.agencias_viajes}</span>
+                <span className="text-xs text-gray-400 text-center mt-0.5">Agencias de viajes</span>
+              </div>
+            )}
+            {rnt.guias_turismo > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                <span className="text-lg mb-1">🧭</span>
+                <span className="text-lg font-bold text-gray-700">{rnt.guias_turismo}</span>
+                <span className="text-xs text-gray-400 text-center mt-0.5">Guías certificados</span>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Fuente: RNT - MinCIT 2025</p>
+        </section>
+      )}
+
+      {/* Patrimonio material */}
+      {material.length > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Bienes patrimoniales
+          </h3>
+          <div className="space-y-2">
+            {material.map((item) => (
+              <div
+                key={item.id}
+                className="p-3 bg-stone-50 border border-stone-200 rounded-2xl flex items-center gap-3"
+              >
+                <span className="text-2xl">⛪</span>
+                <div>
+                  <p className="text-sm font-medium text-stone-800">{item.entidad_custodia}</p>
+                  <p className="text-xs text-stone-500">{item.numero_bienes} bienes en SIPA</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* PCI — Patrimonio inmaterial */}
+      {items.length > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            Patrimonio cultural inmaterial
+          </h3>
+          <div className="space-y-3">
       {items.map((item) => (
         <div
           key={item.id}
@@ -515,6 +619,9 @@ const CulturaTab: React.FC<{ municipioNombre: string }> = ({ municipioNombre }) 
           )}
         </div>
       ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
