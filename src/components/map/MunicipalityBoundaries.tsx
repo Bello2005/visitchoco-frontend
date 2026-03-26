@@ -15,8 +15,8 @@ interface MunicipalityBoundariesProps {
 
 const MUNICIPALITY_STYLES = {
   default: {
-    color: "rgba(255,255,255,0.55)",
-    weight: 0.8,
+    color: "rgba(255,255,255,0.6)",
+    weight: 1,
     opacity: 1,
     fillColor: "transparent",
     fillOpacity: 0,
@@ -29,10 +29,10 @@ const MUNICIPALITY_STYLES = {
     fillOpacity: 0.12,
   },
   selected: {
-    color: "#ffffff",
+    color: "#0D9488",
     weight: 2.5,
     opacity: 1,
-    fillColor: "#000000",
+    fillColor: "#0D9488",
     fillOpacity: 0.18,
   },
 };
@@ -52,15 +52,6 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
     const ethnicColor = rawColor && rawColor !== "#000000" ? rawColor : null;
 
     if (selectedMunicipality?.id === municipality.id) {
-      if (ethnicColor) {
-        return {
-          color: "rgba(255,255,255,0.9)",
-          fillColor: ethnicColor,
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.75,
-        };
-      }
       return MUNICIPALITY_STYLES.selected;
     }
     if (ethnicColor) {
@@ -100,6 +91,7 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
             eventHandlers={{
               click: (e) => {
                 L.DomEvent.stopPropagation(e);
+                e.target.closeTooltip();
                 onMunicipalityClick(municipality);
               },
               mouseover: (e) => {

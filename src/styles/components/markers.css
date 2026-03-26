@@ -38,6 +38,11 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* Remove browser focus ring on Leaflet interactive SVG paths */
+.leaflet-interactive:focus {
+  outline: none;
+}
+
 /* Municipality tooltip */
 .municipality-tooltip {
   background: rgba(0, 0, 0, 0.75) !important;
