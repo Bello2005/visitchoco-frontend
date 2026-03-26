@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../../styles/components/scroll.css";
@@ -6,15 +6,18 @@ import "../../styles/components/markers.css";
 
 import { AnimatePresence } from "framer-motion";
 import { GeoJSON, MapContainer, useMapEvents } from "react-leaflet";
+import union from "@turf/union";
+import { featureCollection } from "@turf/helpers";
+import type { Feature, MultiPolygon } from "geojson";
 
 import { useMapState } from "../../hooks/useMapState";
-import type { MapState } from "../../hooks/useMapState";
 import { useEthnicHeatmap } from "../../hooks/useEthnicHeatmap";
+import type { Municipality } from "../../services/municipality.service";
 
 import { GrayscaleTileLayer } from "../../components/map/GrayscaleTileLayer";
 import MunicipalityBoundaries from "../../components/map/MunicipalityBoundaries";
 import { IndigenousReserveBoundaries } from "../../components/map/IndigenousReserveBoundaries";
-import { ClusteredMarkers } from "../../components/map/ClusteredMarkers";
+import { MunicipalityLabels } from "../../components/map/MunicipalityLabels";
 import { FiestaMarkers } from "../../components/map/FiestaMarkers";
 
 import { UnifiedPanel } from "../../components/map/panel/UnifiedPanel";
@@ -30,15 +33,29 @@ const MAP_BOUNDS: [[number, number], [number, number]] = [
 const MAP_MIN_ZOOM = 7;
 const MAP_MAX_ZOOM = 16;
 
-type ChocoGeoJson = MapState["chocoGeoJson"];
+const DerivedChocoOutline: React.FC<{ municipalities: Municipality[] }> = ({ municipalities }) => {
+  const outline = useMemo(() => {
+    const features = municipalities
+      .filter((m) => m.geometry?.geometry?.type === "MultiPolygon")
+      .map((m) => m.geometry as Feature<MultiPolygon>);
 
-const ChocoOutline: React.FC<{ geoJson: ChocoGeoJson | null }> = ({ geoJson }) => {
-  if (!geoJson?.features?.length) return null;
+    if (features.length === 0) return null;
+
+    return features.reduce<Feature<MultiPolygon> | null>((acc, feat) => {
+      if (acc === null) return feat;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = union(featureCollection([acc, feat])) as Feature<MultiPolygon> | null;
+      return result ?? acc;
+    }, null);
+  }, [municipalities]);
+
+  if (!outline) return null;
+
   return (
     <GeoJSON
-      key="choco-outline"
+      key="choco-derived-outline"
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data={geoJson as any}
+      data={outline as any}
       style={{ color: "#1a5c45", weight: 2.5, opacity: 0.9, fill: false }}
     />
   );
@@ -111,16 +128,10 @@ const Map: React.FC = () => {
           />
         )}
 
-        {currentFilter !== "indigenous" && (
-          <ClusteredMarkers
-            municipalities={municipalities}
-            selectedMunicipality={selectedMunicipality}
-            onMarkerClick={selectMunicipality}
-          />
-        )}
+        <MunicipalityLabels municipalities={municipalities} />
 
         <FiestaMarkers visible={currentFilter === "festivals"} />
-        <ChocoOutline geoJson={chocoGeoJson} />
+        <DerivedChocoOutline municipalities={municipalities} />
         <MapClickHandler onMapClick={handleMapClick} />
       </MapContainer>
 

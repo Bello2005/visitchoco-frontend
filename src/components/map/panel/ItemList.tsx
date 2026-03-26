@@ -67,7 +67,7 @@ export const ItemList: React.FC<ItemListProps> = ({
         {items.length === 0 ? (
           <EmptyState query={searchQuery} />
         ) : isIndigenous ? (
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {filteredReserves.map((reserve) => (
               <li key={reserve.id}>
                 <ReserveItem
@@ -79,7 +79,7 @@ export const ItemList: React.FC<ItemListProps> = ({
             ))}
           </ul>
         ) : (
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {filteredMunicipalities.map((m) => (
               <li key={m.id}>
                 <MunicipalityItem
@@ -107,7 +107,7 @@ const MunicipalityItem: React.FC<{
   return (
     <button
       onClick={onClick}
-      className={`w-full px-3 py-2.5 rounded-lg text-left transition-all duration-150 relative group ${
+      className={`w-full px-3 py-3 rounded-lg text-left transition-all duration-150 relative group ${
         isSelected
           ? "bg-teal-50/80"
           : "hover:bg-gray-50/80"
@@ -177,7 +177,7 @@ const ReserveItem: React.FC<{
 }> = ({ reserve, isSelected, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full px-3 py-2.5 rounded-lg text-left transition-all duration-150 relative group ${
+    className={`w-full px-3 py-3 rounded-lg text-left transition-all duration-150 relative group ${
       isSelected
         ? "bg-amber-50/80"
         : "hover:bg-gray-50/80"

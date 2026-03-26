@@ -3,7 +3,6 @@ import { useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
-import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import type { Municipality } from "../../services/municipality.service";
 
 interface ClusteredMarkersProps {
@@ -40,30 +39,21 @@ function createDotIcon(isSelected: boolean): L.DivIcon {
 
 function createClusterIcon(cluster: L.MarkerCluster): L.DivIcon {
   const count = cluster.getChildCount();
-  const dotSize = count < 10 ? 32 : count < 20 ? 38 : 44;
-  const totalW = dotSize + 20; // extra width for label
-  const totalH = dotSize + 16; // extra height for label below
+  const size = count < 10 ? 32 : count < 20 ? 38 : 44;
 
   return L.divIcon({
     html: `<div style="
-      display:flex;flex-direction:column;align-items:center;gap:2px;
-    ">
-      <div style="
-        width:${dotSize}px;height:${dotSize}px;
-        background:rgba(13,148,136,0.15);
-        border:2px solid rgba(13,148,136,0.5);
-        border-radius:50%;
-        display:flex;align-items:center;justify-content:center;
-        color:#0F766E;font-weight:700;font-size:13px;
-      ">${count}</div>
-      <span style="
-        font-size:9px;font-weight:500;color:#0F766E;
-        white-space:nowrap;letter-spacing:0.02em;
-      ">municipios</span>
-    </div>`,
+      width:${size}px;height:${size}px;
+      background:#0D9488;
+      border:2px solid #ffffff;
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      color:#ffffff;font-weight:700;font-size:13px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.2);
+    ">${count}</div>`,
     className: "clustered-group-icon",
-    iconSize: [totalW, totalH],
-    iconAnchor: [totalW / 2, totalH / 2],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 }
 

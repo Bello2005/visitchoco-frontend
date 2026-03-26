@@ -81,6 +81,11 @@ export function useMapState(): MapState {
           padding: [80, 80],
           animate: false,
         });
+        setTimeout(() => {
+          mapRef.current?.eachLayer((layer) => {
+            if (layer instanceof L.Rectangle) mapRef.current?.removeLayer(layer);
+          });
+        }, 50);
         if (panelOpen && !isMobile) {
           mapRef.current.panBy([-185, 0], { animate: false });
         }
