@@ -23,7 +23,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
   municipality,
   activeFilter = "general",
   selectedReserves = [],
-  selectedSpots = [],
   weatherData,
 }) => {
   const [ethnicDistributions, setEthnicDistributions] = useState<
@@ -225,49 +224,6 @@ const InfoPanel: React.FC<InfoPanelProps> = ({
         </div>
       )}
 
-      {activeFilter === "tourism" && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-800">
-            Lugares Turísticos
-          </h3>
-          {selectedSpots.length > 0 ? (
-            selectedSpots.map((spot) => (
-              <div
-                key={spot.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              >
-                {spot.imageUrl && (
-                  <div className="aspect-video w-full">
-                    <img
-                      src={spot.imageUrl}
-                      alt={spot.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="p-4 space-y-2">
-                  <h4 className="font-medium text-gray-800">{spot.name}</h4>
-                  <p className="text-sm text-gray-500">
-                    {spot.type.charAt(0).toUpperCase() + spot.type.slice(1)}
-                  </p>
-                  {spot.description && (
-                    <p className="text-sm text-gray-600">{spot.description}</p>
-                  )}
-                  {spot.location && (
-                    <p className="text-sm text-gray-500">
-                      Ubicación: {spot.location}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500 py-4">
-              No hay lugares turísticos registrados en este municipio.
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 };

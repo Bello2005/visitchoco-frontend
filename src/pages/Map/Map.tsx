@@ -18,11 +18,11 @@ import { GrayscaleTileLayer } from "../../components/map/GrayscaleTileLayer";
 import MunicipalityBoundaries from "../../components/map/MunicipalityBoundaries";
 import { IndigenousReserveBoundaries } from "../../components/map/IndigenousReserveBoundaries";
 import { MunicipalityLabels } from "../../components/map/MunicipalityLabels";
-import { FiestaMarkers } from "../../components/map/FiestaMarkers";
 
 import { UnifiedPanel } from "../../components/map/panel/UnifiedPanel";
 import { PanelToggleButton } from "../../components/map/panel/PanelToggleButton";
 import { MapControls } from "../../components/map/overlay/MapControls";
+import { MapLoadingScreen } from "../../components/map/MapLoadingScreen";
 
 const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
 const CHOCO_DEFAULT_ZOOM = 7.5;
@@ -71,6 +71,7 @@ const Map: React.FC = () => {
     municipalities,
     reserves,
     chocoGeoJson,
+    isLoading,
     selectedMunicipality,
     selectedReserve,
     currentFilter,
@@ -78,6 +79,7 @@ const Map: React.FC = () => {
     panelView,
     searchQuery,
     isMobile,
+    ethnicOverlayEnabled,
     mapRef,
     selectMunicipality,
     selectReserve,
@@ -85,14 +87,16 @@ const Map: React.FC = () => {
     setSearchQuery,
     navigateToList,
     togglePanel,
+    toggleEthnicOverlay,
     resetAll,
     handleMapClick,
   } = useMapState();
 
-  const ethnicHeatmap = useEthnicHeatmap(currentFilter === "ethnic");
+  const ethnicHeatmap = useEthnicHeatmap(ethnicOverlayEnabled);
 
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden">
+      <MapLoadingScreen visible={isLoading} />
       {/* MAPA */}
       <MapContainer
         center={CHOCO_CENTER}
@@ -117,7 +121,8 @@ const Map: React.FC = () => {
           municipalities={municipalities}
           selectedMunicipality={selectedMunicipality}
           onMunicipalityClick={(m) => { selectMunicipality(m); }}
-          ethnicHeatmap={currentFilter === "ethnic" ? ethnicHeatmap : undefined}
+          ethnicHeatmap={ethnicOverlayEnabled ? ethnicHeatmap : undefined}
+          dimmed={currentFilter === "indigenous"}
         />
 
         {currentFilter === "indigenous" && (
@@ -128,9 +133,11 @@ const Map: React.FC = () => {
           />
         )}
 
-        <MunicipalityLabels municipalities={municipalities} />
+        <MunicipalityLabels
+          municipalities={municipalities}
+          visible={currentFilter !== "indigenous"}
+        />
 
-        <FiestaMarkers visible={currentFilter === "festivals"} />
         <DerivedChocoOutline municipalities={municipalities} />
         <MapClickHandler onMapClick={handleMapClick} />
       </MapContainer>
@@ -177,6 +184,8 @@ const Map: React.FC = () => {
         <MapControls
           mapRef={mapRef}
           onReset={resetAll}
+          ethnicOverlayEnabled={ethnicOverlayEnabled}
+          onToggleEthnic={toggleEthnicOverlay}
           className="pointer-events-auto"
         />
       </div>

@@ -1,30 +1,23 @@
-import { ParticlesBackground } from "../../components/landing/ParticlesBackground";
 import { MainNav } from "../../components/landing/MainNav";
 import { HeroSection } from "../../components/landing/HeroSection";
-import { FeaturesSection } from "../../components/landing/FeaturesSection";
-import { GallerySection } from "../../components/landing/GallerySection";
-import { TestimonialsSection } from "../../components/landing/TestimonialsSection";
-import { FinalCTA } from "../../components/landing/FinalCTA";
-import { MainFooter } from "../../components/landing/MainFooter";
-import "../../styles/Landing/Landing.css";
+import { StatsStrip } from "../../components/landing/StatsStrip";
+import { ExploreGrid } from "../../components/landing/ExploreGrid";
+import { TerritorioSection } from "../../components/landing/TerritorioSection";
+import { PatrimonioSection } from "../../components/landing/PatrimonioSection";
+import { MunicipiosCarousel } from "../../components/landing/MunicipiosCarousel";
+import { LandingFooter } from "../../components/landing/LandingFooter";
 
-const Landing = () => {
-  return (
-    <div className="landing-page relative">
-      <ParticlesBackground />
-      <MainNav />
-      <HeroSection />
-      <div className="relative z-10">
-        <FeaturesSection />
-      </div>
-      <GallerySection />
-      <TestimonialsSection />
-      <div className="relative z-10">
-        <FinalCTA />
-      </div>
-      <MainFooter />
-    </div>
-  );
-};
+const Landing = () => (
+  <div className="bg-white pb-20 md:pb-0">
+    <MainNav />
+    <HeroSection />
+    <StatsStrip />
+    <ExploreGrid />
+    <TerritorioSection />
+    <PatrimonioSection />
+    <MunicipiosCarousel />
+    <LandingFooter />
+  </div>
+);
 
 export { Landing };

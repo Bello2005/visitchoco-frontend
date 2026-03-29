@@ -1,10 +1,8 @@
 export type FilterCategory =
   | "general"
   | "indigenous"
-  | "tourism"
-  | "animals"
-  | "festivals"
-  | "ethnic";
+  | "ethnic"
+  | "festivals";
 
 export interface Filter {
   id: string;

@@ -15,6 +15,11 @@
   --text-light: #888888;
 }
 
+/* Override Tailwind font-serif → Playfair Display */
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
 * {
   margin: 0;
   padding: 0;

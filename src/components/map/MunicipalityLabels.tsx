@@ -5,11 +5,15 @@ import type { Municipality } from "../../services/municipality.service";
 
 interface MunicipalityLabelsProps {
   municipalities: Municipality[];
+  visible?: boolean;
 }
 
 const LABEL_ZOOM_THRESHOLD = 9;
 
-export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({ municipalities }) => {
+export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({
+  municipalities,
+  visible = true,
+}) => {
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
   const [labelsLayer] = useState(() => L.layerGroup());
@@ -28,6 +32,10 @@ export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({ municipa
   }, [labelsLayer, map]);
 
   useEffect(() => {
+    if (visible === false) {
+      labelsLayer.clearLayers();
+      return;
+    }
     const isVisible = zoom >= LABEL_ZOOM_THRESHOLD;
     labelsLayer.clearLayers();
 
@@ -64,7 +72,9 @@ export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({ municipa
 
       labelsLayer.addLayer(marker);
     });
-  }, [labelsLayer, municipalities, zoom]);
+  }, [labelsLayer, municipalities, zoom, visible]);
+
+  if (visible === false) return null;
 
   return null;
 };

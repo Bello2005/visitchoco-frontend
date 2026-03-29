@@ -41,6 +41,8 @@ export interface MapState {
   panelView: PanelView;
   isMobile: boolean;
 
+  ethnicOverlayEnabled: boolean;
+
   mapRef: React.RefObject<LeafletMapType | null>;
 
   selectMunicipality: (m: Municipality) => void;
@@ -49,6 +51,7 @@ export interface MapState {
   setSearchQuery: (q: string) => void;
   navigateToList: () => void;
   togglePanel: () => void;
+  toggleEthnicOverlay: () => void;
   resetAll: () => void;
   handleMapClick: () => void;
 }
@@ -70,6 +73,7 @@ export function useMapState(): MapState {
 
   const [isPanelOpen, setIsPanelOpen] = useState(!isMobile);
   const [panelView, setPanelView] = useState<PanelView>("list");
+  const [ethnicOverlayEnabled, setEthnicOverlayEnabled] = useState(false);
 
   const fitBoundsWithPadding = useCallback(
     (geoJson: ChocoGeoJson, panelOpen: boolean) => {
@@ -112,9 +116,10 @@ export function useMapState(): MapState {
         // Apply URL params after data is ready
         const mSlug = searchParams.get("m");
         const rId = searchParams.get("r");
+        const VALID_FILTERS: FilterCategory[] = ["indigenous"];
         const filtroParam = searchParams.get("filtro") as FilterCategory | null;
 
-        if (filtroParam) setCurrentFilter(filtroParam);
+        if (filtroParam && VALID_FILTERS.includes(filtroParam)) setCurrentFilter(filtroParam);
 
         if (mSlug) {
           const found = municipalitiesData.find((m) => m.slug === mSlug);
@@ -228,6 +233,10 @@ export function useMapState(): MapState {
     setIsPanelOpen((prev) => !prev);
   }, []);
 
+  const toggleEthnicOverlay = useCallback(() => {
+    setEthnicOverlayEnabled((prev) => !prev);
+  }, []);
+
   const resetAll = useCallback(() => {
     setSelectedMunicipality(null);
     setSelectedReserve(null);
@@ -264,6 +273,7 @@ export function useMapState(): MapState {
     isPanelOpen,
     panelView,
     isMobile,
+    ethnicOverlayEnabled,
     mapRef,
     selectMunicipality,
     selectReserve,
@@ -271,6 +281,7 @@ export function useMapState(): MapState {
     setSearchQuery,
     navigateToList,
     togglePanel,
+    toggleEthnicOverlay,
     resetAll,
     handleMapClick,
   };

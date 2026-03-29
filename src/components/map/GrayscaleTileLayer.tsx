@@ -68,26 +68,31 @@ function drawGrayscaleKeepWater(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement
 ) {
-  const BLEND = 0.75;
-  const BLEND_WATER = 0.82;
   ctx.filter = "none";
   ctx.drawImage(img, 0, 0, 256, 256);
-  const imageData = ctx.getImageData(0, 0, 256, 256);
-  const d = imageData.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const r = d[i], g = d[i + 1], b = d[i + 2];
-    const isWater = b > r && b >= g && b >= 170 && b - r >= 25;
-    if (!isWater) {
-      const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-      const white = Math.min(255, Math.round(gray + (255 - gray) * BLEND));
-      d[i] = white; d[i + 1] = white; d[i + 2] = white;
-    } else {
-      d[i]   = Math.min(255, Math.round(d[i]   + (255 - d[i])   * BLEND_WATER));
-      d[i+1] = Math.min(255, Math.round(d[i+1] + (255 - d[i+1]) * BLEND_WATER));
-      d[i+2] = Math.min(255, Math.round(d[i+2] + (255 - d[i+2]) * BLEND_WATER));
+  try {
+    const imageData = ctx.getImageData(0, 0, 256, 256);
+    const d = imageData.data;
+    const BLEND = 0.75;
+    const BLEND_WATER = 0.82;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      const isWater = b > r && b >= g && b >= 170 && b - r >= 25;
+      if (!isWater) {
+        const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        const white = Math.min(255, Math.round(gray + (255 - gray) * BLEND));
+        d[i] = white; d[i + 1] = white; d[i + 2] = white;
+      } else {
+        d[i]   = Math.min(255, Math.round(d[i]   + (255 - d[i])   * BLEND_WATER));
+        d[i+1] = Math.min(255, Math.round(d[i+1] + (255 - d[i+1]) * BLEND_WATER));
+        d[i+2] = Math.min(255, Math.round(d[i+2] + (255 - d[i+2]) * BLEND_WATER));
+      }
     }
+    ctx.putImageData(imageData, 0, 0);
+  } catch {
+    // getImageData bloqueado por CORS o canvas tainted —
+    // el tile ya está dibujado sin efecto, que se muestre así
   }
-  ctx.putImageData(imageData, 0, 0);
 }
 
 function createGrayscaleGridLayer(
@@ -108,24 +113,30 @@ function createGrayscaleGridLayer(
         .replace("{x}", String(coords.x))
         .replace("{y}", String(coords.y));
       img.onload = () => {
-        if (!chocoData) {
-          drawGrayscaleKeepWater(ctx, img);
-          done(undefined, canvas); return;
-        }
-        const tb = tileBounds(coords.x, coords.y, coords.z);
-        if (!bboxIntersects(tb, chocoData.bbox)) {
-          drawGrayscaleKeepWater(ctx, img);
-        } else {
-          drawGrayscaleKeepWater(ctx, img);
-          ctx.save(); ctx.beginPath();
-          this._drawChocoPath(ctx, coords);
-          ctx.clip(); ctx.filter = "none";
+        try {
+          if (!chocoData) {
+            drawGrayscaleKeepWater(ctx, img);
+          } else {
+            const tb = tileBounds(coords.x, coords.y, coords.z);
+            if (!bboxIntersects(tb, chocoData.bbox)) {
+              drawGrayscaleKeepWater(ctx, img);
+            } else {
+              drawGrayscaleKeepWater(ctx, img);
+              ctx.save(); ctx.beginPath();
+              this._drawChocoPath(ctx, coords);
+              ctx.clip(); ctx.filter = "none";
+              ctx.drawImage(img, 0, 0, 256, 256);
+              ctx.restore();
+            }
+          }
+        } catch {
           ctx.drawImage(img, 0, 0, 256, 256);
-          ctx.restore();
         }
         done(undefined, canvas);
       };
-      img.onerror = () => done(new Error("Tile load error"), canvas);
+      img.onerror = () => {
+        done(new Error("Tile load error"), canvas);
+      };
       return canvas;
     },
     _drawChocoPath(ctx: CanvasRenderingContext2D, coords: L.Coords) {

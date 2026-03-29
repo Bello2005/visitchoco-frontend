@@ -1,4 +1,5 @@
 import React from "react";
+import { Shield } from "lucide-react";
 import type { Municipality } from "../../../services/municipality.service";
 import type { IndigenousReserve } from "../../../services/indigenousReserve.service";
 import type { FilterCategory } from "../../../types/filters";
@@ -188,7 +189,7 @@ const ReserveItem: React.FC<{
     )}
     <div className="flex items-center gap-2.5">
       <div className="w-6 h-6 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
-        <span className="text-xs">🏺</span>
+        <Shield size={12} className="text-amber-500" />
       </div>
       <div className="min-w-0 flex-1">
         <p className={`text-sm font-medium truncate ${isSelected ? "text-amber-700" : "text-gray-800"}`}>

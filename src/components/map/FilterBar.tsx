@@ -68,20 +68,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       description: "Población y etnias",
     },
     {
-      id: "tourism",
-      name: "Destinos",
-      category: "tourism",
-      icon: "🏖️",
-      description: "Experiencias únicas",
-    },
-    {
-      id: "animals",
-      name: "Biodiversidad",
-      category: "animals",
-      icon: "🐋",
-      description: "Riqueza natural",
-    },
-    {
       id: "festivals",
       name: "Cultura Viva",
       category: "festivals",
@@ -154,9 +140,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               }
               className={buttonClass}
             >
-              <span className="text-lg" role="img" aria-label={filter.name}>
-                {filter.icon}
-              </span>
               <span className="text-sm font-medium whitespace-nowrap">
                 {filter.name}
               </span>

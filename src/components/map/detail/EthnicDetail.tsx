@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Users, Map } from "lucide-react";
 import { motion } from "framer-motion";
 import type {
   EthnicDistribution,
@@ -74,13 +75,15 @@ export const EthnicDetail: React.FC<EthnicDetailProps> = ({
       {/* Header */}
       <div className="flex-none px-5 pt-5 pb-4 border-b border-gray-100/60">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">👥</span>
+          <div className="w-7 h-7 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
+            <Users size={14} className="text-teal-500" />
+          </div>
           <h2 className="text-base font-bold text-gray-900">{title}</h2>
         </div>
         <p className="text-xs text-gray-500">Fuente: DANE — Censo poblacional</p>
         {!codDane && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-teal-600">
-            <span>🗺️</span>
+            <Map size={12} />
             <span>El mapa muestra el grupo dominante por municipio</span>
           </div>
         )}
