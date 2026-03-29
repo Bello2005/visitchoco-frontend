@@ -2,15 +2,26 @@ import React from "react";
 import { GeoJSON, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
-import { ethnicDistributionService } from "../../services/ethnicDistribution.service";
 import type { HeatmapEntry } from "../../hooks/useEthnicHeatmap";
 import type { Feature, MultiPolygon, Point } from "geojson";
+
+const ETHNIC_SATURATED: Record<string, string> = {
+  AFRO:        "#D97706", // amber-600
+  INDIGENA:    "#059669", // emerald-600
+  MESTIZO:     "#4F46E5", // indigo-600
+  ROM:         "#7C3AED", // violet-600
+  RAIZAL:      "#0891B2", // cyan-600
+  PALENQUERO:  "#DC2626", // red-600
+  NINGUNO:     "#6B7280", // gray-500
+  NO_INFORMA:  "#9CA3AF", // gray-400
+};
 
 interface MunicipalityBoundariesProps {
   municipalities: Municipality[];
   selectedMunicipality: Municipality | null;
   onMunicipalityClick: (municipality: Municipality) => void;
   ethnicHeatmap?: Map<string, HeatmapEntry>;
+  dimmed?: boolean;
 }
 
 const MUNICIPALITY_STYLES = {
@@ -33,7 +44,7 @@ const MUNICIPALITY_STYLES = {
     weight: 2.5,
     opacity: 1,
     fillColor: "#0D9488",
-    fillOpacity: 0.18,
+    fillOpacity: 0.28,
   },
 };
 
@@ -42,26 +53,33 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
   selectedMunicipality,
   onMunicipalityClick,
   ethnicHeatmap,
+  dimmed = false,
 }) => {
   const getStyle = (municipality: Municipality) => {
+    if (dimmed) {
+      return {
+        color: "rgba(255,255,255,0.25)",
+        weight: 0.8,
+        opacity: 0.5,
+        fillColor: "transparent",
+        fillOpacity: 0,
+      };
+    }
     const heatEntry = ethnicHeatmap?.get(municipality.cod_dane);
-    // Protect against #000000 fallback from getRaceColor for unknown codes
-    const rawColor = heatEntry
-      ? ethnicDistributionService.getRaceColor(heatEntry.raceCode)
+    const ethnicColor = heatEntry
+      ? (ETHNIC_SATURATED[heatEntry.raceCode] ?? null)
       : null;
-    const ethnicColor = rawColor && rawColor !== "#000000" ? rawColor : null;
 
     if (selectedMunicipality?.id === municipality.id) {
       return MUNICIPALITY_STYLES.selected;
     }
     if (ethnicColor) {
-      // Choropleth: white border + ethnic fill (standard practice for heat maps)
       return {
-        color: "rgba(255,255,255,0.6)",
+        color: "rgba(255,255,255,0.7)",
         fillColor: ethnicColor,
-        weight: 1,
+        weight: 1.5,
         opacity: 1,
-        fillOpacity: 0.55,
+        fillOpacity: 0.45,
       };
     }
     return {
@@ -90,15 +108,18 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
             style={() => getStyle(municipality)}
             eventHandlers={{
               click: (e) => {
+                if (dimmed) return;
                 L.DomEvent.stopPropagation(e);
                 e.target.closeTooltip();
                 onMunicipalityClick(municipality);
               },
               mouseover: (e) => {
+                if (dimmed) return;
                 const layer = e.target;
                 layer.setStyle(MUNICIPALITY_STYLES.hover);
               },
               mouseout: (e) => {
+                if (dimmed) return;
                 const layer = e.target;
                 const style = getStyle(municipality);
                 layer.setStyle({
@@ -108,15 +129,17 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
               },
             }}
           >
-            <Tooltip
-              sticky
-              direction="top"
-              offset={[0, -8]}
-              opacity={1}
-              className="municipality-tooltip"
-            >
-              {municipality.name}
-            </Tooltip>
+            {!dimmed && (
+              <Tooltip
+                sticky
+                direction="top"
+                offset={[0, -8]}
+                opacity={1}
+                className="municipality-tooltip"
+              >
+                {municipality.name}
+              </Tooltip>
+            )}
           </GeoJSON>
         );
       })}

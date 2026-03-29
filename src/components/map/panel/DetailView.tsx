@@ -62,7 +62,7 @@ export const DetailView: React.FC<DetailViewProps> = ({
       </div>
 
       {/* Detail content */}
-      <div className="flex-1 overflow-hidden">{content}</div>
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">{content}</div>
     </div>
   );
 };

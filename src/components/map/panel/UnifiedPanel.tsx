@@ -9,7 +9,6 @@ import { SectionNav } from "./SectionNav";
 import { FilterChips } from "./FilterChips";
 import { ItemList } from "./ItemList";
 import { DetailView } from "./DetailView";
-import { FiestasPanel } from "./FiestasPanel";
 
 interface UnifiedPanelProps {
   municipalities: Municipality[];
@@ -130,12 +129,7 @@ export const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         <FilterChips currentFilter={currentFilter} onFilterChange={onFilterChange} />
 
         {/* Dynamic content area */}
-        {currentFilter === "festivals" ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <FiestasPanel />
-          </div>
-        ) : (
-          <AnimatePresence mode="wait" custom={direction}>
+        <AnimatePresence mode="wait" custom={direction}>
             {panelView === "list" ? (
               <motion.div
                 key="list"
@@ -175,8 +169,7 @@ export const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                 />
               </motion.div>
             )}
-          </AnimatePresence>
-        )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -219,7 +212,7 @@ const MobilePanel: React.FC<MobilePanelProps> = ({
   onClose,
   className = "",
 }) => {
-  const height = panelView === "detail" ? "75vh" : "50vh";
+  const height = panelView === "detail" ? "92vh" : "50vh";
 
   return (
     <motion.div
@@ -246,6 +239,7 @@ const MobilePanel: React.FC<MobilePanelProps> = ({
           WebkitBackdropFilter: "blur(24px)",
           boxShadow: "0 -4px 24px rgba(0,0,0,0.10)",
           border: "1px solid rgba(255,255,255,0.5)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
         {/* Drag handle */}
@@ -261,12 +255,7 @@ const MobilePanel: React.FC<MobilePanelProps> = ({
 
         <FilterChips currentFilter={currentFilter} onFilterChange={onFilterChange} />
 
-        {currentFilter === "festivals" ? (
-          <div className="flex-1 min-h-0 flex flex-col">
-            <FiestasPanel />
-          </div>
-        ) : (
-          <AnimatePresence mode="wait" custom={direction}>
+        <AnimatePresence mode="wait" custom={direction}>
             {panelView === "list" ? (
               <motion.div
                 key="list"
@@ -306,8 +295,7 @@ const MobilePanel: React.FC<MobilePanelProps> = ({
                 />
               </motion.div>
             )}
-          </AnimatePresence>
-        )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

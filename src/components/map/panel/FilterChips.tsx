@@ -9,10 +9,6 @@ interface FilterChipsProps {
 const FILTERS: { id: FilterCategory; label: string }[] = [
   { id: "general", label: "General" },
   { id: "indigenous", label: "Reservas" },
-  { id: "ethnic", label: "Etnias" },
-  { id: "tourism", label: "Turismo" },
-  { id: "animals", label: "Fauna" },
-  { id: "festivals", label: "Cultura" },
 ];
 
 export const FilterChips: React.FC<FilterChipsProps> = ({

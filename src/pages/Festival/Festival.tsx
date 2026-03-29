@@ -1,32 +1,30 @@
 import React from "react";
 import { MainNav } from "../../components/landing/MainNav";
-import { useNavigate } from "react-router-dom";
+import { FiestaHero } from "./components/FiestaHero";
+import { ProximasBanner } from "./components/ProximasBanner";
+import { SanPachoFeature } from "./components/SanPachoFeature";
+import { CalendarioAnual } from "./components/CalendarioAnual";
+import { FiestasGrid } from "./components/FiestasGrid";
+import { LandingFooter } from "../../components/landing/LandingFooter";
+import { useFiestas } from "../../hooks/useFiestas";
 
 const Festival: React.FC = () => {
-  const navigate = useNavigate();
-
+  const data = useFiestas();
   return (
-    <>
-      <MainNav active="fiesta" onLogin={() => navigate("/login")} />
-      <div className="min-h-screen bg-gray-100">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-6">
-            Fiestas y Festivales
-          </h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Aquí puedes agregar tarjetas para diferentes festivales y celebraciones */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4">
-                Eventos Culturales
-              </h2>
-              <p className="text-gray-600">
-                Descubre las celebraciones y tradiciones del Chocó
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    <div className="bg-[#0c0800] min-h-screen pb-20 md:pb-0">
+      <MainNav active="fiestas" />
+      <FiestaHero />
+      <ProximasBanner proximas={data.proximas} loading={data.loading} />
+      <SanPachoFeature />
+      <CalendarioAnual
+        porMes={data.porMes}
+        mesActual={data.mesActual}
+        MESES={data.MESES}
+        loading={data.loading}
+      />
+      <FiestasGrid fiestas={data.fiestas} loading={data.loading} />
+      <LandingFooter />
+    </div>
   );
 };
 

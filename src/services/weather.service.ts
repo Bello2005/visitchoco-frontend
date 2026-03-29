@@ -22,15 +22,6 @@ export interface WeatherData {
     deg: number;
   };
   visibility: number;
-  clouds: {
-    all: number;
-  };
-  dt: number;
-  sys: {
-    sunrise: number;
-    sunset: number;
-  };
-  timezone: number;
   uvi: number;
 }
 

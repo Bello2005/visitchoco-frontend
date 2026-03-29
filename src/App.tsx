@@ -9,6 +9,10 @@ import Map from "./pages/Map/Map";
 import Animals from "./pages/Animals/Animals";
 import Tourism from "./pages/Tourism/Tourism";
 import Festival from "./pages/Festival/Festival";
+import Cultura from "./pages/Cultura/Cultura";
+import Historia from "./pages/Historia/Historia";
+import Acerca from "./pages/Acerca/Acerca";
+import Fuentes from "./pages/Fuentes/Fuentes";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
 import DashboardJosser from "./pages/Dashboard/DashbosrdJosser/DashboardJosser";
@@ -93,6 +97,10 @@ function AppContent() {
         <Route path="/mapa" element={<Map />} />
         <Route path="/animales" element={<Animals />} />
         <Route path="/turismo" element={<Tourism />} />
+        <Route path="/cultura" element={<Cultura />} />
+        <Route path="/historia" element={<Historia />} />
+        <Route path="/acerca" element={<Acerca />} />
+        <Route path="/fuentes" element={<Fuentes />} />
         <Route path="/fiesta" element={<Festival />} />
         <Route path="/admin-josser" element={<DashboardJosser />} />
         <Route
