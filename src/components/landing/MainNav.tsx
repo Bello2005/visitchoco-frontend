@@ -27,6 +27,7 @@ const NAV_LINKS: { id: string; label: string; href: string; Icon: LucideIcon }[]
 
 export function MainNav({ active = "" }: MainNavProps) {
   const activeId = useMemo(() => (active ?? "").toLowerCase(), [active]);
+  const resolvedActive = activeId === "animales" ? "fauna" : activeId;
 
   return (
     <>
@@ -56,7 +57,7 @@ export function MainNav({ active = "" }: MainNavProps) {
               {/* Nav links */}
               <ul className="flex items-center gap-0.5">
                 {NAV_LINKS.map(({ id, label, href, Icon }) => {
-                  const isActive = activeId === id;
+                  const isActive = resolvedActive === id;
                   return (
                     <li key={id}>
                       <a
@@ -106,7 +107,7 @@ export function MainNav({ active = "" }: MainNavProps) {
       >
         <div className="flex items-stretch justify-around h-14">
           {NAV_LINKS.map(({ id, label, href, Icon }) => {
-            const isActive = activeId === id;
+            const isActive = resolvedActive === id;
             return (
               <a
                 key={id}
