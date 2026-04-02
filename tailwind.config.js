@@ -2,6 +2,11 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Poppins", "system-ui", "sans-serif"],
+        serif: ['"Playfair Display"', "Georgia", "serif"],
+        mono: ['"Space Mono"', "ui-monospace", "monospace"],
+      },
       colors: {
         ocean: {
           deep: "#0B4F6C",

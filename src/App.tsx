@@ -6,7 +6,7 @@ import { AdminDashboard } from "./pages/Dashboard/AdminDashboard/AdminDashboard"
 import { UserDashboard } from "./pages/Dashboard/UserDashboard/UserDashboard";
 import Register from "./pages/Register/Register";
 import Map from "./pages/Map/Map";
-import Animals from "./pages/Animals/Animals";
+import Fauna from "./pages/Fauna/Fauna";
 import Tourism from "./pages/Tourism/Tourism";
 import Festival from "./pages/Festival/Festival";
 import Cultura from "./pages/Cultura/Cultura";
@@ -95,7 +95,7 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/mapa" element={<Map />} />
-        <Route path="/animales" element={<Animals />} />
+        <Route path="/animales" element={<Fauna />} />
         <Route path="/turismo" element={<Tourism />} />
         <Route path="/cultura" element={<Cultura />} />
         <Route path="/historia" element={<Historia />} />
