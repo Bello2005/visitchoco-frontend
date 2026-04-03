@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Landmark } from "lucide-react";
 
 export function CulturaHero() {
   const scrollTo = (id: string) =>
@@ -7,7 +7,7 @@ export function CulturaHero() {
 
   return (
     <section
-      className="min-h-[85vh] flex flex-col justify-end pb-20 px-6 md:px-16
+      className="min-h-[100dvh] flex flex-col justify-end pt-32 pb-16 md:pb-20 px-6 md:px-16
                  bg-[#0a0f0a] relative overflow-hidden"
     >
       {/* Fondo: gradiente radial cálido sutil — como brasas */}
@@ -19,15 +19,20 @@ export function CulturaHero() {
         }}
       />
 
-      {/* Kicker */}
-      <motion.p
-        initial={{ opacity: 0, y: 20 }}
+      {/* Badge */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="text-amber-400/80 text-xs font-semibold tracking-[0.25em] uppercase mb-6"
+        transition={{ delay: 0.4 }}
+        className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
+                   bg-amber-400/10 backdrop-blur-md border border-amber-400/20
+                   px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
-        Patrimonio · Identidad · Resistencia
-      </motion.p>
+        <Landmark size={12} className="text-amber-400" />
+        <span className="text-amber-300/90 text-xs font-semibold tracking-wider uppercase">
+          Patrimonio · Identidad · Resistencia
+        </span>
+      </motion.div>
 
       {/* Headline masivo — 3 líneas que bajan escalonadas */}
       <div className="overflow-hidden">

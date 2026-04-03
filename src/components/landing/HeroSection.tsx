@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { MapPinned, ArrowRight } from "lucide-react";
 
 type HeroSlide = {
@@ -98,21 +99,25 @@ export function HeroSection() {
         }}
       />
 
-      {/* Badge — arriba derecha */}
-      <div
-        style={{ position: "absolute", top: 24, right: 24, zIndex: 10 }}
-        className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2"
+      {/* Badge */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
+                   bg-emerald-400/10 backdrop-blur-md border border-emerald-400/20
+                   px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-white/90 text-xs font-medium tracking-wide">
+        <MapPinned size={12} className="text-emerald-400" />
+        <span className="text-emerald-300/90 text-xs font-semibold tracking-wider uppercase">
           Patrimonio UNESCO · Hotspot Global de Biodiversidad
         </span>
-      </div>
+      </motion.div>
 
       {/* Contenido — abajo izquierda */}
       <div
         style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 10 }}
-        className="px-8 md:px-16 pb-16 md:pb-20"
+        className="px-6 md:px-16 pb-16 md:pb-20"
       >
         <div key={activeIndex}>
           <p className="text-emerald-300 text-xs md:text-sm font-semibold tracking-[0.2em] uppercase mb-4">

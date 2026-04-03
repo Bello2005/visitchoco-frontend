@@ -87,15 +87,6 @@ export function TurismoHero() {
                    pb-[max(4rem,env(safe-area-inset-bottom,0px))] md:pb-[max(5rem,env(safe-area-inset-bottom,0px))]"
       >
         <div className="mt-auto flex w-full max-w-[min(100%,56rem)] flex-col gap-5 md:gap-7">
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="text-sky-400/70 text-xs font-semibold tracking-[0.25em] uppercase shrink-0"
-          >
-            Turismo · Ecoturismo · Etnoturismo
-          </motion.p>
-
           <div className="flex flex-col gap-0">
             {HEADLINES.map(({ text, delay, color }) => (
               <HeroHeadlineLine

@@ -34,20 +34,23 @@ export function HistoriaHero() {
         }}
       />
 
+      {/* Badge */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
+                   bg-red-500/10 backdrop-blur-md border border-red-500/20
+                   px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
+      >
+        <BookOpen size={12} className="text-red-500" />
+        <span className="text-red-400/90 text-xs font-semibold tracking-wider uppercase">
+          500 años de historia · Chocó, Colombia
+        </span>
+      </motion.div>
+
       {/* Contenido principal */}
       <div className="relative z-10 flex-1 flex flex-col justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex items-center gap-2 mb-10"
-        >
-          <BookOpen size={13} className="text-red-500/70" />
-          <span className="text-red-500/60 text-xs font-semibold tracking-[0.25em] uppercase">
-            500 años de historia · Chocó, Colombia
-          </span>
-        </motion.div>
-
         {/* Headline en 4 líneas — entrada escalonada */}
         <div className="overflow-hidden">
           {[
@@ -62,7 +65,7 @@ export function HistoriaHero() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
               className={`font-serif block leading-[0.88] ${color}`}
-              style={{ fontSize: "clamp(3.8rem, 12vw, 10rem)", fontWeight: 700 }}
+              style={{ fontSize: "clamp(3.5rem, 10vw, 8rem)", fontWeight: 700 }}
             >
               {text}
             </motion.h1>

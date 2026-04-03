@@ -4,7 +4,6 @@ import {
   PawPrint,
   PartyPopper,
   MountainSnow,
-  LogIn,
   Landmark,
   BookOpen,
   type LucideIcon,
@@ -73,7 +72,7 @@ export function MainNav({ active = "" }: MainNavProps) {
                           strokeWidth={isActive ? 2.5 : 1.75}
                           className={isActive ? "text-emerald-600" : "text-gray-400"}
                         />
-                        <span>{label}</span>
+                        <span className="hidden lg:inline">{label}</span>
                         {isActive && (
                           <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-emerald-500" />
                         )}
@@ -83,7 +82,7 @@ export function MainNav({ active = "" }: MainNavProps) {
                 })}
               </ul>
 
-              {/* Login */}
+              {/* Login (oculto hasta activar auth)
               <a
                 href="/login"
                 className="flex-shrink-0 flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
@@ -91,6 +90,7 @@ export function MainNav({ active = "" }: MainNavProps) {
                 <LogIn size={14} />
                 <span>Entrar</span>
               </a>
+              */}
 
             </div>
           </div>

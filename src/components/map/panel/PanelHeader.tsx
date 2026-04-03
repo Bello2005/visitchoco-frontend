@@ -66,7 +66,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
           )}
         </div>
 
-        {/* Login */}
+        {/* Login (oculto hasta activar auth)
         <Link
           to="/login"
           className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-teal-600 hover:bg-teal-50 transition-colors duration-150"
@@ -86,6 +86,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
             />
           </svg>
         </Link>
+        */}
 
         {/* Close panel */}
         <button

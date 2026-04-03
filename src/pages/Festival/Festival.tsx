@@ -1,3 +1,4 @@
+import "../../styles/Landing/Landing.css";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { MainNav } from "../../components/landing/MainNav";
