@@ -86,13 +86,14 @@ export function PESCard({
         {/* Bottom: título siempre visible + contenido expandido */}
         <div>
           {/* Título — vertical cuando inactivo en desktop */}
+          {/* Título vertical solo en desktop (lg+) */}
           <div
             style={
               !isActive
                 ? { writingMode: "vertical-rl" as const, transform: "rotate(180deg)" }
                 : undefined
             }
-            className="hidden md:block"
+            className="hidden lg:block"
           >
             <p
               className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2"
@@ -108,8 +109,8 @@ export function PESCard({
             </h3>
           </div>
 
-          {/* Título siempre horizontal en mobile */}
-          <div className="md:hidden">
+          {/* Título horizontal en mobile e iPad */}
+          <div className="lg:hidden">
             <p
               className="text-[10px] font-semibold tracking-[0.2em] uppercase mb-2"
               style={{ color: `${pes.color}90` }}

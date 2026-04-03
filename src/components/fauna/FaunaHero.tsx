@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Leaf } from "lucide-react";
 
 const HERO_IMG =
   "https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=1920&q=80";
@@ -6,7 +7,7 @@ const HERO_IMG =
 export function FaunaHero() {
   return (
     <section
-      className="relative min-h-screen overflow-hidden bg-[#010d05]"
+      className="relative min-h-[100dvh] overflow-hidden bg-[#010d05]"
       style={{
         backgroundImage:
           "radial-gradient(ellipse at 60% 50%, rgba(6,78,59,0.4) 0%, transparent 70%)",
@@ -22,39 +23,44 @@ export function FaunaHero() {
       <div className="absolute inset-0 bg-[#010d05]/60" />
 
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.6, ease: "easeOut" }}
-        className="absolute right-6 top-24 z-20 md:right-10 md:top-28"
+        transition={{ delay: 0.4 }}
+        className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
+                   bg-emerald-400/10 backdrop-blur-md border border-emerald-400/20
+                   px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
-        <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-900/30 px-4 py-2 font-sans text-xs font-medium tracking-wide text-emerald-100/90 backdrop-blur-sm">
+        <Leaf size={12} className="text-emerald-400" />
+        <span className="text-emerald-300/90 text-xs font-semibold tracking-wider uppercase">
           Chocó Biogeográfico
         </span>
       </motion.div>
 
-      <div className="relative z-10 flex min-h-screen flex-col justify-end px-6 pb-24 pt-32 md:px-16 md:pb-28">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col justify-end px-6 pb-16 pt-32 md:px-16 md:pb-20">
         <div className="max-w-[min(100%,56rem)]">
-          <motion.span
+          <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="font-serif block text-7xl font-bold leading-[0.95] text-emerald-400 md:text-[clamp(4rem,10vw,9rem)]"
+            className="font-serif block text-[clamp(2.25rem,min(8vw_+_0.5vh,11vw),min(6.5rem,15svh))] leading-[1.08] md:leading-[1.05] text-emerald-400"
+            style={{ fontWeight: 700 }}
           >
             577 especies
-          </motion.span>
-          <motion.span
+          </motion.h1>
+          <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="font-serif mt-1 block text-7xl font-bold leading-[0.95] text-white/90 md:text-[clamp(4rem,10vw,9rem)]"
+            className="font-serif block text-[clamp(2.25rem,min(8vw_+_0.5vh,11vw),min(6.5rem,15svh))] leading-[1.08] md:leading-[1.05] text-white/90"
+            style={{ fontWeight: 700 }}
           >
             de aves.
-          </motion.span>
+          </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="font-sans mt-6 max-w-xl text-base font-light uppercase tracking-widest text-emerald-300/70"
+            className="font-sans mt-6 max-w-xl text-base md:text-lg font-light leading-relaxed text-white/40"
           >
             El departamento más biodiverse del planeta.
           </motion.p>
