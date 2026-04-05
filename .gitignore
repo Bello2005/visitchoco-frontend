@@ -147,3 +147,12 @@ vite.config.ts.timestamp-*
 .vite/
 
 .env.local
+
+# Backup and temp files
+*.bak
+*.old
+*.new
+*.temp.*
+.backup/
+.DS_Store
+package-lock.json
