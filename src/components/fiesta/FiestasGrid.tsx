@@ -129,7 +129,7 @@ const fiestasDestacadas = [
       "La patrona ancestral de las comunidades Sivirú. Balsadas, cantos de mar, avistamiento de ballenas y delfines.",
     elementosCulturales: ["Cantos de mar", "Balsadas", "Ballenas"],
     imagen:
-      "https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=700&q=75",
+      "https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=700&q=75",
     size: "small" as const,
   },
 ];

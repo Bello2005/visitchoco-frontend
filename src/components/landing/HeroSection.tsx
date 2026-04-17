@@ -98,6 +98,13 @@ export function HeroSection() {
             "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, rgba(0,0,0,0.08) 100%)",
         }}
       />
+      <div
+        className="absolute inset-0 pointer-events-none z-[1]"
+        style={{
+          background:
+            "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 45%, transparent 75%)",
+        }}
+      />
 
       {/* Badge */}
       <motion.div
@@ -105,11 +112,11 @@ export function HeroSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
         className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
-                   bg-emerald-400/10 backdrop-blur-md border border-emerald-400/20
+                   bg-black/50 backdrop-blur-sm border border-white/20 text-white
                    px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
-        <MapPinned size={12} className="text-emerald-400" />
-        <span className="text-emerald-300/90 text-xs font-semibold tracking-wider uppercase">
+        <MapPinned size={12} className="text-white/80" />
+        <span className="text-white text-xs font-semibold tracking-wider uppercase">
           Patrimonio UNESCO · Hotspot Global de Biodiversidad
         </span>
       </motion.div>
@@ -140,7 +147,7 @@ export function HeroSection() {
         <div className="flex items-center gap-4 flex-wrap">
           <a
             href="/mapa"
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white
+            className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white
                        px-7 py-3.5 rounded-full text-sm font-semibold transition-all duration-200
                        shadow-lg shadow-emerald-900/30"
           >

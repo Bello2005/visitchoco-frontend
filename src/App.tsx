@@ -102,6 +102,7 @@ function AppContent() {
         <Route path="/acerca" element={<Acerca />} />
         <Route path="/fuentes" element={<Fuentes />} />
         <Route path="/fiesta" element={<Festival />} />
+        <Route path="/fiestas" element={<Festival />} />
         <Route path="/admin-josser" element={<DashboardJosser />} />
         <Route
           path="/admin/dashboard"
