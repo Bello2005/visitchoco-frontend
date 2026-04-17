@@ -223,6 +223,10 @@
 }
 
 :root {
+  --nav-accent-r: 26;
+  --nav-accent-g: 92;
+  --nav-accent-b: 69;
+  --nav-accent: #1a5c45;
   --font-sans: system-ui, Avenir, Helvetica, Arial, sans-serif;
   --line-height: 1.5;
 }

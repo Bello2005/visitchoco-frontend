@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Leaf } from "lucide-react";
 
 const HERO_IMG =
-  "https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=1920&q=80";
+  "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=1920&q=80";
 
 export function FaunaHero() {
   return (
@@ -15,7 +15,7 @@ export function FaunaHero() {
     >
       <img
         src={HERO_IMG}
-        alt="Jaguar en la selva del Chocó, biodiversidad del Pacífico colombiano"
+        alt="Águila arpía en selva tropical, rapaz icónica del Chocó biogeográfico"
         className="absolute inset-0 h-full w-full object-cover"
         loading="eager"
         decoding="async"
