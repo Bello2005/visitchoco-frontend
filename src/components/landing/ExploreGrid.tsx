@@ -27,7 +27,7 @@ const CARDS = [
     id: "fauna",
     category: "Biodiversidad",
     title: "Fauna del Chocó",
-    description: "577 especies de aves. Ballenas jorobadas. Jaguares.",
+    description: "577 aves · Ballenas · Jaguares",
     href: "/animales",
     image: "/images/municipios/nuqui.jpg",
     accent: "#6366f1",
@@ -36,7 +36,7 @@ const CARDS = [
     id: "historia",
     category: "Memoria",
     title: "Historia y resistencia",
-    description: "Del cimarronaje de Barule a Diego Luis Córdoba.",
+    description: "Cimarronaje · Diego Luis Córdoba · T-622",
     href: "/historia",
     image: "/images/municipios/bojaya.jpg",
     accent: "#ef4444",
@@ -45,19 +45,21 @@ const CARDS = [
     id: "turismo",
     category: "Destinos",
     title: "Turismo",
-    description: "128 prestadores RNT. Playa, selva y río.",
+    description: "602 prestadores RNT · Playa · Selva · Río",
     href: "/turismo",
     image: "/images/municipios/bahia-solano.jpg",
     accent: "#0ea5e9",
+    imageObjectPosition: "center 30%",
   },
   {
     id: "fiestas",
     category: "Calendario",
     title: "Fiestas patronales",
-    description: "37 fiestas documentadas. La fiesta es resistencia.",
+    description: "37 fiestas · San Pacho · Calendario anual",
     href: "/fiesta",
     image: "/images/municipios/condoto.jpg",
     accent: "#ec4899",
+    imageObjectPosition: "center 25%",
   },
 ] as const;
 
@@ -144,7 +146,7 @@ function ExploreCard({
 
 export function ExploreGrid() {
   return (
-    <section className="px-6 md:px-12 py-20 bg-white">
+    <section className="px-6 md:px-12 pt-24 pb-20 bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="mb-12">
           <p className="text-emerald-600 text-xs font-semibold tracking-[0.2em] uppercase mb-3">

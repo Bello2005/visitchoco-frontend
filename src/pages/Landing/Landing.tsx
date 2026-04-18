@@ -8,7 +8,7 @@ import { MunicipiosCarousel } from "../../components/landing/MunicipiosCarousel"
 import { LandingFooter } from "../../components/landing/LandingFooter";
 
 const Landing = () => (
-  <div className="bg-white pb-20 md:pb-0">
+  <div className="bg-black pb-20 md:pb-0">
     <MainNav />
     <HeroSection />
     <StatsStrip />

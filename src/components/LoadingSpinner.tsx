@@ -123,7 +123,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   return (
     <div 
-      className={`${overlayClass} bg-white bg-opacity-${overlayOpacity} backdrop-blur-sm`}
+      className={`${overlayClass} backdrop-blur-sm`}
+      style={{ backgroundColor: `rgba(255,255,255,${overlayOpacity / 100})` }}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

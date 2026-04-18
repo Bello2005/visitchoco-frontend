@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Home,
   MapPinned,
@@ -10,125 +9,92 @@ import {
   MountainSnow,
   PartyPopper,
   Search,
-  Leaf,
+  type LucideIcon,
 } from "lucide-react";
 import SearchModal from "./SearchModal";
 
-const NAV_ITEMS = [
-  {
-    id: "inicio",
-    label: "Inicio",
-    path: "/",
-    icon: Home,
-    accent: "#1a5c45",
-    accentRgb: "26,92,69",
-  },
-  {
-    id: "mapa",
-    label: "Mapa",
-    path: "/mapa",
-    icon: MapPinned,
-    accent: "#0D9488",
-    accentRgb: "13,148,136",
-  },
-  {
-    id: "animales",
-    label: "Fauna",
-    path: "/animales",
-    icon: PawPrint,
-    accent: "#34D399",
-    accentRgb: "52,211,153",
-  },
-  {
-    id: "cultura",
-    label: "Cultura",
-    path: "/cultura",
-    icon: Landmark,
-    accent: "#F59E0B",
-    accentRgb: "245,158,11",
-  },
-  {
-    id: "historia",
-    label: "Historia",
-    path: "/historia",
-    icon: BookOpen,
-    accent: "#B45309",
-    accentRgb: "180,83,9",
-  },
-  {
-    id: "turismo",
-    label: "Turismo",
-    path: "/turismo",
-    icon: MountainSnow,
-    accent: "#0EA5E9",
-    accentRgb: "14,165,233",
-  },
-  {
-    id: "fiestas",
-    label: "Fiestas",
-    path: "/fiestas",
-    icon: PartyPopper,
-    accent: "#F59E0B",
-    accentRgb: "245,158,11",
-  },
-] as const;
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type NavId = typeof NAV_ITEMS[number]["id"];
+type NavLink = {
+  id: string;
+  label: string;
+  href: string;
+  Icon: LucideIcon;
+};
 
-export const MAIN_NAV_DESKTOP_PT_CLASS = "md:pt-20";
-export const MAIN_NAV_MOBILE_TOP_CLASS = "pt-12";
+// ─── Nav data ─────────────────────────────────────────────────────────────────
+
+const NAV_LINKS: NavLink[] = [
+  { id: "inicio",   label: "Inicio",   href: "/",         Icon: Home         },
+  { id: "mapa",     label: "Mapa",     href: "/mapa",     Icon: MapPinned    },
+  { id: "fauna",    label: "Fauna",    href: "/animales", Icon: PawPrint     },
+  { id: "cultura",  label: "Cultura",  href: "/cultura",  Icon: Landmark     },
+  { id: "historia", label: "Historia", href: "/historia", Icon: BookOpen     },
+  { id: "turismo",  label: "Turismo",  href: "/turismo",  Icon: MountainSnow },
+  { id: "fiestas",  label: "Fiestas",  href: "/fiesta",   Icon: PartyPopper  },
+];
+
+// 6 items visible in mobile bottom tab
+const MOBILE_LINKS = NAV_LINKS.filter(({ id }) =>
+  ["inicio", "mapa", "fauna", "cultura", "historia", "fiestas"].includes(id)
+);
+
+// ─── Shared pill glass style ───────────────────────────────────────────────────
+
+const PILL_STYLE: React.CSSProperties = {
+  background: "rgba(10,10,10,0.84)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  boxShadow:
+    "0 8px 32px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06)",
+};
+
+const VC_BADGE_STYLE: React.CSSProperties = {
+  background: "rgba(52,211,153,0.15)",
+  border: "1px solid rgba(52,211,153,0.30)",
+};
+
+// ─── Exported layout helpers (used by page wrappers) ─────────────────────────
+
+export const MAIN_NAV_DESKTOP_PT_CLASS = "lg:pt-20";
 export const MAIN_NAV_MOBILE_BOTTOM_CLASS = "pb-14";
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 export interface MainNavProps {
-  active?: NavId | string;
-  initialQuery?: string;
+  /** Override active item id. Derived from pathname when omitted. */
+  active?: string;
+  /** Reserved for future auth flow — currently unused. */
   onLogin?: () => void | Promise<void>;
 }
 
-export function MainNav(_props: MainNavProps) {
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function MainNav({ active, onLogin: _onLogin }: MainNavProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const lastScrollY = useRef(0);
-  const [bottomBarVisible, setBottomBarVisible] = useState(true);
 
-  const activeItem = useMemo(() => {
-    return NAV_ITEMS.find((item) =>
-      item.path === "/"
-        ? location.pathname === "/"
-        : location.pathname.startsWith(item.path)
-    ) ?? null;
-  }, [location.pathname]);
+  // Derive active id from prop or current pathname
+  const activeId = useMemo<string>(() => {
+    if (active) return active.toLowerCase();
+    const path = location.pathname;
+    if (path === "/") return "inicio";
+    for (const link of NAV_LINKS) {
+      if (link.href !== "/" && path.startsWith(link.href)) return link.id;
+    }
+    return "";
+  }, [active, location.pathname]);
 
+  // Scroll-collapse for desktop pill (≥1024px)
   useEffect(() => {
-    const handleScroll = () => {
-      const y = window.scrollY;
-      setScrolled(y > 60);
-
-      if (y > lastScrollY.current + 8 && y > 120) {
-        setBottomBarVisible(false);
-      } else if (y < lastScrollY.current - 8) {
-        setBottomBarVisible(true);
-      }
-      lastScrollY.current = y;
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const handler = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  useEffect(() => {
-    const rgb = activeItem?.accentRgb ?? "26,92,69";
-    const [r, g, b] = rgb.split(",");
-    document.documentElement.style.setProperty("--nav-accent-r", r.trim());
-    document.documentElement.style.setProperty("--nav-accent-g", g.trim());
-    document.documentElement.style.setProperty("--nav-accent-b", b.trim());
-    document.documentElement.style.setProperty(
-      "--nav-accent",
-      activeItem?.accent ?? "#1a5c45"
-    );
-  }, [activeItem]);
-
+  // ⌘K / Ctrl+K global shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -142,219 +108,209 @@ export function MainNav(_props: MainNavProps) {
 
   return (
     <>
-      <div className="hidden md:flex fixed top-0 left-0 right-0 z-[2000] justify-center pt-3 px-4 pointer-events-none">
-        <motion.nav
-          className="pointer-events-auto flex items-center gap-1 px-2 py-1.5"
-          animate={{
-            borderRadius: scrolled ? 9999 : 16,
-            height: scrolled ? 44 : 58,
-            paddingTop: scrolled ? 4 : 8,
-            paddingBottom: scrolled ? 4 : 8,
-          }}
-          transition={{ type: "spring", stiffness: 500, damping: 40 }}
-          style={{
-            background: `linear-gradient(135deg,
-              rgba(var(--nav-accent-r), var(--nav-accent-g), var(--nav-accent-b), 0.07) 0%,
-              rgba(10, 10, 10, 0.86) 100%)`,
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-            border: "0.5px solid rgba(255,255,255,0.09)",
-            boxShadow: `0 0 0 1px rgba(var(--nav-accent-r), var(--nav-accent-g), var(--nav-accent-b), 0.1),
-                        0 8px 40px rgba(0,0,0,0.45)`,
-          }}
-        >
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 pl-2 pr-3 shrink-0 group"
-          >
-            <motion.div
-              animate={{ color: activeItem?.accent ?? "#1a5c45" }}
-              transition={{ duration: 0.4 }}
-            >
-              <Leaf size={13} />
-            </motion.div>
-            <motion.span
-              className="font-serif text-white tracking-wide"
-              animate={{ fontSize: scrolled ? 13 : 15 }}
-              transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-            >
-              VisitChocó
-            </motion.span>
-          </Link>
-
-          <div className="w-px h-4 bg-white/10 mx-1 shrink-0" />
-
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeItem?.id === item.id;
-
+      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          MOBILE — bottom tab bar                    < 768px
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <nav
+        className="md:hidden fixed bottom-0 inset-x-0 z-[2000]"
+        aria-label="Navegación principal"
+        style={{
+          background: "rgba(10,10,10,0.94)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 -8px 32px rgba(0,0,0,0.32)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        <div className="flex items-stretch justify-around h-14">
+          {MOBILE_LINKS.map(({ id, label, href, Icon }) => {
+            const isActive = activeId === id;
             return (
-              <motion.button
-                key={item.id}
-                onClick={() => navigate(item.path)}
-                className="relative flex flex-col items-center justify-center rounded-lg transition-colors duration-150 cursor-pointer border-none bg-transparent outline-none"
-                animate={{
-                  paddingLeft: scrolled ? 10 : 12,
-                  paddingRight: scrolled ? 10 : 12,
-                  paddingTop: scrolled ? 5 : 7,
-                  paddingBottom: scrolled ? 5 : 7,
-                  backgroundColor: isActive
-                    ? `rgba(${item.accentRgb}, 0.14)`
-                    : "transparent",
-                }}
-                whileHover={{
-                  backgroundColor: isActive
-                    ? `rgba(${item.accentRgb}, 0.18)`
-                    : "rgba(255,255,255,0.06)",
-                }}
-                transition={{ duration: 0.15 }}
-                title={item.label}
+              <a
+                key={id}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 no-underline transition-colors duration-150"
+                style={{ color: isActive ? "#ffffff" : "rgba(255,255,255,0.45)" }}
               >
-                <motion.div
-                  animate={{
-                    color: isActive ? "#ffffff" : "rgba(255,255,255,0.68)",
-                    scale: scrolled ? 1.1 : 1,
-                  }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <Icon size={scrolled ? 17 : 15} />
-                </motion.div>
-
-                <AnimatePresence>
-                  {!scrolled && (
-                    <motion.span
-                      key="label"
-                      initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                      animate={{ opacity: 1, height: "auto", marginTop: 2 }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className="text-[9px] font-medium tracking-widest uppercase overflow-hidden"
-                      style={{
-                        color: isActive ? "rgba(255,255,255,0.90)" : "rgba(255,255,255,0.50)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
+                {/* Active indicator — top bar */}
+                {isActive && (
+                  <span
+                    className="absolute top-0 inset-x-[30%] h-0.5 rounded-full bg-emerald-400"
+                    aria-hidden="true"
+                  />
+                )}
+                <Icon
+                  size={21}
+                  strokeWidth={isActive ? 2.5 : 1.75}
+                  aria-hidden="true"
+                />
+                <span className="text-[10px] font-medium leading-none truncate">
+                  {label}
+                </span>
+              </a>
             );
           })}
 
-          <div className="w-px h-4 bg-white/10 mx-1 shrink-0" />
-
-          <motion.button
+          {/* Search — último item del tab bar */}
+          <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center justify-center rounded-lg text-white/45 hover:text-white/80 transition-colors cursor-pointer border-none bg-transparent outline-none"
-            animate={{
-              padding: scrolled ? "5px 14px 5px 10px" : "7px 16px 7px 10px",
-            }}
-            whileHover={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-            title="Buscar (⌘K)"
+            aria-label="Buscar"
+            className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 border-none bg-transparent cursor-pointer transition-colors duration-150"
+            style={{ color: "rgba(255,255,255,0.45)" }}
           >
-            <Search size={14} />
-            {!scrolled && (
-              <span className="ml-1.5 text-[9px] tracking-widest uppercase font-medium text-white/35">
-                ⌘K
-              </span>
-            )}
-          </motion.button>
-        </motion.nav>
-      </div>
+            <Search size={21} strokeWidth={1.75} aria-hidden="true" />
+            <span className="text-[10px] font-medium leading-none truncate">
+              Buscar
+            </span>
+          </button>
+        </div>
+      </nav>
 
+      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          TABLET — pill solo iconos           768px – 1023px
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <div
-        className="md:hidden fixed top-0 left-0 right-0 z-[2000] flex items-center justify-between px-4 h-12"
-        style={{
-          background: "rgba(10, 10, 10, 0.92)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "0.5px solid rgba(255,255,255,0.08)",
-        }}
+        className="hidden md:flex lg:hidden fixed top-3 left-1/2 -translate-x-1/2 z-[2000]"
       >
-        <Link to="/" className="flex items-center gap-1.5">
-          <Leaf size={11} style={{ color: activeItem?.accent ?? "#1a5c45" }} />
-          <span
-            className="text-white text-sm tracking-wide"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            VisitChocó
-          </span>
-        </Link>
-
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white/45 border-none bg-transparent cursor-pointer"
-          style={{
-            background: "rgba(255,255,255,0.07)",
-            border: "0.5px solid rgba(255,255,255,0.12)",
-          }}
+        <nav
+          className="flex items-center gap-0.5 px-2 rounded-2xl h-11"
+          style={PILL_STYLE}
+          aria-label="Navegación principal"
         >
-          <Search size={13} />
-          <span className="text-[12px] text-white/35">Buscar...</span>
-        </button>
+          {/* Logo — badge only */}
+          <a
+            href="/"
+            className="flex items-center justify-center w-7 h-7 rounded-lg mr-1 shrink-0"
+            style={VC_BADGE_STYLE}
+            title="VisitChocó — Inicio"
+          >
+            <span className="text-emerald-400 font-black text-xs leading-none">
+              VC
+            </span>
+          </a>
+
+          <div className="w-px h-5 bg-white/10 mx-0.5" aria-hidden="true" />
+
+          {/* Nav items — icon only */}
+          {NAV_LINKS.map(({ id, label, href, Icon }) => {
+            const isActive = activeId === id;
+            return (
+              <a
+                key={id}
+                href={href}
+                title={label}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={label}
+                className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 ${
+                  isActive
+                    ? "bg-white/[0.12] text-white"
+                    : "text-white/55 hover:text-white/90 hover:bg-white/[0.08]"
+                }`}
+              >
+                <Icon size={16} strokeWidth={isActive ? 2.5 : 1.75} aria-hidden="true" />
+              </a>
+            );
+          })}
+
+          <div className="w-px h-5 bg-white/10 mx-0.5" aria-hidden="true" />
+
+          {/* Search */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            title="Buscar"
+            aria-label="Buscar"
+            className="flex items-center justify-center w-9 h-9 rounded-lg text-white/55 hover:text-white/90 hover:bg-white/[0.08] transition-all duration-150"
+          >
+            <Search size={15} aria-hidden="true" />
+          </button>
+        </nav>
       </div>
 
-      <motion.div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-[2000] flex items-center"
-        animate={{ y: bottomBarVisible ? 0 : 80 }}
-        transition={{ type: "spring", stiffness: 500, damping: 40 }}
-        style={{
-          height: 56,
-          paddingBottom: "env(safe-area-inset-bottom)",
-          background: "rgba(10, 10, 10, 0.94)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderTop: "0.5px solid rgba(255,255,255,0.09)",
-        }}
+      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          DESKTOP — pill completo + scroll-collapse    ≥ 1024px
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <div
+        className="hidden lg:flex fixed top-3 left-1/2 -translate-x-1/2 z-[2000]"
       >
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeItem?.id === item.id;
-
-          return (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.path)}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 h-full border-none bg-transparent cursor-pointer outline-none"
+        <nav
+          className="flex items-center gap-1 px-3 rounded-2xl h-12"
+          style={PILL_STYLE}
+          aria-label="Navegación principal"
+        >
+          {/* Logo — badge + wordmark */}
+          <a
+            href="/"
+            className="flex items-center gap-2 pr-3 mr-1 border-r border-white/10 shrink-0"
+          >
+            <div
+              className="flex h-7 w-7 items-center justify-center rounded-lg"
+              style={VC_BADGE_STYLE}
             >
-              <div className="relative flex items-center justify-center">
-                <Icon
-                  size={21}
-                  style={{
-                    color: isActive ? "#ffffff" : "rgba(255,255,255,0.68)",
-                    transition: "color 0.2s ease",
-                  }}
-                />
-                <AnimatePresence>
-                  {isActive && (
-                    <motion.div
-                      key="dot"
-                      layoutId="bottomDot"
-                      className="absolute -bottom-1.5 w-1 h-1 rounded-full"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0 }}
-                      style={{ backgroundColor: item.accent }}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-              <span
-                className="text-[9px] font-medium tracking-wider uppercase"
-                style={{
-                  color: isActive ? "rgba(255,255,255,0.90)" : "rgba(255,255,255,0.50)",
-                  transition: "color 0.2s ease",
-                }}
-              >
-                {item.label}
+              <span className="text-emerald-400 font-black text-xs leading-none">
+                VC
               </span>
-            </button>
-          );
-        })}
-      </motion.div>
+            </div>
+            <span className="text-sm font-bold text-white tracking-tight whitespace-nowrap">
+              Visit<span className="text-emerald-400">Chocó</span>
+            </span>
+          </a>
 
+          {/* Nav links with scroll-collapse labels */}
+          {NAV_LINKS.map(({ id, label, href, Icon }) => {
+            const isActive = activeId === id;
+            return (
+              <a
+                key={id}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
+                  isActive
+                    ? "bg-white/[0.12] text-white"
+                    : "text-white/60 hover:text-white/90 hover:bg-white/[0.08]"
+                }`}
+              >
+                <Icon size={14} strokeWidth={isActive ? 2.5 : 1.75} aria-hidden="true" />
+                <span
+                  className="whitespace-nowrap overflow-hidden transition-all duration-200"
+                  style={{
+                    maxWidth: scrolled ? 0 : 56,
+                    opacity: scrolled ? 0 : 1,
+                    marginLeft: scrolled ? 0 : undefined,
+                  }}
+                >
+                  {label}
+                </span>
+              </a>
+            );
+          })}
+
+          <div className="w-px h-5 bg-white/10 mx-1" aria-hidden="true" />
+
+          {/* Search + ⌘K */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/60 hover:text-white/90 hover:bg-white/10 text-xs font-medium transition-all duration-150"
+            aria-label="Buscar"
+          >
+            <Search size={14} aria-hidden="true" />
+            <span
+              className="whitespace-nowrap"
+              style={{
+                maxWidth: scrolled ? 0 : 28,
+                opacity: scrolled ? 0 : 1,
+                overflow: "hidden",
+                transition: "all 200ms",
+              }}
+            >
+              ⌘K
+            </span>
+          </button>
+        </nav>
+      </div>
+
+      {/* ── SearchModal — global ──────────────────────────────────────────── */}
       <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );

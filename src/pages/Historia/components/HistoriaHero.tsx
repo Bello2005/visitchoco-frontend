@@ -39,12 +39,12 @@ export function HistoriaHero() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
-                   bg-red-500/10 backdrop-blur-md border border-red-500/20
+        className="absolute top-20 right-6 z-20 md:top-24 md:right-16 flex items-center gap-2
+                   bg-black/50 backdrop-blur-sm border border-white/20 text-white
                    px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
-        <BookOpen size={12} className="text-red-500" />
-        <span className="text-red-400/90 text-xs font-semibold tracking-wider uppercase">
+        <BookOpen size={12} className="text-white/80" />
+        <span className="text-white text-xs font-semibold tracking-wider uppercase">
           500 años de historia · Chocó, Colombia
         </span>
       </motion.div>

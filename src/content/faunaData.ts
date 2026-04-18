@@ -279,7 +279,8 @@ export const especiesBento: EspecieBentoItem[] = [
       "La tortuga marina más grande del mundo. Anida en las playas del Pacífico chocoano.",
     habitat: "Océano Pacífico",
     donde: ["Playa El Almejal", "Juanchaco", "Nuquí"],
-    imageUrl: "https://images.unsplash.com/photo-1437622368362-2718445b2fea?w=800&q=75",
+    imageUrl:
+      "https://images.pexels.com/photos/847393/pexels-photo-847393.jpeg?auto=compress&cs=tinysrgb&w=1200",
     colSpan: 6,
     rowSpan: 1,
   },

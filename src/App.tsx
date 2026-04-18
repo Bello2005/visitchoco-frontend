@@ -89,37 +89,44 @@ function AppContent() {
   return (
     <ErrorBoundary>
       {isLoading && <LoadingSpinner />}
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/mapa" element={<Map />} />
-        <Route path="/animales" element={<Fauna />} />
-        <Route path="/turismo" element={<Tourism />} />
-        <Route path="/cultura" element={<Cultura />} />
-        <Route path="/historia" element={<Historia />} />
-        <Route path="/acerca" element={<Acerca />} />
-        <Route path="/fuentes" element={<Fuentes />} />
-        <Route path="/fiesta" element={<Festival />} />
-        <Route path="/fiestas" element={<Festival />} />
-<Route
-          path="/admin/dashboard"
-          element={
-            <PrivateRoute requiredRole="admin">
-              <AdminDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/user/dashboard"
-          element={
-            <PrivateRoute requiredRole="user">
-              <UserDashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <div
+        className={`transition-opacity duration-200 ${
+          isLoading ? "opacity-0 pointer-events-none select-none" : "opacity-100"
+        }`}
+        aria-hidden={isLoading}
+      >
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/mapa" element={<Map />} />
+          <Route path="/animales" element={<Fauna />} />
+          <Route path="/turismo" element={<Tourism />} />
+          <Route path="/cultura" element={<Cultura />} />
+          <Route path="/historia" element={<Historia />} />
+          <Route path="/acerca" element={<Acerca />} />
+          <Route path="/fuentes" element={<Fuentes />} />
+          <Route path="/fiesta" element={<Festival />} />
+          <Route path="/fiestas" element={<Festival />} />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <PrivateRoute requiredRole="admin">
+                <AdminDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/user/dashboard"
+            element={
+              <PrivateRoute requiredRole="user">
+                <UserDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
     </ErrorBoundary>
   );
 }
