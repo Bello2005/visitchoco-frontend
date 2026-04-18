@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { MapPinned, ArrowRight } from "lucide-react";
 
 type HeroSlide = {
@@ -88,21 +88,24 @@ export function HeroSection() {
         />
       ))}
 
-      {/* Gradiente */}
+      {/* Gradiente base — de abajo hacia arriba */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           zIndex: 1,
           background:
-            "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, rgba(0,0,0,0.08) 100%)",
+            "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.08) 100%)",
         }}
       />
+      {/* Gradiente lateral — refuerza legibilidad del texto izquierdo */}
       <div
-        className="absolute inset-0 pointer-events-none z-[1]"
         style={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
           background:
-            "linear-gradient(to right, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 45%, transparent 75%)",
+            "linear-gradient(to right, rgba(0,0,0,0.55) 0%, transparent 65%)",
         }}
       />
 
@@ -111,8 +114,8 @@ export function HeroSection() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="absolute top-20 left-6 z-20 md:top-24 md:left-16 flex items-center gap-2
-                   bg-black/50 backdrop-blur-sm border border-white/20 text-white
+        style={{ position: "absolute", top: "clamp(72px, 10dvh, 96px)", right: 24, zIndex: 10 }}
+        className="flex items-center gap-2 bg-black/50 backdrop-blur-sm border border-white/20 text-white
                    px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
         <MapPinned size={12} className="text-white/80" />
@@ -126,23 +129,29 @@ export function HeroSection() {
         style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 10 }}
         className="px-6 md:px-16 pb-16 md:pb-20"
       >
-        <div key={activeIndex}>
-          <p className="text-emerald-300 text-xs md:text-sm font-semibold tracking-[0.2em] uppercase mb-4">
-            {active.eyebrow}
-          </p>
-
-          <h1
-            className="text-white font-serif leading-[1.02] mb-6 w-full max-w-[min(20ch,92vw)]"
-            style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)", fontWeight: 700 }}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeIndex}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="block">{active.titleLines[0]}</span>
-            <span className="block">{active.titleLines[1]}</span>
-          </h1>
-
-          <p className="text-white/70 text-base md:text-lg mb-10 max-w-[min(36rem,92vw)] leading-relaxed">
-            {active.subtitle}
-          </p>
-        </div>
+            <p className="text-emerald-300 text-xs md:text-sm font-semibold tracking-[0.2em] uppercase mb-4">
+              {active.eyebrow}
+            </p>
+            <h1
+              className="text-white font-serif leading-[1.02] mb-6 w-full max-w-[min(20ch,92vw)]"
+              style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)", fontWeight: 700 }}
+            >
+              <span className="block">{active.titleLines[0]}</span>
+              <span className="block">{active.titleLines[1]}</span>
+            </h1>
+            <p className="text-white/70 text-base md:text-lg mb-10 max-w-[min(36rem,92vw)] leading-relaxed">
+              {active.subtitle}
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
         <div className="flex items-center gap-4 flex-wrap">
           <a
@@ -171,19 +180,22 @@ export function HeroSection() {
       <div
         style={{
           position: "absolute",
-          bottom: 28,
+          bottom: 32,
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 10,
         }}
-        className="flex gap-1.5"
+        className="flex items-center gap-2"
       >
         {HERO_SLIDES.map((_, i) => (
           <button
             key={i}
             onClick={() => setActiveIndex(i)}
-            className={`h-0.5 rounded-full transition-all duration-500 ${
-              i === activeIndex ? "w-8 bg-white" : "w-2 bg-white/40"
+            aria-label={`Slide ${i + 1}`}
+            className={`rounded-full transition-all duration-500 ${
+              i === activeIndex
+                ? "w-10 h-1 bg-white"
+                : "w-2 h-2 bg-white/35 hover:bg-white/60"
             }`}
           />
         ))}

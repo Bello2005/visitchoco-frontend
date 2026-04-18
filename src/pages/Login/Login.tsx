@@ -292,16 +292,13 @@ const ChocoLuxuryLogin = () => {
                 <Logo size="md" />
               </div>
               <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-                Descubre el{" "}
+                Descubre{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">
-                  lujo salvaje
-                </span>{" "}
-                del Pacífico
+                  el Chocó que el mundo necesita conocer
+                </span>
               </h1>
               <p className="text-lg text-white/80 max-w-lg">
-                Donde la selva se encuentra con el mar, te ofrecemos
-                experiencias de turismo de lujo que transformarán tu percepción
-                de Colombia.
+                Selva, río, mar y cultura — 46.530 km² de territorio vivo.
               </p>
               <FeatureGrid features={features} activeFeature={activeFeature} />
             </div>

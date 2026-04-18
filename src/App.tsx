@@ -15,7 +15,6 @@ import Acerca from "./pages/Acerca/Acerca";
 import Fuentes from "./pages/Fuentes/Fuentes";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
-import DashboardJosser from "./pages/Dashboard/DashbosrdJosser/DashboardJosser";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
@@ -103,8 +102,7 @@ function AppContent() {
         <Route path="/fuentes" element={<Fuentes />} />
         <Route path="/fiesta" element={<Festival />} />
         <Route path="/fiestas" element={<Festival />} />
-        <Route path="/admin-josser" element={<DashboardJosser />} />
-        <Route
+<Route
           path="/admin/dashboard"
           element={
             <PrivateRoute requiredRole="admin">
