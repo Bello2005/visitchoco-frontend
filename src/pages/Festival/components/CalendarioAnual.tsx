@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { useFiestas, MESES } from "../../hooks/useFiestas";
-import type { Fiesta } from "../../hooks/useFiestas";
-import { FALLBACK_FIESTAS } from "./fiestaFallbackData";
+import { useFiestas, MESES } from "../../../hooks/useFiestas";
+import type { Fiesta } from "../../../hooks/useFiestas";
+import { FALLBACK_FIESTAS } from "../../../content/fiestaData";
 import {
   municipioToSubregion,
   subregionDotClass,
   subregionLabel,
   type SubregionKey,
-} from "./subregionFromMunicipio";
+} from "../../../utils/subregionFromMunicipio";
 
 const LEGEND: SubregionKey[] = [
   "atrato",

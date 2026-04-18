@@ -1,13 +1,13 @@
 import "../../styles/Landing/Landing.css";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MainNav } from "../../components/landing/MainNav";
-import { FiestaHero } from "../../components/fiesta/FiestaHero";
-import { SanPachoFeature } from "../../components/fiesta/SanPachoFeature";
-import { CalendarioAnual } from "../../components/fiesta/CalendarioAnual";
-import { FiestasGrid } from "../../components/fiesta/FiestasGrid";
-import { ElementosCulturales } from "../../components/fiesta/ElementosCulturales";
-import { FiestaFooter } from "../../components/fiesta/FiestaFooter";
+import { MainNav } from "../../components/layout/MainNav";
+import { FiestaHero } from "./components/FiestaHero";
+import { SanPachoFeature } from "./components/SanPachoFeature";
+import { CalendarioAnual } from "./components/CalendarioAnual";
+import { FiestasGrid } from "./components/FiestasGrid";
+import { ElementosCulturales } from "./components/ElementosCulturales";
+import { FiestaFooter } from "./components/FiestaFooter";
 
 const Festival: React.FC = () => {
   const navigate = useNavigate();

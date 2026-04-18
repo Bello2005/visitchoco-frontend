@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Waves, TreePine, Mountain, Compass, type LucideIcon } from "lucide-react";
-import { parquesNaturales } from "../../content/faunaData";
+import { parquesNaturales } from "../../../content/faunaData";
 
 const icons: LucideIcon[] = [Waves, TreePine, Mountain, Compass];
 

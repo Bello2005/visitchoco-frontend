@@ -6,7 +6,6 @@ import "swiper/css";
 import "swiper/css/navigation";
 // @ts-ignore
 import "swiper/css/pagination";
-import "./styles/components/testimonials.css";
 
 import React from "react";
 import ReactDOM from "react-dom/client";

@@ -8,7 +8,7 @@ import { BiLeaf } from "react-icons/bi";
 import { IoIosWater } from "react-icons/io";
 import { TbBeach } from "react-icons/tb";
 import { Background } from "../../components/common/Background";
-import { Footer } from "../../components/landing/Footer";
+import { Footer } from "../../components/layout/Footer";
 import { Logo } from "../../components/brand/Logo";
 import { AuthTabs } from "../../components/auth/AuthTabs";
 import { FeatureGrid } from "../../components/features/FeatureGrid";

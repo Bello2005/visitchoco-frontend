@@ -1,4 +1,4 @@
-import type { Fiesta } from "../../hooks/useFiestas";
+import type { Fiesta } from "../hooks/useFiestas";
 
 /** Calendario de respaldo cuando la API no devuelve fiestas. */
 export const FALLBACK_FIESTAS: Fiesta[] = [
