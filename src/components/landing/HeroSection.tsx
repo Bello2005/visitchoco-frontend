@@ -68,7 +68,8 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section style={{ height: "100dvh", position: "relative", overflow: "hidden" }}>
+    <section style={{ height: "100dvh", minHeight: "100dvh", position: "relative", overflow: "hidden" }}>
+      <link rel="preload" as="image" href={HERO_SLIDES[0].src} />
       {/* Fotos rotando — crossfade */}
       {HERO_SLIDES.map(({ src, alt }, i) => (
         <img
@@ -114,8 +115,8 @@ export function HeroSection() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        style={{ position: "absolute", top: "clamp(72px, 10dvh, 96px)", right: 24, zIndex: 10 }}
-        className="flex items-center gap-2 bg-black/50 backdrop-blur-sm border border-white/20 text-white
+        className="absolute top-20 right-6 z-20 md:top-24 md:right-16 flex items-center gap-2
+                   bg-black/50 backdrop-blur-sm border border-white/20 text-white
                    px-4 py-2 rounded-full max-w-[calc(100vw-3rem)]"
       >
         <MapPinned size={12} className="text-white/80" />
@@ -126,7 +127,14 @@ export function HeroSection() {
 
       {/* Contenido — abajo izquierda */}
       <div
-        style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 10 }}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          paddingTop: "env(safe-area-inset-top, 0px)",
+        }}
         className="px-6 md:px-16 pb-16 md:pb-20"
       >
         <AnimatePresence mode="wait">
@@ -147,13 +155,13 @@ export function HeroSection() {
               <span className="block">{active.titleLines[0]}</span>
               <span className="block">{active.titleLines[1]}</span>
             </h1>
-            <p className="text-white/70 text-base md:text-lg mb-10 max-w-[min(36rem,92vw)] leading-relaxed">
+            <p className="text-white/70 text-base md:text-lg mb-10 max-w-[min(36rem,92vw)] leading-[1.75]">
               {active.subtitle}
             </p>
           </motion.div>
         </AnimatePresence>
 
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-4 flex-wrap mb-8">
           <a
             href="/mapa"
             className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white
