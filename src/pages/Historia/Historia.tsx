@@ -1,13 +1,13 @@
 import "../../styles/Landing/Landing.css";
 import { useNavigate } from "react-router-dom";
-import { MainNav } from "../../components/landing/MainNav";
+import { MainNav } from "../../components/layout/MainNav";
 import { HistoriaHero } from "./components/HistoriaHero";
 import { LineaTiempo } from "./components/LineaTiempo";
 import { CimarronajeSection } from "./components/CimarronajeSection";
 import { PersonajesSection } from "./components/PersonajesSection";
 import { IndependenciaSection } from "./components/IndependenciaSection";
 import { AtratoDerecho } from "./components/AtratoDerecho";
-import { LandingFooter } from "../../components/landing/LandingFooter";
+import { LandingFooter } from "../../components/layout/LandingFooter";
 
 export default function Historia() {
   const navigate = useNavigate();

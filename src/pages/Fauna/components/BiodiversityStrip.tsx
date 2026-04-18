@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { animate, useInView, motion } from "framer-motion";
-import { biodiversityStripStats } from "../../content/faunaData";
+import { biodiversityStripStats } from "../../../content/faunaData";
 
 function AnimatedStatValue({
   value,

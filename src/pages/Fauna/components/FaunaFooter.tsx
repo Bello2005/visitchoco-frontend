@@ -1,4 +1,4 @@
-import { FOOTER_FUENTE_LINEAS } from "../../content/dataSources";
+import { FOOTER_FUENTE_LINEAS } from "../../../content/dataSources";
 
 const EXPLORE_LINKS: [string, string][] = [
   ["Mapa interactivo", "/mapa"],

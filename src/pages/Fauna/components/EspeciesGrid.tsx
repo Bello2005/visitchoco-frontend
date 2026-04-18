@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { especiesBento } from "../../content/faunaData";
+import { especiesBento } from "../../../content/faunaData";
 
 function badgeClasses(estado: string): string {
   const e = estado.toLowerCase();

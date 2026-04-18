@@ -1,13 +1,13 @@
 import "../../styles/Landing/Landing.css";
 import { useNavigate } from "react-router-dom";
-import { MainNav } from "../../components/landing/MainNav";
-import { FaunaHero } from "../../components/fauna/FaunaHero";
-import { BiodiversityStrip } from "../../components/fauna/BiodiversityStrip";
-import { BallenasFeature } from "../../components/fauna/BallenasFeature";
-import { EspeciesGrid } from "../../components/fauna/EspeciesGrid";
-import { ParquesNaturalesSection } from "../../components/fauna/ParquesNaturalesSection";
-import { TemporadasFaunaSection } from "../../components/fauna/TemporadasFaunaSection";
-import { FaunaFooter } from "../../components/fauna/FaunaFooter";
+import { MainNav } from "../../components/layout/MainNav";
+import { FaunaHero } from "./components/FaunaHero";
+import { BiodiversityStrip } from "./components/BiodiversityStrip";
+import { BallenasFeature } from "./components/BallenasFeature";
+import { EspeciesGrid } from "./components/EspeciesGrid";
+import { ParquesNaturalesSection } from "./components/ParquesNaturalesSection";
+import { TemporadasFaunaSection } from "./components/TemporadasFaunaSection";
+import { FaunaFooter } from "./components/FaunaFooter";
 
 export default function Fauna() {
   const navigate = useNavigate();

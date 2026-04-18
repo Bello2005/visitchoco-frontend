@@ -1,5 +1,5 @@
-import { MainNav } from "../../components/landing/MainNav";
-import { LandingFooter } from "../../components/landing/LandingFooter";
+import { MainNav } from "../../components/layout/MainNav";
+import { LandingFooter } from "../../components/layout/LandingFooter";
 import { useNavigate } from "react-router-dom";
 import { DATA_SOURCES } from "../../content/dataSources";
 

@@ -1,14 +1,14 @@
 import "../../styles/Landing/Landing.css";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { MainNav } from "../../components/landing/MainNav";
+import { MainNav } from "../../components/layout/MainNav";
 import { TurismoHero } from "./components/TurismoHero";
 import { BallenasFeature } from "./components/BallenasFeature";
 import { DestinosGrid } from "./components/DestinosGrid";
 import { TemporadasSection } from "./components/TemporadasSection";
 import { ExperienciasSection } from "./components/ExperienciasSection";
 import { RNTSection } from "./components/RNTSection";
-import { LandingFooter } from "../../components/landing/LandingFooter";
+import { LandingFooter } from "../../components/layout/LandingFooter";
 
 const Tourism: React.FC = () => {
   const navigate = useNavigate();
