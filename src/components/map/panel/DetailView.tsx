@@ -57,7 +57,7 @@ export const DetailView: React.FC<DetailViewProps> = ({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          <span>Volver a la lista</span>
+          <span>Volver</span>
         </button>
       </div>
 

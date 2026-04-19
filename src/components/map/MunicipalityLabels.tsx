@@ -2,17 +2,22 @@ import { useEffect, useState } from "react";
 import { useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
+import type { SubregionKey } from "../../utils/subregionFromMunicipio";
+import { municipioToSubregion } from "../../utils/subregionFromMunicipio";
 
 interface MunicipalityLabelsProps {
   municipalities: Municipality[];
   visible?: boolean;
+  highlightedSubregion?: SubregionKey | null;
 }
 
 const LABEL_ZOOM_THRESHOLD = 9;
+const LABEL_ZOOM_SUBREGION = 8; // show labels of highlighted subregion earlier
 
 export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({
   municipalities,
   visible = true,
+  highlightedSubregion = null,
 }) => {
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -36,10 +41,21 @@ export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({
       labelsLayer.clearLayers();
       return;
     }
-    const isVisible = zoom >= LABEL_ZOOM_THRESHOLD;
     labelsLayer.clearLayers();
 
     municipalities.forEach((m) => {
+      const ownSub = municipioToSubregion(m.name);
+      const isInHighlighted =
+        highlightedSubregion !== null && ownSub === highlightedSubregion;
+      const isOutsideHighlight =
+        highlightedSubregion !== null && !isInHighlighted;
+
+      // Hide labels outside highlighted subregion
+      if (isOutsideHighlight) return;
+
+      const threshold = isInHighlighted ? LABEL_ZOOM_SUBREGION : LABEL_ZOOM_THRESHOLD;
+      const isVisible = zoom >= threshold;
+
       const icon = L.divIcon({
         html: `<div style="
           transform:translate(-50%, -50%);
@@ -48,7 +64,7 @@ export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({
           justify-content:center;
           padding:2px 6px;
           border-radius:999px;
-          background:rgba(255,255,255,0.85);
+          background:rgba(255,255,255,0.88);
           backdrop-filter:blur(4px);
           color:#1a3a22;
           font-size:11px;
@@ -72,7 +88,7 @@ export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({
 
       labelsLayer.addLayer(marker);
     });
-  }, [labelsLayer, municipalities, zoom, visible]);
+  }, [labelsLayer, municipalities, zoom, visible, highlightedSubregion]);
 
   if (visible === false) return null;
 

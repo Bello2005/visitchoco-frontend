@@ -64,7 +64,7 @@ const fiestasDestacadas = [
   },
   {
     nombre: "Divino Ecce-Homo",
-    municipio: "Unión Panamericana",
+    municipio: "U.Panamericana",
     fechas: "24 Abr — 1 May",
     subregion: "San Juan",
     tag: "Milagro de 1802",
@@ -212,19 +212,23 @@ export function FiestasGrid() {
                 </div>
 
                 <h3
-                  className={`mt-3 font-serif font-bold text-white ${
+                  className={`mt-3 font-serif font-bold text-white tracking-tight ${
                     f.size === "large"
-                      ? "text-3xl md:text-4xl"
+                      ? "text-balance text-3xl md:text-4xl"
                       : f.size === "medium"
-                        ? "text-2xl md:text-3xl"
-                        : "text-xl md:text-2xl"
+                        ? "text-balance text-2xl md:text-3xl"
+                        : "truncate whitespace-nowrap text-lg md:text-lg"
                   }`}
                 >
                   {f.nombre}
                 </h3>
-                <p className="mt-1 font-mono text-[10px] text-amber-500/80 md:text-xs">
-                  {f.municipio} · {f.fechas}
-                </p>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 font-mono text-[10px] text-amber-500/80 md:text-xs">
+                  <span className="min-w-0">{f.municipio}</span>
+                  <span className="text-amber-500/45 select-none" aria-hidden>
+                    ·
+                  </span>
+                  <span className="whitespace-nowrap">{f.fechas}</span>
+                </div>
 
                 <div className="mt-3 overflow-hidden">
                   <div className="max-h-0 translate-y-2 opacity-0 transition-all duration-500 ease-out group-hover:max-h-[240px] group-hover:translate-y-0 group-hover:opacity-100 md:group-hover:max-h-[280px]">

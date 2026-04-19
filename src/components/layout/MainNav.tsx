@@ -87,6 +87,16 @@ export function MainNav({ active, onLogin: _onLogin }: MainNavProps) {
     return "";
   }, [active, location.pathname]);
 
+  const shortcutLabel = useMemo(() => {
+    if (typeof navigator === "undefined") return "Ctrl+K";
+    const platform =
+      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+      navigator.platform ??
+      navigator.userAgent;
+    const isApple = /Mac|iPhone|iPad|iPod/i.test(platform);
+    return isApple ? "⌘K" : "Ctrl+K";
+  }, []);
+
   // Scroll-collapse for desktop pill (≥1024px)
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 60);
@@ -288,7 +298,7 @@ export function MainNav({ active, onLogin: _onLogin }: MainNavProps) {
 
           <div className="w-px h-5 bg-white/10 mx-1" aria-hidden="true" />
 
-          {/* Search + ⌘K */}
+          {/* Search + shortcut */}
           <button
             onClick={() => setSearchOpen(true)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/60 hover:text-white/90 hover:bg-white/10 text-xs font-medium transition-all duration-150"
@@ -298,13 +308,13 @@ export function MainNav({ active, onLogin: _onLogin }: MainNavProps) {
             <span
               className="whitespace-nowrap"
               style={{
-                maxWidth: scrolled ? 0 : 28,
+                maxWidth: scrolled ? 0 : 52,
                 opacity: scrolled ? 0 : 1,
                 overflow: "hidden",
                 transition: "all 200ms",
               }}
             >
-              ⌘K
+              {shortcutLabel}
             </span>
           </button>
         </nav>

@@ -1,31 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Search,
-  Home,
-  MapPinned,
-  PawPrint,
-  Landmark,
-  BookOpen,
-  MountainSnow,
-  PartyPopper,
-  X,
-} from "lucide-react";
+import { Search, X, MapPin } from "lucide-react";
+import type { Municipality } from "../../services/municipality.service";
+import { municipalityService } from "../../services/municipality.service";
+import { SUBREGION_META, SUBREGION_ORDER } from "../../utils/subregionData";
+import { municipioToSubregion } from "../../utils/subregionFromMunicipio";
+import type { SubregionKey } from "../../utils/subregionFromMunicipio";
+import { QUICK_LINKS } from "../../data/quickLinks";
 
-const QUICK_LINKS = [
-  { id: "inicio",   label: "Inicio",   path: "/",         icon: Home,         accent: "#1a5c45", desc: "Landing · presentación del Chocó"     },
-  { id: "mapa",     label: "Mapa",     path: "/mapa",     icon: MapPinned,    accent: "#0D9488", desc: "31 municipios · reservas indígenas"    },
-  { id: "animales", label: "Fauna",    path: "/animales", icon: PawPrint,     accent: "#34D399", desc: "577 aves · ballenas · jaguares"        },
-  { id: "cultura",  label: "Cultura",  path: "/cultura",  icon: Landmark,     accent: "#F59E0B", desc: "PES · Chirimía · patrimonio inmaterial" },
-  { id: "historia", label: "Historia", path: "/historia", icon: BookOpen,     accent: "#B45309", desc: "Cimarronaje · personajes · Atrato"     },
-  { id: "turismo",  label: "Turismo",  path: "/turismo",  icon: MountainSnow, accent: "#0EA5E9", desc: "Destinos · ballenas · RNT"             },
-  { id: "fiestas",  label: "Fiestas",  path: "/fiestas",  icon: PartyPopper,  accent: "#F59E0B", desc: "San Pacho UNESCO · calendario"         },
-];
+// Module-level cache — fetched once per session, never re-fetched
+let _cachedMunicipalities: Municipality[] | null = null;
+
+const normalize = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
+  municipalities?: Municipality[];
+  onSelectMunicipality?: (m: Municipality) => void;
+  onSelectSubregion?: (key: SubregionKey) => void;
 }
 
 const PANEL_STYLE: React.CSSProperties = {
@@ -34,11 +29,50 @@ const PANEL_STYLE: React.CSSProperties = {
   boxShadow: "0 32px 80px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.04)",
 };
 
-export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
+export default function SearchModal({
+  isOpen,
+  onClose,
+  municipalities: municipalitiesProp,
+  onSelectMunicipality,
+  onSelectSubregion,
+}: SearchModalProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [localMunicipalities, setLocalMunicipalities] = useState<Municipality[]>(
+    _cachedMunicipalities ?? []
+  );
+
+  // Use prop-supplied list (map context) or self-fetched list
+  const municipalities = municipalitiesProp ?? localMunicipalities;
+
+  // Lazy-fetch on first open when no municipalities are passed in
+  useEffect(() => {
+    if (!isOpen || municipalitiesProp || _cachedMunicipalities) return;
+    municipalityService.getAllMunicipalities().then((data) => {
+      _cachedMunicipalities = data;
+      setLocalMunicipalities(data);
+    });
+  }, [isOpen, municipalitiesProp]);
+
+  const q = normalize(query);
+
+  const subregionResults = q
+    ? SUBREGION_ORDER.filter((k) => normalize(SUBREGION_META[k].label).includes(q)).slice(0, 3)
+    : [];
+
+  const municipalityResults = q
+    ? municipalities
+        .filter(
+          (m) =>
+            normalize(m.name).includes(q) ||
+            normalize(m.description ?? "").includes(q)
+        )
+        .slice(0, 6)
+    : [];
+
+  const totalResults = subregionResults.length + municipalityResults.length;
 
   useEffect(() => {
     if (isOpen) {
@@ -48,34 +82,57 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     }
   }, [isOpen]);
 
-  // Keyboard navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!isOpen) return;
       if (e.key === "Escape") { onClose(); return; }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setActiveIndex((i) => Math.min(i + 1, QUICK_LINKS.length - 1));
+        const max = q ? totalResults - 1 : QUICK_LINKS.length - 1;
+        setActiveIndex((i) => Math.min(i + 1, max));
       }
       if (e.key === "ArrowUp") {
         e.preventDefault();
         setActiveIndex((i) => Math.max(i - 1, 0));
       }
       if (e.key === "Enter") {
-        const target = QUICK_LINKS[activeIndex];
-        if (target) { navigate(target.path); onClose(); }
+        if (q) {
+          const subregionIdx = activeIndex;
+          const municipalityIdx = activeIndex - subregionResults.length;
+          if (subregionIdx < subregionResults.length) {
+            handleSelectSubregion(subregionResults[subregionIdx]);
+          } else if (municipalityResults[municipalityIdx]) {
+            handleSelectMunicipality(municipalityResults[municipalityIdx]);
+          }
+        } else {
+          const target = QUICK_LINKS[activeIndex];
+          if (target) { navigate(target.path); onClose(); }
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [isOpen, activeIndex, navigate, onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, activeIndex, q, subregionResults, municipalityResults, navigate, onClose]);
 
-  const handleNavigation = (path: string) => {
-    navigate(path);
+  const handleSelectMunicipality = (m: Municipality) => {
+    if (onSelectMunicipality) {
+      onSelectMunicipality(m);
+    } else {
+      navigate(`/mapa?m=${m.slug}`);
+    }
     onClose();
   };
 
-  // Shared inner content — reutilizado en ambos layouts
+  const handleSelectSubregion = (key: SubregionKey) => {
+    if (onSelectSubregion) {
+      onSelectSubregion(key);
+    } else {
+      navigate(`/mapa?sub=${key}`);
+    }
+    onClose();
+  };
+
   const innerContent = (
     <>
       {/* Search input */}
@@ -89,7 +146,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
           type="text"
           value={query}
           onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
-          placeholder="Buscar municipio, especie, historia..."
+          placeholder="Buscar municipio, región, fauna, historia…"
           className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/25 text-[15px] md:text-base"
         />
         <button
@@ -107,15 +164,105 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
         </span>
       </div>
 
-      {/* Results / Quick links */}
-      {!query ? (
+      {/* Results */}
+      {q ? (
+        totalResults > 0 ? (
+          <div
+            className="overflow-y-auto overscroll-contain pb-2"
+            style={{ maxHeight: "min(55dvh, 420px)" }}
+          >
+            {/* Subregions */}
+            {subregionResults.length > 0 && (
+              <>
+                <div className="px-4 pt-3 pb-1">
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-white/25 font-medium px-1">
+                    Regiones
+                  </span>
+                </div>
+                {subregionResults.map((key, idx) => {
+                  const meta = SUBREGION_META[key];
+                  const SubIcon = meta.Icon;
+                  const isHighlighted = idx === activeIndex;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleSelectSubregion(key)}
+                      onMouseEnter={() => setActiveIndex(idx)}
+                      className="w-full flex items-center gap-3 px-4 md:px-5 py-3 cursor-pointer border-none text-left outline-none transition-colors"
+                      style={{ background: isHighlighted ? "rgba(255,255,255,0.05)" : "transparent" }}
+                    >
+                      <div
+                        className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
+                        style={{ background: `${meta.primaryHex}1a` }}
+                      >
+                        <SubIcon size={15} style={{ color: meta.primaryHex }} strokeWidth={1.75} aria-hidden />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-white/85 leading-snug">{meta.label}</div>
+                        <div className="text-[11px] text-white/35 truncate leading-snug">{meta.shortDescription}</div>
+                      </div>
+                      <span className="text-white/20 text-[12px] shrink-0" aria-hidden>→</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Municipalities */}
+            {municipalityResults.length > 0 && (
+              <>
+                <div className="px-4 pt-3 pb-1">
+                  <span className="text-[10px] uppercase tracking-[0.1em] text-white/25 font-medium px-1">
+                    Municipios
+                  </span>
+                </div>
+                {municipalityResults.map((m, idx) => {
+                  const sub = municipioToSubregion(m.name);
+                  const meta = SUBREGION_META[sub];
+                  const SubIcon = meta.Icon;
+                  const flatIdx = subregionResults.length + idx;
+                  const isHighlighted = flatIdx === activeIndex;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => handleSelectMunicipality(m)}
+                      onMouseEnter={() => setActiveIndex(flatIdx)}
+                      className="w-full flex items-center gap-3 px-4 md:px-5 py-3 cursor-pointer border-none text-left outline-none transition-colors"
+                      style={{ background: isHighlighted ? "rgba(255,255,255,0.05)" : "transparent" }}
+                    >
+                      <div
+                        className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
+                        style={{ background: `${meta.primaryHex}1a` }}
+                      >
+                        <SubIcon size={15} style={{ color: meta.primaryHex }} strokeWidth={1.75} aria-hidden />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-white/85 leading-snug">{m.name}</div>
+                        <div className="text-[11px] text-white/35 truncate leading-snug flex items-center gap-1">
+                          <MapPin size={9} aria-hidden />
+                          {meta.label}
+                        </div>
+                      </div>
+                      <span className="text-white/20 text-[12px] shrink-0" aria-hidden>→</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="px-5 py-10 flex flex-col items-center gap-3">
+            <Search size={28} className="text-white/15" aria-hidden="true" />
+            <p className="text-white/35 text-sm text-center">Sin resultados para "{query}"</p>
+          </div>
+        )
+      ) : (
         <>
           <div className="px-4 pt-3 pb-1">
             <span className="text-[10px] uppercase tracking-[0.1em] text-white/25 font-medium px-1">
               Explorar
             </span>
           </div>
-          {/* Scrollable list — key for responsive height */}
           <div className="overflow-y-auto overscroll-contain pb-2"
             style={{ maxHeight: "min(55dvh, 420px)" }}
           >
@@ -125,12 +272,10 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
               return (
                 <button
                   key={link.id}
-                  onClick={() => handleNavigation(link.path)}
+                  onClick={() => { navigate(link.path); onClose(); }}
                   onMouseEnter={() => setActiveIndex(idx)}
                   className="w-full flex items-center gap-3 px-4 md:px-5 py-3 cursor-pointer border-none text-left outline-none transition-colors"
-                  style={{
-                    background: isHighlighted ? "rgba(255,255,255,0.05)" : "transparent",
-                  }}
+                  style={{ background: isHighlighted ? "rgba(255,255,255,0.05)" : "transparent" }}
                 >
                   <div
                     className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
@@ -139,12 +284,8 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
                     <Icon size={15} style={{ color: link.accent }} aria-hidden="true" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium text-white/85 leading-snug">
-                      {link.label}
-                    </div>
-                    <div className="text-[11px] text-white/35 truncate leading-snug">
-                      {link.desc}
-                    </div>
+                    <div className="text-[13px] font-medium text-white/85 leading-snug">{link.label}</div>
+                    <div className="text-[11px] text-white/35 truncate leading-snug">{link.desc}</div>
                   </div>
                   <span className="text-white/20 text-[12px] shrink-0" aria-hidden="true">→</span>
                 </button>
@@ -152,16 +293,6 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             })}
           </div>
         </>
-      ) : (
-        <div className="px-5 py-10 flex flex-col items-center gap-3">
-          <Search size={28} className="text-white/15" aria-hidden="true" />
-          <p className="text-white/35 text-sm text-center">
-            Búsqueda completa próximamente
-          </p>
-          <p className="text-white/20 text-xs text-center">
-            Estamos indexando municipios, fauna, cultura e historia del Chocó
-          </p>
-        </div>
       )}
 
       {/* Footer */}
@@ -173,7 +304,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
           VisitChocó · Chocó, Colombia
         </span>
         <span className="text-[11px] text-white/20 hidden md:block">
-          ↑↓ navegar · ↵ ir · esc cerrar
+          ↑↓ navegar · ↵ {q ? "abrir" : "ir"} · esc cerrar
         </span>
       </div>
     </>
@@ -183,7 +314,6 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay */}
           <motion.div
             key="overlay"
             initial={{ opacity: 0 }}
@@ -195,7 +325,7 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
           />
 
-          {/* ── MOBILE bottom sheet — < 768px ─────────────────────────────── */}
+          {/* MOBILE bottom sheet */}
           <motion.div
             key="panel-mobile"
             initial={{ y: "100%" }}
@@ -209,14 +339,13 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
               paddingBottom: "env(safe-area-inset-bottom, 0px)",
             }}
           >
-            {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1">
               <div className="w-9 h-1 rounded-full bg-white/15" />
             </div>
             {innerContent}
           </motion.div>
 
-          {/* ── TABLET + DESKTOP centered dialog — ≥ 768px ────────────────── */}
+          {/* DESKTOP centered dialog */}
           <motion.div
             key="panel-desktop"
             initial={{ opacity: 0, scale: 0.97, y: -10 }}
