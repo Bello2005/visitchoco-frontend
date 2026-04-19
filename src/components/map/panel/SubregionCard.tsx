@@ -25,20 +25,17 @@ export const SubregionCard: React.FC<SubregionCardProps> = ({
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
       className={`group relative w-full text-left rounded-2xl overflow-hidden ring-1 ${
-        isSelected ? `ring-2 ${meta.ringClass}` : "ring-gray-200/60"
-      } ${meta.cardBg} transition-shadow duration-200 hover:shadow-lg hover:shadow-gray-900/5 ${
+        isSelected ? `ring-2 ${meta.ringClass}` : "ring-gray-100/80"
+      } bg-white/70 transition-shadow duration-200 hover:shadow-lg hover:shadow-gray-900/8 hover:bg-white/90 hover:ring-gray-200/90 ${
         className ?? ""
       }`}
       aria-label={`Subregión ${meta.label}, ${count} municipios`}
     >
-      <div
-        className={`absolute inset-0 bg-gradient-to-br ${meta.gradientFrom} ${meta.gradientVia} ${meta.gradientTo} opacity-70 pointer-events-none`}
-      />
       <div className="relative flex flex-col p-4 min-h-[148px]">
         <div className="flex items-start justify-between mb-auto">
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ring-1 ring-white/70"
-            style={{ background: "rgba(255,255,255,0.65)" }}
+            className="w-11 h-11 rounded-xl flex items-center justify-center shadow-sm ring-1 ring-gray-100/60"
+            style={{ background: "rgba(255,255,255,0.95)" }}
             aria-hidden
           >
             <meta.Icon size={20} strokeWidth={1.75} style={{ color: meta.primaryHex }} />
