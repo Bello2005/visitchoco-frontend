@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../../styles/components/scroll.css";
@@ -12,6 +12,9 @@ import type { Feature, MultiPolygon } from "geojson";
 
 import { useMapState } from "../../hooks/useMapState";
 import { useEthnicHeatmap } from "../../hooks/useEthnicHeatmap";
+import { useFavorites } from "../../hooks/useFavorites";
+import { useGeolocation } from "../../hooks/useGeolocation";
+import { useMapFlyTo } from "../../hooks/useMapFlyTo";
 import type { Municipality } from "../../services/municipality.service";
 
 import { GrayscaleTileLayer } from "../../components/map/GrayscaleTileLayer";
@@ -22,6 +25,7 @@ import { MunicipalityLabels } from "../../components/map/MunicipalityLabels";
 import { UnifiedPanel } from "../../components/map/panel/UnifiedPanel";
 import { PanelToggleButton } from "../../components/map/panel/PanelToggleButton";
 import { MapControls } from "../../components/map/overlay/MapControls";
+import { NearMeButton } from "../../components/map/overlay/NearMeButton";
 import { MapLoadingScreen } from "../../components/map/MapLoadingScreen";
 
 const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
@@ -74,6 +78,7 @@ const Map: React.FC = () => {
     isLoading,
     selectedMunicipality,
     selectedReserve,
+    selectedSubregion,
     currentFilter,
     isPanelOpen,
     panelView,
@@ -83,9 +88,11 @@ const Map: React.FC = () => {
     mapRef,
     selectMunicipality,
     selectReserve,
+    selectSubregion,
     setFilter,
     setSearchQuery,
-    navigateToList,
+    navigateHome,
+    navigateBack,
     togglePanel,
     toggleEthnicOverlay,
     resetAll,
@@ -93,6 +100,38 @@ const Map: React.FC = () => {
   } = useMapState();
 
   const ethnicHeatmap = useEthnicHeatmap(ethnicOverlayEnabled);
+  const {
+    favorites,
+    toggleMunicipality: toggleFavoriteMunicipality,
+    toggleReserve: toggleFavoriteReserve,
+  } = useFavorites();
+  const { coords: geoCoords, status: geoStatus, request: requestLocation } = useGeolocation();
+  const geoRequestedRef = useRef(false);
+
+  useMapFlyTo({
+    mapRef,
+    selectedSubregion,
+    panelView,
+    municipalities,
+    isMobile,
+    isPanelOpen,
+  });
+
+  // When location becomes available, center map on user (first time only)
+  useEffect(() => {
+    if (geoCoords && !geoRequestedRef.current && mapRef.current) {
+      geoRequestedRef.current = true;
+      mapRef.current.flyTo([geoCoords.lat, geoCoords.lng], 10, { duration: 0.8 });
+    }
+  }, [geoCoords, mapRef]);
+
+  const handleNearMe = () => {
+    requestLocation();
+    if (panelView !== "home") navigateHome();
+  };
+
+  const highlightedSubregion =
+    currentFilter === "general" && panelView !== "home" ? selectedSubregion : null;
 
   return (
     <div className="relative w-screen h-[100dvh] overflow-hidden">
@@ -120,6 +159,7 @@ const Map: React.FC = () => {
         <MunicipalityBoundaries
           municipalities={municipalities}
           selectedMunicipality={selectedMunicipality}
+          highlightedSubregion={highlightedSubregion}
           onMunicipalityClick={(m) => { selectMunicipality(m); }}
           ethnicHeatmap={ethnicOverlayEnabled ? ethnicHeatmap : undefined}
           dimmed={currentFilter === "indigenous"}
@@ -136,6 +176,7 @@ const Map: React.FC = () => {
         <MunicipalityLabels
           municipalities={municipalities}
           visible={currentFilter !== "indigenous"}
+          highlightedSubregion={highlightedSubregion}
         />
 
         <DerivedChocoOutline municipalities={municipalities} />
@@ -156,15 +197,25 @@ const Map: React.FC = () => {
               currentFilter={currentFilter}
               selectedMunicipality={selectedMunicipality}
               selectedReserve={selectedReserve}
+              selectedSubregion={selectedSubregion}
               panelView={panelView}
               searchQuery={searchQuery}
               isMobile={isMobile}
               onSelectMunicipality={selectMunicipality}
               onSelectReserve={selectReserve}
+              onSelectSubregion={selectSubregion}
               onFilterChange={setFilter}
               onSearchChange={setSearchQuery}
-              onNavigateToList={navigateToList}
+              onNavigateHome={navigateHome}
+              onNavigateBack={navigateBack}
               onClose={togglePanel}
+              favoriteMunicipalitySlugs={favorites.municipalities}
+              favoriteReserveIds={favorites.reserves}
+              onToggleFavoriteMunicipality={toggleFavoriteMunicipality}
+              onToggleFavoriteReserve={toggleFavoriteReserve}
+              geoCoords={geoCoords}
+              geoStatus={geoStatus}
+              onRequestLocation={requestLocation}
               className="pointer-events-auto"
             />
           )}
@@ -179,6 +230,14 @@ const Map: React.FC = () => {
             />
           )}
         </AnimatePresence>
+
+        {/* Near me FAB */}
+        <div
+          className="absolute right-4 pointer-events-auto"
+          style={{ bottom: isMobile ? 16 : 320, zIndex: 1000 }}
+        >
+          <NearMeButton status={geoStatus} onClick={handleNearMe} />
+        </div>
 
         {/* Controles del mapa */}
         <MapControls

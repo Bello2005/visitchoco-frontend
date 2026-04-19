@@ -36,7 +36,7 @@ const CARDS = [
     id: "historia",
     category: "Memoria",
     title: "Historia y resistencia",
-    description: "Cimarronaje · Diego Luis Córdoba · T-622",
+    description: "Cimarronaje · Diego Luis Córdoba",
     href: "/historia",
     image: "/images/municipios/bojaya.jpg",
     accent: "#ef4444",

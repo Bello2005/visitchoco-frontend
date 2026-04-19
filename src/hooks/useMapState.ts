@@ -7,10 +7,20 @@ import indigenousReserveService from "../services/indigenousReserve.service";
 import type { Municipality } from "../services/municipality.service";
 import type { IndigenousReserve } from "../services/indigenousReserve.service";
 import type { FilterCategory } from "../types/filters";
+import type { SubregionKey } from "../utils/subregionFromMunicipio";
+import { municipioToSubregion } from "../utils/subregionFromMunicipio";
 
 const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
 const CHOCO_DEFAULT_ZOOM = 7.5;
 const MUNICIPALITY_ZOOM = 9;
+
+const VALID_SUBREGIONS: SubregionKey[] = [
+  "atrato",
+  "san_juan",
+  "baudo",
+  "pacifico_norte",
+  "darien",
+];
 
 type ChocoGeoJson = {
   type: "FeatureCollection";
@@ -24,7 +34,7 @@ type ChocoGeoJson = {
   }>;
 } | null;
 
-export type PanelView = "list" | "detail";
+export type PanelView = "home" | "subregion" | "detail";
 
 export interface MapState {
   municipalities: Municipality[];
@@ -34,6 +44,7 @@ export interface MapState {
 
   selectedMunicipality: Municipality | null;
   selectedReserve: IndigenousReserve | null;
+  selectedSubregion: SubregionKey | null;
   currentFilter: FilterCategory;
   searchQuery: string;
 
@@ -47,9 +58,11 @@ export interface MapState {
 
   selectMunicipality: (m: Municipality) => void;
   selectReserve: (r: IndigenousReserve) => void;
+  selectSubregion: (key: SubregionKey) => void;
   setFilter: (f: FilterCategory) => void;
   setSearchQuery: (q: string) => void;
-  navigateToList: () => void;
+  navigateHome: () => void;
+  navigateBack: () => void;
   togglePanel: () => void;
   toggleEthnicOverlay: () => void;
   resetAll: () => void;
@@ -59,6 +72,7 @@ export interface MapState {
 export function useMapState(): MapState {
   const isMobile = useMediaQuery({ maxWidth: 768 });
   const mapRef = useRef<LeafletMapType>(null);
+  const dataLoadedRef = useRef(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
@@ -68,11 +82,12 @@ export function useMapState(): MapState {
 
   const [selectedMunicipality, setSelectedMunicipality] = useState<Municipality | null>(null);
   const [selectedReserve, setSelectedReserve] = useState<IndigenousReserve | null>(null);
+  const [selectedSubregion, setSelectedSubregion] = useState<SubregionKey | null>(null);
   const [currentFilter, setCurrentFilter] = useState<FilterCategory>("general");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [isPanelOpen, setIsPanelOpen] = useState(!isMobile);
-  const [panelView, setPanelView] = useState<PanelView>("list");
+  const [panelView, setPanelView] = useState<PanelView>("home");
   const [ethnicOverlayEnabled, setEthnicOverlayEnabled] = useState(false);
 
   const fitBoundsWithPadding = useCallback(
@@ -100,8 +115,9 @@ export function useMapState(): MapState {
     [isMobile]
   );
 
-  // Load data and apply URL deep-link params on mount
   useEffect(() => {
+    if (dataLoadedRef.current) return;
+    dataLoadedRef.current = true;
     const load = async () => {
       try {
         const [municipalitiesData, reservesData, geoJsonRes] = await Promise.all([
@@ -113,18 +129,21 @@ export function useMapState(): MapState {
         setReserves(reservesData);
         setChocoGeoJson(geoJsonRes);
 
-        // Apply URL params after data is ready
         const mSlug = searchParams.get("m");
         const rId = searchParams.get("r");
-        const VALID_FILTERS: FilterCategory[] = ["indigenous"];
+        const subParam = searchParams.get("sub") as SubregionKey | null;
         const filtroParam = searchParams.get("filtro") as FilterCategory | null;
+        const VALID_FILTERS: FilterCategory[] = ["indigenous"];
 
-        if (filtroParam && VALID_FILTERS.includes(filtroParam)) setCurrentFilter(filtroParam);
+        if (filtroParam && VALID_FILTERS.includes(filtroParam)) {
+          setCurrentFilter(filtroParam);
+        }
 
         if (mSlug) {
           const found = municipalitiesData.find((m) => m.slug === mSlug);
           if (found) {
             setSelectedMunicipality(found);
+            setSelectedSubregion(municipioToSubregion(found.name));
             setPanelView("detail");
             setIsPanelOpen(true);
           }
@@ -136,6 +155,10 @@ export function useMapState(): MapState {
             setIsPanelOpen(true);
             setCurrentFilter("indigenous");
           }
+        } else if (subParam && VALID_SUBREGIONS.includes(subParam)) {
+          setSelectedSubregion(subParam);
+          setPanelView("subregion");
+          setIsPanelOpen(true);
         }
       } catch (error) {
         console.error("Error loading map data:", error);
@@ -147,24 +170,25 @@ export function useMapState(): MapState {
     load();
   }, []);
 
-  // Fit bounds once GeoJSON is loaded
   useEffect(() => {
     if (chocoGeoJson && mapRef.current) {
       fitBoundsWithPadding(chocoGeoJson, isPanelOpen);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chocoGeoJson]);
 
   const selectMunicipality = useCallback(
     (m: Municipality) => {
       setSelectedMunicipality(m);
       setSelectedReserve(null);
+      setSelectedSubregion(municipioToSubregion(m.name));
       setPanelView("detail");
       setIsPanelOpen(true);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set("m", m.slug);
         next.delete("r");
+        next.delete("sub");
         return next;
       });
       if (mapRef.current) {
@@ -185,6 +209,7 @@ export function useMapState(): MapState {
         const next = new URLSearchParams(prev);
         next.set("r", String(r.id));
         next.delete("m");
+        next.delete("sub");
         return next;
       });
       if (mapRef.current && r.lat && r.lon) {
@@ -194,12 +219,31 @@ export function useMapState(): MapState {
     [setSearchParams]
   );
 
+  const selectSubregion = useCallback(
+    (key: SubregionKey) => {
+      setSelectedSubregion(key);
+      setSelectedMunicipality(null);
+      setSelectedReserve(null);
+      setPanelView("subregion");
+      setIsPanelOpen(true);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("sub", key);
+        next.delete("m");
+        next.delete("r");
+        return next;
+      });
+    },
+    [setSearchParams]
+  );
+
   const setFilter = useCallback(
     (f: FilterCategory) => {
       setCurrentFilter(f);
       setSelectedMunicipality(null);
       setSelectedReserve(null);
-      setPanelView("list");
+      setSelectedSubregion(null);
+      setPanelView("home");
       setSearchQuery("");
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
@@ -210,24 +254,48 @@ export function useMapState(): MapState {
         }
         next.delete("m");
         next.delete("r");
+        next.delete("sub");
         return next;
       });
     },
     [setSearchParams]
   );
 
-  const navigateToList = useCallback(() => {
-    setPanelView("list");
+  const navigateHome = useCallback(() => {
+    setPanelView("home");
+    setSelectedSubregion(null);
     setSelectedMunicipality(null);
     setSelectedReserve(null);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.delete("m");
       next.delete("r");
+      next.delete("sub");
       return next;
     });
     fitBoundsWithPadding(chocoGeoJson, isPanelOpen);
   }, [chocoGeoJson, fitBoundsWithPadding, isPanelOpen, setSearchParams]);
+
+  const navigateBack = useCallback(() => {
+    if (panelView === "detail") {
+      if (selectedSubregion && currentFilter !== "indigenous") {
+        setPanelView("subregion");
+        setSelectedMunicipality(null);
+        setSelectedReserve(null);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("sub", selectedSubregion);
+          next.delete("m");
+          next.delete("r");
+          return next;
+        });
+      } else {
+        navigateHome();
+      }
+    } else if (panelView === "subregion") {
+      navigateHome();
+    }
+  }, [panelView, selectedSubregion, currentFilter, navigateHome, setSearchParams]);
 
   const togglePanel = useCallback(() => {
     setIsPanelOpen((prev) => !prev);
@@ -240,8 +308,9 @@ export function useMapState(): MapState {
   const resetAll = useCallback(() => {
     setSelectedMunicipality(null);
     setSelectedReserve(null);
+    setSelectedSubregion(null);
     setCurrentFilter("general");
-    setPanelView("list");
+    setPanelView("home");
     setSearchQuery("");
     setSearchParams({});
     fitBoundsWithPadding(chocoGeoJson, isPanelOpen);
@@ -249,17 +318,9 @@ export function useMapState(): MapState {
 
   const handleMapClick = useCallback(() => {
     if (panelView === "detail") {
-      setPanelView("list");
-      setSelectedMunicipality(null);
-      setSelectedReserve(null);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete("m");
-        next.delete("r");
-        return next;
-      });
+      navigateBack();
     }
-  }, [panelView, setSearchParams]);
+  }, [panelView, navigateBack]);
 
   return {
     municipalities,
@@ -268,6 +329,7 @@ export function useMapState(): MapState {
     isLoading,
     selectedMunicipality,
     selectedReserve,
+    selectedSubregion,
     currentFilter,
     searchQuery,
     isPanelOpen,
@@ -277,9 +339,11 @@ export function useMapState(): MapState {
     mapRef,
     selectMunicipality,
     selectReserve,
+    selectSubregion,
     setFilter,
     setSearchQuery,
-    navigateToList,
+    navigateHome,
+    navigateBack,
     togglePanel,
     toggleEthnicOverlay,
     resetAll,

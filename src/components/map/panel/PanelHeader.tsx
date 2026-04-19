@@ -1,113 +1,110 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Search, X } from "lucide-react";
 
 interface PanelHeaderProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  onSearchFocus: () => void;
+  onSearchBlur: () => void;
   onClose: () => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  isSearchActive: boolean;
 }
 
 export const PanelHeader: React.FC<PanelHeaderProps> = ({
   searchQuery,
   onSearchChange,
+  onSearchFocus,
+  onSearchBlur,
   onClose,
+  inputRef,
+  isSearchActive,
 }) => {
+  const shortcutLabel = useMemo(() => {
+    if (typeof navigator === "undefined") return "Ctrl+K";
+    const platform =
+      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+      navigator.platform ??
+      navigator.userAgent;
+    const isApple = /Mac|iPhone|iPad|iPod/i.test(platform);
+    return isApple ? "⌘K" : "Ctrl+K";
+  }, []);
+
+  const handleX = () => {
+    if (isSearchActive) {
+      onSearchChange("");
+      onClose(); // onClose here means "close search / close panel" - caller decides
+    } else {
+      onClose();
+    }
+  };
+
   return (
-    <div className="flex-none px-4 pt-4 pb-3">
-      <div className="flex items-center gap-2">
+    <div className="flex-none px-4 pt-4 pb-2.5">
+      <div className="flex items-center gap-2.5">
         {/* Logo */}
-        <Link to="/" className="flex-shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm">
-            <span className="text-white text-xs font-bold">VC</span>
-          </div>
+        <Link to="/" aria-label="Ir al inicio" className="flex-shrink-0">
+          <motion.div
+            whileHover={{ scale: 1.05, rotate: -3 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: "spring", stiffness: 420, damping: 22 }}
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 via-emerald-500 to-emerald-600 flex items-center justify-center"
+            style={{
+              boxShadow: "0 2px 8px rgba(6,95,70,0.20), inset 0 1px 0 rgba(255,255,255,0.45)",
+            }}
+          >
+            <span className="text-white text-[11px] font-bold tracking-tight">VC</span>
+          </motion.div>
         </Link>
 
-        {/* Search */}
-        <div className="relative flex-1">
-          <svg
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+        {/* Search input */}
+        <label
+          className={`relative flex-1 flex items-center gap-2 h-10 px-3 rounded-full transition-all duration-200 ${
+            isSearchActive
+              ? "bg-white ring-2 ring-teal-400/50 shadow-[0_0_0_4px_rgba(20,184,166,0.08)]"
+              : "bg-gray-100/70 ring-1 ring-gray-200/60 hover:bg-gray-100"
+          }`}
+        >
+          <Search
+            size={15}
+            strokeWidth={2.25}
+            className={`flex-shrink-0 transition-colors ${isSearchActive ? "text-teal-500" : "text-gray-500"}`}
+          />
           <input
+            ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar lugar..."
-            className="w-full pl-8 pr-8 py-1.5 text-sm bg-gray-50/80 border border-gray-200/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-300 placeholder-gray-400 transition-all duration-200"
+            onFocus={onSearchFocus}
+            onBlur={onSearchBlur}
+            placeholder="Buscar municipio o región"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label="Buscar municipio o región"
+            aria-expanded={isSearchActive}
+            aria-controls="search-results-panel"
+            aria-autocomplete="list"
+            className="flex-1 min-w-0 bg-transparent text-[13px] font-medium text-gray-800 placeholder:text-gray-400 placeholder:font-normal focus:outline-none"
           />
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-gray-400 hover:text-gray-600"
-            >
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+          {!isSearchActive && (
+            <span className="hidden sm:inline-flex flex-shrink-0 text-[10px] text-gray-400 font-mono px-1.5 py-0.5 rounded bg-white/80 ring-1 ring-gray-200/70 pointer-events-none">
+              {shortcutLabel}
+            </span>
           )}
-        </div>
+        </label>
 
-        {/* Login (oculto hasta activar auth)
-        <Link
-          to="/login"
-          className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-teal-600 hover:bg-teal-50 transition-colors duration-150"
-          aria-label="Iniciar sesión"
+        {/* Close — always one X */}
+        <motion.button
+          onClick={handleX}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 420, damping: 22 }}
+          className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100/80 transition-colors duration-150"
+          aria-label={isSearchActive ? "Cerrar búsqueda" : "Cerrar panel"}
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.8}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-        </Link>
-        */}
-
-        {/* Close panel */}
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100/80 transition-colors duration-150"
-          aria-label="Cerrar panel"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
+          <X size={17} strokeWidth={2.25} />
+        </motion.button>
       </div>
     </div>
   );
