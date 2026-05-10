@@ -1,51 +1,38 @@
+import { cn } from "../../lib/cn";
+
 interface LogoProps {
   className?: string;
-  size?: "sm" | "md" | "lg";
+  textOnly?: boolean;
+  markOnly?: boolean;
 }
 
-export const Logo = ({ className = "", size = "md" }: LogoProps) => {
-  const sizes = {
-    sm: {
-      container: "w-10 h-10",
-      icon: "w-6 h-6",
-      text: "text-2xl",
-    },
-    md: {
-      container: "w-12 h-12",
-      icon: "w-6 h-6",
-      text: "text-2xl",
-    },
-    lg: {
-      container: "w-16 h-16",
-      icon: "w-8 h-8",
-      text: "text-3xl",
-    },
-  };
-
+export function Logo({ className, textOnly, markOnly }: LogoProps) {
   return (
-    <div className={`flex items-center space-x-3 ${className}`}>
-      <div
-        className={`${sizes[size].container} rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center`}
-      >
-        <svg
-          className={`${sizes[size].icon} text-white`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 10V3L4 14h7v7l9-11h-7z"
-          />
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 leading-none whitespace-nowrap",
+        className,
+      )}
+      role="img"
+      aria-label="VisitChocó"
+    >
+      {!textOnly && (
+        <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.25" opacity="0.4" />
+          <circle cx="12" cy="12" r="6"  fill="none" stroke="currentColor" strokeWidth="1.5"  opacity="0.7" />
+          <circle cx="12" cy="12" r="2.2" fill="currentColor" />
         </svg>
-      </div>
-      <span
-        className={`${sizes[size].text} font-light tracking-widest text-white`}
-      >
-        VISIT<span className="font-bold">CHOCÓ</span>
-      </span>
-    </div>
+      )}
+      {!markOnly && (
+        <span className="flex items-baseline gap-[0.18em]">
+          <span className="font-sans text-[0.95em] font-medium tracking-tight opacity-70">
+            Visit
+          </span>
+          <span className="font-display text-[1.05em] font-semibold tracking-tight">
+            Chocó
+          </span>
+        </span>
+      )}
+    </span>
   );
-};
+}
