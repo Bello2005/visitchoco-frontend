@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Landing } from "./pages/Landing/Landing";
+import AtratoPage from "./pages/Atrato/Atrato";
+import { AccentProvider } from "./providers/AccentProvider";
 import { Login } from "./pages/Login/Login";
 import { AdminDashboard } from "./pages/Dashboard/AdminDashboard/AdminDashboard";
 import { UserDashboard } from "./pages/Dashboard/UserDashboard/UserDashboard";
@@ -87,6 +89,7 @@ function AppContent() {
   }, [location]);
 
   return (
+    <AccentProvider>
     <ErrorBoundary>
       {isLoading && <LoadingSpinner />}
       <div
@@ -108,6 +111,7 @@ function AppContent() {
           <Route path="/fuentes" element={<Fuentes />} />
           <Route path="/fiesta" element={<Festival />} />
           <Route path="/fiestas" element={<Festival />} />
+          <Route path="/atrato" element={<AtratoPage />} />
           <Route
             path="/admin/dashboard"
             element={
@@ -128,6 +132,7 @@ function AppContent() {
         </Routes>
       </div>
     </ErrorBoundary>
+    </AccentProvider>
   );
 }
 

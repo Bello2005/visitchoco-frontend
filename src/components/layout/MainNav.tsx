@@ -1,327 +1,251 @@
-import { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { motion, useScroll, useMotionValueEvent, useReducedMotion } from "framer-motion";
+import { useLocation, Link } from "react-router-dom";
 import {
-  Home,
-  MapPinned,
-  PawPrint,
-  Landmark,
-  BookOpen,
-  MountainSnow,
-  PartyPopper,
-  Search,
-  type LucideIcon,
+  MapPinned, PawPrint, PartyPopper, MountainSnow, Landmark, BookOpen,
+  Search, Command, Home as HomeIcon, type LucideIcon,
 } from "lucide-react";
-import SearchModal from "./SearchModal";
+import { Logo } from "../brand/Logo";
+import { cn } from "../../lib/cn";
+import { ease, dur } from "../../lib/motion";
+import { SearchModal } from "./SearchModal";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+export const NAV_DESKTOP_OFFSET = 88;
+export const NAV_MOBILE_OFFSET  = 56;
 
-type NavLink = {
+// Backward-compat exports
+export const MAIN_NAV_DESKTOP_PT_CLASS = "lg:pt-20";
+export const MAIN_NAV_MOBILE_BOTTOM_CLASS = "pb-14";
+
+interface NavLink {
   id: string;
   label: string;
   href: string;
   Icon: LucideIcon;
-};
-
-// ─── Nav data ─────────────────────────────────────────────────────────────────
-
-const NAV_LINKS: NavLink[] = [
-  { id: "inicio",   label: "Inicio",   href: "/",         Icon: Home         },
-  { id: "mapa",     label: "Mapa",     href: "/mapa",     Icon: MapPinned    },
-  { id: "fauna",    label: "Fauna",    href: "/animales", Icon: PawPrint     },
-  { id: "cultura",  label: "Cultura",  href: "/cultura",  Icon: Landmark     },
-  { id: "historia", label: "Historia", href: "/historia", Icon: BookOpen     },
-  { id: "turismo",  label: "Turismo",  href: "/turismo",  Icon: MountainSnow },
-  { id: "fiestas",  label: "Fiestas",  href: "/fiesta",   Icon: PartyPopper  },
-];
-
-// 6 items visible in mobile bottom tab
-const MOBILE_LINKS = NAV_LINKS.filter(({ id }) =>
-  ["inicio", "mapa", "fauna", "cultura", "historia", "fiestas"].includes(id)
-);
-
-// ─── Shared pill glass style ───────────────────────────────────────────────────
-
-const PILL_STYLE: React.CSSProperties = {
-  background: "rgba(10,10,10,0.84)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.10)",
-  boxShadow:
-    "0 8px 32px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06)",
-};
-
-const VC_BADGE_STYLE: React.CSSProperties = {
-  background: "rgba(52,211,153,0.15)",
-  border: "1px solid rgba(52,211,153,0.30)",
-};
-
-// ─── Exported layout helpers (used by page wrappers) ─────────────────────────
-
-export const MAIN_NAV_DESKTOP_PT_CLASS = "lg:pt-20";
-export const MAIN_NAV_MOBILE_BOTTOM_CLASS = "pb-14";
-
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-export interface MainNavProps {
-  /** Override active item id. Derived from pathname when omitted. */
-  active?: string;
-  /** Reserved for future auth flow — currently unused. */
-  onLogin?: () => void | Promise<void>;
+  description: string;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const NAV_LINKS: NavLink[] = [
+  { id: "home",     label: "Inicio",   href: "/",         Icon: HomeIcon,     description: "Portada y descubrimiento" },
+  { id: "mapa",     label: "Mapa",     href: "/mapa",     Icon: MapPinned,    description: "31 municipios · 125 resguardos" },
+  { id: "fauna",    label: "Fauna",    href: "/animales", Icon: PawPrint,     description: "577 aves · ballenas · jaguares" },
+  { id: "cultura",  label: "Cultura",  href: "/cultura",  Icon: Landmark,     description: "PES UNESCO · chirimía · gastronomía" },
+  { id: "historia", label: "Historia", href: "/historia", Icon: BookOpen,     description: "500 años · cimarronaje · Atrato" },
+  { id: "turismo",  label: "Turismo",  href: "/turismo",  Icon: MountainSnow, description: "Costa · selva · 602 prestadores RNT" },
+  { id: "fiestas",  label: "Fiestas",  href: "/fiesta",   Icon: PartyPopper,  description: "37 fiestas · 12 meses · UNESCO" },
+];
 
-export function MainNav({ active, onLogin: _onLogin }: MainNavProps) {
-  const location = useLocation();
-  const [scrolled, setScrolled] = useState(false);
+function getActiveId(pathname: string): string {
+  if (pathname === "/")                  return "home";
+  if (pathname.startsWith("/mapa"))      return "mapa";
+  if (pathname.startsWith("/animales"))  return "fauna";
+  if (pathname.startsWith("/cultura"))   return "cultura";
+  if (pathname.startsWith("/historia"))  return "historia";
+  if (pathname.startsWith("/turismo"))   return "turismo";
+  if (pathname.startsWith("/fiesta"))    return "fiestas";
+  return "";
+}
+
+interface MainNavProps {
+  initialQuery?: string;
+  /** @deprecated */
+  active?: string;
+  onLogin?: () => void;
+}
+
+export function MainNav({ initialQuery = "" }: MainNavProps) {
+  const { pathname } = useLocation();
+  const activeId = useMemo(() => getActiveId(pathname), [pathname]);
+  const reduce = useReducedMotion();
+
+  const [scrolled, setScrolled]     = useState(false);
+  const [scrollDir, setScrollDir]   = useState<"up" | "down">("up");
+  const [lastY, setLastY]           = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Derive active id from prop or current pathname
-  const activeId = useMemo<string>(() => {
-    if (active) return active.toLowerCase();
-    const path = location.pathname;
-    if (path === "/") return "inicio";
-    for (const link of NAV_LINKS) {
-      if (link.href !== "/" && path.startsWith(link.href)) return link.id;
-    }
-    return "";
-  }, [active, location.pathname]);
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, "change", (y) => {
+    setScrolled(y > 60);
+    if (y > 80) setScrollDir(y > lastY ? "down" : "up");
+    setLastY(y);
+  });
 
-  const shortcutLabel = useMemo(() => {
-    if (typeof navigator === "undefined") return "Ctrl+K";
-    const platform =
-      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
-      navigator.platform ??
-      navigator.userAgent;
-    const isApple = /Mac|iPhone|iPad|iPod/i.test(platform);
-    return isApple ? "⌘K" : "Ctrl+K";
-  }, []);
-
-  // Scroll-collapse for desktop pill (≥1024px)
   useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 60);
-    window.addEventListener("scroll", handler, { passive: true });
-    return () => window.removeEventListener("scroll", handler);
-  }, []);
-
-  // ⌘K / Ctrl+K global shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setSearchOpen(true);
+        setSearchOpen((v) => !v);
       }
     };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   return (
     <>
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          MOBILE — bottom tab bar                    < 768px
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-[2000]"
-        aria-label="Navegación principal"
-        style={{
-          background: "rgba(10,10,10,0.94)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 -8px 32px rgba(0,0,0,0.32)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
+      {/* ───── DESKTOP FLOATING PILL ────────────────────────────── */}
+      <motion.header
+        className="hidden md:flex fixed inset-x-0 top-3 z-[2000] justify-center px-6 pointer-events-none"
+        initial={{ y: -16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={reduce ? { duration: 0 } : { duration: dur.slow, ease: ease.out }}
       >
-        <div className="flex items-stretch justify-around h-14">
-          {MOBILE_LINKS.map(({ id, label, href, Icon }) => {
-            const isActive = activeId === id;
-            return (
-              <a
-                key={id}
-                href={href}
-                aria-current={isActive ? "page" : undefined}
-                className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 no-underline transition-colors duration-150"
-                style={{ color: isActive ? "#ffffff" : "rgba(255,255,255,0.45)" }}
-              >
-                {/* Active indicator — top bar */}
-                {isActive && (
-                  <span
-                    className="absolute top-0 inset-x-[30%] h-0.5 rounded-full bg-emerald-400"
-                    aria-hidden="true"
-                  />
-                )}
-                <Icon
-                  size={21}
-                  strokeWidth={isActive ? 2.5 : 1.75}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] font-medium leading-none truncate">
-                  {label}
-                </span>
-              </a>
-            );
-          })}
-
-          {/* Search — último item del tab bar */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            aria-label="Buscar"
-            className="relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 border-none bg-transparent cursor-pointer transition-colors duration-150"
-            style={{ color: "rgba(255,255,255,0.45)" }}
+        <motion.nav
+          aria-label="Principal"
+          className={cn(
+            "pointer-events-auto flex items-center gap-1 rounded-full border",
+            "border-white/[0.08] backdrop-blur-2xl",
+            "shadow-[0_8px_32px_rgba(0,0,0,0.18)]",
+          )}
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(14,16,18,0.78) 0%, rgba(14,16,18,0.86) 100%)",
+          }}
+          animate={{
+            height: scrolled ? 44 : 52,
+            paddingLeft:  scrolled ? 8  : 12,
+            paddingRight: scrolled ? 8  : 12,
+          }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 32 }}
+        >
+          <Link
+            to="/"
+            className="flex items-center gap-2 rounded-full px-2 py-1 text-white/90 hover:text-white transition-colors"
+            aria-label="VisitChocó — inicio"
           >
-            <Search size={21} strokeWidth={1.75} aria-hidden="true" />
-            <span className="text-[10px] font-medium leading-none truncate">
+            <Logo className="text-current" markOnly={scrolled} />
+          </Link>
+
+          <span className="mx-1 h-5 w-px bg-white/10" aria-hidden />
+
+          <ul className="flex items-center gap-0.5">
+            {NAV_LINKS.filter((l) => l.id !== "home").map(({ id, label, href, Icon }) => {
+              const isActive = activeId === id;
+              return (
+                <li key={id}>
+                  <Link
+                    to={href}
+                    className={cn(
+                      "relative flex items-center gap-1.5 rounded-full px-3 py-1.5",
+                      "text-[13px] font-medium transition-colors",
+                      isActive
+                        ? "text-white"
+                        : "text-white/60 hover:text-white/90",
+                    )}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    {isActive && !reduce && (
+                      <motion.span
+                        layoutId="navActive"
+                        className="absolute inset-0 rounded-full bg-white/10"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <Icon
+                      size={14}
+                      className={cn("relative z-10", isActive && "text-[var(--accent-fg)]")}
+                      strokeWidth={isActive ? 2.25 : 1.75}
+                    />
+                    <motion.span
+                      className="relative z-10 overflow-hidden whitespace-nowrap"
+                      animate={{ width: scrolled ? 0 : "auto", opacity: scrolled ? 0 : 1 }}
+                      transition={reduce ? { duration: 0 } : { duration: dur.fast, ease: ease.out }}
+                    >
+                      {label}
+                    </motion.span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
+          <span className="mx-1 h-5 w-px bg-white/10" aria-hidden />
+
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className={cn(
+              "flex items-center gap-2 rounded-full px-3 py-1.5",
+              "text-[13px] font-medium text-white/60 hover:text-white",
+              "border border-white/10 hover:border-white/20",
+              "transition-colors",
+            )}
+            aria-label="Abrir búsqueda (Cmd+K)"
+          >
+            <Search size={13} strokeWidth={2} />
+            <motion.span
+              className="overflow-hidden flex items-center gap-1.5"
+              animate={{ width: scrolled ? 0 : "auto", opacity: scrolled ? 0 : 1 }}
+              transition={reduce ? { duration: 0 } : { duration: dur.fast, ease: ease.out }}
+            >
               Buscar
-            </span>
+              <kbd className="ml-1 hidden lg:inline-flex items-center gap-0.5 text-[10px] font-mono text-white/40">
+                <Command size={9} /> K
+              </kbd>
+            </motion.span>
           </button>
-        </div>
-      </nav>
+        </motion.nav>
+      </motion.header>
 
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          TABLET — pill solo iconos           768px – 1023px
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div
-        className="hidden md:flex lg:hidden fixed top-3 left-1/2 -translate-x-1/2 z-[2000]"
-      >
-        <nav
-          className="flex items-center gap-0.5 px-2 rounded-2xl h-11"
-          style={PILL_STYLE}
-          aria-label="Navegación principal"
+      {/* ───── MOBILE TOP BAR ──────────────────────────────────── */}
+      <header className="md:hidden fixed inset-x-0 top-0 z-[2000] h-12 flex items-center justify-between px-4 backdrop-blur-xl bg-[rgba(14,16,18,0.78)] border-b border-white/[0.06]">
+        <Link to="/" className="text-white/90" aria-label="Inicio">
+          <Logo className="text-current" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="p-2 -mr-2 text-white/70 hover:text-white"
+          aria-label="Buscar"
         >
-          {/* Logo — badge only */}
-          <a
-            href="/"
-            className="flex items-center justify-center w-7 h-7 rounded-lg mr-1 shrink-0"
-            style={VC_BADGE_STYLE}
-            title="VisitChocó — Inicio"
-          >
-            <span className="text-emerald-400 font-black text-xs leading-none">
-              VC
-            </span>
-          </a>
+          <Search size={18} strokeWidth={2} />
+        </button>
+      </header>
 
-          <div className="w-px h-5 bg-white/10 mx-0.5" aria-hidden="true" />
-
-          {/* Nav items — icon only */}
-          {NAV_LINKS.map(({ id, label, href, Icon }) => {
+      {/* ───── MOBILE BOTTOM TAB BAR ──────────────────────────── */}
+      <motion.nav
+        aria-label="Secciones"
+        className="md:hidden fixed inset-x-0 bottom-0 z-[2000] h-14 backdrop-blur-xl bg-[rgba(14,16,18,0.86)] border-t border-white/[0.06]"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        animate={{ y: scrollDir === "down" && scrolled ? 64 : 0 }}
+        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 28 }}
+      >
+        <ul className="flex h-full items-stretch justify-around">
+          {NAV_LINKS.filter((l) => l.id !== "home").slice(0, 6).map(({ id, label, href, Icon }) => {
             const isActive = activeId === id;
             return (
-              <a
-                key={id}
-                href={href}
-                title={label}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={label}
-                className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 ${
-                  isActive
-                    ? "bg-white/[0.12] text-white"
-                    : "text-white/55 hover:text-white/90 hover:bg-white/[0.08]"
-                }`}
-              >
-                <Icon size={16} strokeWidth={isActive ? 2.5 : 1.75} aria-hidden="true" />
-              </a>
-            );
-          })}
-
-          <div className="w-px h-5 bg-white/10 mx-0.5" aria-hidden="true" />
-
-          {/* Search */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            title="Buscar"
-            aria-label="Buscar"
-            className="flex items-center justify-center w-9 h-9 rounded-lg text-white/55 hover:text-white/90 hover:bg-white/[0.08] transition-all duration-150"
-          >
-            <Search size={15} aria-hidden="true" />
-          </button>
-        </nav>
-      </div>
-
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          DESKTOP — pill completo + scroll-collapse    ≥ 1024px
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <div
-        className="hidden lg:flex fixed top-3 left-1/2 -translate-x-1/2 z-[2000]"
-      >
-        <nav
-          className="flex items-center gap-1 px-3 rounded-2xl h-12"
-          style={PILL_STYLE}
-          aria-label="Navegación principal"
-        >
-          {/* Logo — badge + wordmark */}
-          <a
-            href="/"
-            className="flex items-center gap-2 pr-3 mr-1 border-r border-white/10 shrink-0"
-          >
-            <div
-              className="flex h-7 w-7 items-center justify-center rounded-lg"
-              style={VC_BADGE_STYLE}
-            >
-              <span className="text-emerald-400 font-black text-xs leading-none">
-                VC
-              </span>
-            </div>
-            <span className="text-sm font-bold text-white tracking-tight whitespace-nowrap">
-              Visit<span className="text-emerald-400">Chocó</span>
-            </span>
-          </a>
-
-          {/* Nav links with scroll-collapse labels */}
-          {NAV_LINKS.map(({ id, label, href, Icon }) => {
-            const isActive = activeId === id;
-            return (
-              <a
-                key={id}
-                href={href}
-                aria-current={isActive ? "page" : undefined}
-                className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                  isActive
-                    ? "bg-white/[0.12] text-white"
-                    : "text-white/60 hover:text-white/90 hover:bg-white/[0.08]"
-                }`}
-              >
-                <Icon size={14} strokeWidth={isActive ? 2.5 : 1.75} aria-hidden="true" />
-                <span
-                  className="whitespace-nowrap overflow-hidden transition-all duration-200"
-                  style={{
-                    maxWidth: scrolled ? 0 : 56,
-                    opacity: scrolled ? 0 : 1,
-                    marginLeft: scrolled ? 0 : undefined,
-                  }}
+              <li key={id} className="flex-1 min-w-0">
+                <Link
+                  to={href}
+                  className={cn(
+                    "relative flex h-full flex-col items-center justify-center gap-0.5",
+                    "text-[10px] font-medium transition-colors",
+                    isActive ? "text-white" : "text-white/50 hover:text-white/80",
+                  )}
+                  aria-current={isActive ? "page" : undefined}
                 >
-                  {label}
-                </span>
-              </a>
+                  {isActive && !reduce && (
+                    <motion.span
+                      layoutId="bottomDot"
+                      className="absolute top-1 h-0.5 w-8 rounded-full bg-[var(--accent-fg)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <Icon size={20} strokeWidth={isActive ? 2.25 : 1.75} className={isActive ? "text-[var(--accent-fg)]" : ""} />
+                  <span className="leading-none truncate max-w-[3.5rem]">{label}</span>
+                </Link>
+              </li>
             );
           })}
+        </ul>
+      </motion.nav>
 
-          <div className="w-px h-5 bg-white/10 mx-1" aria-hidden="true" />
-
-          {/* Search + shortcut */}
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-white/60 hover:text-white/90 hover:bg-white/10 text-xs font-medium transition-all duration-150"
-            aria-label="Buscar"
-          >
-            <Search size={14} aria-hidden="true" />
-            <span
-              className="whitespace-nowrap"
-              style={{
-                maxWidth: scrolled ? 0 : 52,
-                opacity: scrolled ? 0 : 1,
-                overflow: "hidden",
-                transition: "all 200ms",
-              }}
-            >
-              {shortcutLabel}
-            </span>
-          </button>
-        </nav>
-      </div>
-
-      {/* ── SearchModal — global ──────────────────────────────────────────── */}
-      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        initialQuery={initialQuery}
+        navLinks={NAV_LINKS}
+      />
     </>
   );
 }
