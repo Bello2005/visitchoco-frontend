@@ -58,7 +58,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   geoStatus,
   onRequestLocation,
 }) => {
-  const q = searchQuery.toLowerCase().trim();
+  const q = (searchQuery ?? "").toLowerCase().trim();
 
   const subregionCounts = useMemo(() => getSubregionCounts(municipalities), [municipalities]);
 
