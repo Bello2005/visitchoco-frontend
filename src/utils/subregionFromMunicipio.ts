@@ -25,8 +25,10 @@ const MUNICIPIO_SUBREGION: Record<string, SubregionKey> = {
   Pizarro: "baudo",
 };
 
-export function municipioToSubregion(municipio: string): SubregionKey {
+export function municipioToSubregion(municipio: string | null | undefined): SubregionKey {
+  if (typeof municipio !== "string") return "atrato";
   const key = municipio.trim();
+  if (!key) return "atrato";
   const base = key.replace(/\s*\([^)]*\)\s*$/, "").trim();
   return MUNICIPIO_SUBREGION[key] ?? MUNICIPIO_SUBREGION[base] ?? "atrato";
 }
