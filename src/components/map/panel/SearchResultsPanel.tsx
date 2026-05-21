@@ -9,8 +9,8 @@ import { SUBREGION_META, SUBREGION_ORDER } from "../../../utils/subregionData";
 import { QUICK_LINKS } from "../../../data/quickLinks";
 import { useSearchNavigation } from "../../../hooks/useSearchNavigation";
 
-const normalize = (s: string) =>
-  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const normalize = (s: string | null | undefined) =>
+  (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
 interface SearchResultsPanelProps {
   query: string;

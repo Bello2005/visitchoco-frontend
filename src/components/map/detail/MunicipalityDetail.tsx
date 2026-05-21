@@ -19,7 +19,7 @@ interface MunicipalityDetailProps {
   municipality: Municipality;
 }
 
-type Tab = "general" | "clima" | "transporte" | "demografia" | "turismo" | "cultura";
+type Tab = "general" | "clima" | "transporte" | "demografia" | "turismo" | "cultura" | "negocios";
 
 export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
   municipality,
@@ -46,6 +46,7 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
     { id: "demografia", label: "Demografía", Icon: Users      },
     { id: "turismo",    label: "Turismo",    Icon: Hotel      },
     { id: "cultura",    label: "Cultura",    Icon: Landmark   },
+    { id: "negocios",   label: "Negocios",   Icon: Building2  },
   ];
 
   const imagePosition: Record<string, string> = {
@@ -128,7 +129,7 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
 
       {/* Tabs — grilla 3×2 con icono + label */}
       <div className="flex-none px-4 mt-3">
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {tabs.map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
             return (
@@ -227,6 +228,10 @@ export const MunicipalityDetail: React.FC<MunicipalityDetailProps> = ({
 
         {activeTab === "cultura" && (
           <CulturaTab municipioNombre={municipality.name} municipalityId={municipality.id} />
+        )}
+
+        {activeTab === "negocios" && (
+          <NegociosTab municipioId={municipality.id} />
         )}
       </div>
     </div>
@@ -801,6 +806,7 @@ const CulturaTab: React.FC<{ municipioNombre: string; municipalityId: number }> 
           </span>
           <ChevronRight size={14} />
         </a>
+
         {festivals.length > 0 && (
           <Link
             to={`/fiesta?municipio=${encodeURIComponent(municipioNombre)}`}
@@ -816,6 +822,138 @@ const CulturaTab: React.FC<{ municipioNombre: string; municipalityId: number }> 
           </Link>
         )}
       </div>
+    </div>
+  );
+};
+
+// ─── Tab Negocios ─────────────────────────────────────────────────────────────
+
+interface Negocio {
+  id: string;
+  nombre: string;
+  categoria: string;
+  descripcion: string | null;
+  telefono: string | null;
+  whatsapp: string | null;
+  sitio_web: string | null;
+  direccion: string | null;
+  rango_precio: string | null;
+  foto_url: string | null;
+}
+
+const CATEGORIA_LABELS: Record<string, string> = {
+  hotel:          "Hotel",
+  restaurante:    "Restaurante",
+  fritanga:       "Fritanga",
+  agencia_viajes: "Agencia de viajes",
+  guia_turismo:   "Guía de turismo",
+  pasteleria:     "Pastelería",
+  viche_licores:  "Viche & licores",
+  legumbreria:    "Legumbería",
+  otro:           "Otro",
+};
+
+const NegociosTab: React.FC<{ municipioId: number }> = ({ municipioId }) => {
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get(`/api/establecimientos?municipio_id=${municipioId}&limit=50`)
+      .then((r) => setNegocios(r.data?.items ?? []))
+      .catch(() => setNegocios([]))
+      .finally(() => setLoading(false));
+  }, [municipioId]);
+
+  if (loading) {
+    return (
+      <div className="space-y-3 p-1">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  if (negocios.length === 0) {
+    return (
+      <div className="text-center py-10 text-gray-400">
+        <Building2 size={32} className="mx-auto mb-2 opacity-50" />
+        <p className="text-sm mt-3 font-medium">Sin negocios registrados</p>
+        <p className="text-xs mt-1 text-gray-300">
+          Aún no hay establecimientos verificados en este municipio
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 pb-4">
+      {negocios.map((n) => (
+        <div
+          key={n.id}
+          className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-emerald-50 overflow-hidden"
+        >
+          {n.foto_url && (
+            <img src={n.foto_url} alt={n.nombre} className="w-full h-28 object-cover" />
+          )}
+          <div className="p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="text-sm font-bold text-teal-900 leading-tight">{n.nombre}</p>
+                <span className="inline-block text-[10px] bg-teal-200 text-teal-800 px-2 py-0.5 rounded-full mt-1 font-semibold">
+                  {CATEGORIA_LABELS[n.categoria] ?? n.categoria}
+                </span>
+              </div>
+              {n.rango_precio && (
+                <span className="text-xs font-mono text-teal-600 font-bold flex-shrink-0">{n.rango_precio}</span>
+              )}
+            </div>
+
+            {n.descripcion && (
+              <p className="text-xs text-teal-800 mt-2 leading-relaxed line-clamp-2">{n.descripcion}</p>
+            )}
+
+            {n.direccion && (
+              <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
+                <MapPin size={10} />
+                {n.direccion}
+              </p>
+            )}
+
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {n.telefono && (
+                <a
+                  href={`tel:${n.telefono}`}
+                  className="text-[11px] font-semibold text-teal-700 bg-white border border-teal-200 rounded-full px-3 py-1 hover:bg-teal-100 transition-colors"
+                >
+                  📞 Llamar
+                </a>
+              )}
+              {n.whatsapp && (
+                <a
+                  href={`https://wa.me/${n.whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-semibold text-green-700 bg-white border border-green-200 rounded-full px-3 py-1 hover:bg-green-100 transition-colors"
+                >
+                  💬 WhatsApp
+                </a>
+              )}
+              {n.sitio_web && (
+                <a
+                  href={n.sitio_web}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-semibold text-blue-700 bg-white border border-blue-200 rounded-full px-3 py-1 hover:bg-blue-100 transition-colors"
+                >
+                  🌐 Web
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

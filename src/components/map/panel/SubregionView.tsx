@@ -25,7 +25,7 @@ export const SubregionView: React.FC<SubregionViewProps> = ({
   onToggleFavoriteMunicipality,
 }) => {
   const meta = SUBREGION_META[subregionKey];
-  const q = searchQuery.toLowerCase().trim();
+  const q = (searchQuery ?? "").toLowerCase().trim();
 
   const list = useMemo(() => {
     const base = getMunicipalitiesBySubregion(municipalities, subregionKey);
