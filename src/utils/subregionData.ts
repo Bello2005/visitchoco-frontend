@@ -3,6 +3,7 @@ import { Leaf, Gem, Waves, Mountain, Compass } from "lucide-react";
 import type { Municipality } from "../services/municipality.service";
 import type { SubregionKey } from "./subregionFromMunicipio";
 import { municipioToSubregion } from "./subregionFromMunicipio";
+import { ensureArray } from "./ensureArray";
 
 export interface SubregionMeta {
   key: SubregionKey;
@@ -121,7 +122,9 @@ export function getMunicipalitiesBySubregion(
   municipalities: Municipality[],
   key: SubregionKey
 ): Municipality[] {
-  return municipalities.filter((m) => municipioToSubregion(m.name) === key);
+  return ensureArray<Municipality>(municipalities).filter(
+    (m) => municipioToSubregion(m.name) === key
+  );
 }
 
 export function getSubregionCounts(
@@ -134,7 +137,7 @@ export function getSubregionCounts(
     pacifico_norte: 0,
     darien: 0,
   };
-  for (const m of municipalities) {
+  for (const m of ensureArray<Municipality>(municipalities)) {
     base[municipioToSubregion(m.name)]++;
   }
   return base;

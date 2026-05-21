@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { Municipality } from "../../../services/municipality.service";
 import type { SubregionKey } from "../../../utils/subregionFromMunicipio";
 import { SUBREGION_META, getMunicipalitiesBySubregion } from "../../../utils/subregionData";
+import { ensureArray } from "../../../utils/ensureArray";
 import { MunicipalityCard } from "./MunicipalityCard";
 
 interface SubregionViewProps {
@@ -20,15 +21,17 @@ export const SubregionView: React.FC<SubregionViewProps> = ({
   municipalities,
   selectedMunicipality,
   searchQuery,
-  favoriteMunicipalitySlugs,
+  favoriteMunicipalitySlugs = [],
   onSelectMunicipality,
   onToggleFavoriteMunicipality,
 }) => {
   const meta = SUBREGION_META[subregionKey];
   const q = (searchQuery ?? "").toLowerCase().trim();
+  const municipalityList = ensureArray<Municipality>(municipalities);
+  const favoriteSlugs = ensureArray<string>(favoriteMunicipalitySlugs);
 
   const list = useMemo(() => {
-    const base = getMunicipalitiesBySubregion(municipalities, subregionKey);
+    const base = getMunicipalitiesBySubregion(municipalityList, subregionKey);
     if (!q) return base;
     return base.filter(
       (m) =>
@@ -36,11 +39,11 @@ export const SubregionView: React.FC<SubregionViewProps> = ({
         m.description?.toLowerCase().includes(q) ||
         m.main_activity?.toLowerCase().includes(q)
     );
-  }, [municipalities, subregionKey, q]);
+  }, [municipalityList, subregionKey, q]);
 
   const total = useMemo(
-    () => getMunicipalitiesBySubregion(municipalities, subregionKey).length,
-    [municipalities, subregionKey]
+    () => getMunicipalitiesBySubregion(municipalityList, subregionKey).length,
+    [municipalityList, subregionKey]
   );
 
   return (
@@ -108,7 +111,7 @@ export const SubregionView: React.FC<SubregionViewProps> = ({
                 <MunicipalityCard
                   municipality={m}
                   isSelected={selectedMunicipality?.id === m.id}
-                  isFavorite={favoriteMunicipalitySlugs.includes(m.slug)}
+                  isFavorite={favoriteSlugs.includes(m.slug)}
                   onClick={() => onSelectMunicipality(m)}
                   onToggleFavorite={onToggleFavoriteMunicipality}
                 />

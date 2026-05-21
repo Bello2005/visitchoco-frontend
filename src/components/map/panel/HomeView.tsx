@@ -8,6 +8,7 @@ import type { SubregionKey } from "../../../utils/subregionFromMunicipio";
 import type { GeoCoords, GeoStatus } from "../../../hooks/useGeolocation";
 import { distanceKm } from "../../../hooks/useGeolocation";
 import { SUBREGION_META, SUBREGION_ORDER, getSubregionCounts } from "../../../utils/subregionData";
+import { ensureArray } from "../../../utils/ensureArray";
 import { SubregionCard } from "./SubregionCard";
 import { MunicipalityCard } from "./MunicipalityCard";
 import { ReserveItem } from "./ReserveItem";
@@ -50,8 +51,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSelectMunicipality,
   onSelectReserve,
   onFilterChange,
-  favoriteMunicipalitySlugs,
-  favoriteReserveIds,
+  favoriteMunicipalitySlugs = [],
+  favoriteReserveIds = [],
   onToggleFavoriteMunicipality,
   onToggleFavoriteReserve,
   geoCoords,
@@ -59,31 +60,35 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onRequestLocation,
 }) => {
   const q = (searchQuery ?? "").toLowerCase().trim();
+  const municipalityList = ensureArray<Municipality>(municipalities);
+  const favoriteSlugs = ensureArray<string>(favoriteMunicipalitySlugs);
+  const favoriteReserves = ensureArray<string>(favoriteReserveIds);
+  const reserveList = ensureArray<IndigenousReserve>(reserves);
 
-  const subregionCounts = useMemo(() => getSubregionCounts(municipalities), [municipalities]);
+  const subregionCounts = useMemo(() => getSubregionCounts(municipalityList), [municipalityList]);
 
   const favoriteMunicipalities = useMemo(
     () =>
-      favoriteMunicipalitySlugs
-        .map((s) => municipalities.find((m) => m.slug === s))
+      favoriteSlugs
+        .map((s) => municipalityList.find((m) => m.slug === s))
         .filter((m): m is Municipality => !!m),
-    [favoriteMunicipalitySlugs, municipalities]
+    [favoriteSlugs, municipalityList]
   );
 
   const nearbyMunicipalities = useMemo(() => {
     if (!geoCoords) return [];
-    return [...municipalities]
+    return [...municipalityList]
       .map((m) => ({
         m,
         km: distanceKm(geoCoords, { lat: m.lat, lng: m.lon }),
       }))
       .sort((a, b) => a.km - b.km)
       .slice(0, 3);
-  }, [geoCoords, municipalities]);
+  }, [geoCoords, municipalityList]);
 
   // Indigenous filter view: reserves list directly
   if (currentFilter === "indigenous") {
-    const filtered = reserves.filter((r) => {
+    const filtered = reserveList.filter((r) => {
       if (!q) return true;
       return (
         r.name.toLowerCase().includes(q) ||
@@ -117,7 +122,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <ReserveItem
                   reserve={r}
                   isSelected={selectedReserve?.id === r.id}
-                  isFavorite={favoriteReserveIds.includes(String(r.id))}
+                  isFavorite={favoriteReserves.includes(String(r.id))}
                   onClick={() => onSelectReserve(r)}
                   onToggleFavorite={onToggleFavoriteReserve}
                 />
@@ -169,7 +174,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <li key={m.id}>
                 <MunicipalityCard
                   municipality={m}
-                  isFavorite={favoriteMunicipalitySlugs.includes(m.slug)}
+                  isFavorite={favoriteSlugs.includes(m.slug)}
                   onClick={() => onSelectMunicipality(m)}
                   onToggleFavorite={onToggleFavoriteMunicipality}
                   showSubregionBadge

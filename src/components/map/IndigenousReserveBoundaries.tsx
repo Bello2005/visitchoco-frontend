@@ -1,6 +1,7 @@
 import React from "react";
 import { GeoJSON } from "react-leaflet";
 import type { IndigenousReserve } from "../../services/indigenousReserve.service";
+import { ensureArray } from "../../utils/ensureArray";
 import type { Feature, MultiPolygon } from "geojson";
 
 interface IndigenousReserveBoundariesProps {
@@ -47,9 +48,11 @@ export const IndigenousReserveBoundaries: React.FC<
     return RESERVE_STYLES.default;
   };
 
+  const reserveList = ensureArray<IndigenousReserve>(reserves);
+
   return (
     <>
-      {reserves.map((reserve) => {
+      {reserveList.map((reserve) => {
         if (!reserve.territory_geom) return null;
 
         // Asegurarse de que la geometría tenga el formato GeoJSON correcto
