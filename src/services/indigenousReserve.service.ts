@@ -1,4 +1,5 @@
 import { api } from "./api.service";
+import { ensureArray } from "../utils/ensureArray";
 
 export interface IndigenousReserve {
   id: number;
@@ -23,7 +24,7 @@ export interface IndigenousReserve {
 class IndigenousReserveService {
   async getAllIndigenousReserves(): Promise<IndigenousReserve[]> {
     const { data } = await api.get<IndigenousReserve[]>("/api/indigenous");
-    return data;
+    return ensureArray<IndigenousReserve>(data);
   }
 
   async getIndigenousReserveById(id: number): Promise<IndigenousReserve> {
