@@ -156,3 +156,4 @@ vite.config.ts.timestamp-*
 .backup/
 .DS_Store
 package-lock.json
+.env.production
