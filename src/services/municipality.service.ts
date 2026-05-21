@@ -1,5 +1,6 @@
 import { api } from "./api.service";
 import { API_ROUTES } from "../config/api.config";
+import { ensureArray } from "../utils/ensureArray";
 import type { Feature, Point, MultiPolygon } from "geojson";
 
 interface Attraction {
@@ -53,7 +54,7 @@ export interface Municipality {
 export const municipalityService = {
   getAllMunicipalities: async (): Promise<Municipality[]> => {
     const response = await api.get(API_ROUTES.municipalities);
-    return response.data;
+    return ensureArray<Municipality>(response.data);
   },
 
   getMunicipalityBySlug: async (slug: string): Promise<Municipality> => {

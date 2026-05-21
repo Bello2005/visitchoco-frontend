@@ -6,6 +6,7 @@ import type { HeatmapEntry } from "../../hooks/useEthnicHeatmap";
 import type { Feature, MultiPolygon, Point } from "geojson";
 import type { SubregionKey } from "../../utils/subregionFromMunicipio";
 import { municipioToSubregion } from "../../utils/subregionFromMunicipio";
+import { ensureArray } from "../../utils/ensureArray";
 import { SUBREGION_META } from "../../utils/subregionData";
 
 const ETHNIC_SATURATED: Record<string, string> = {
@@ -195,10 +196,11 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
   dimmed = false,
 }) => {
   const selectedId = selectedMunicipality?.id ?? null;
+  const municipalityList = ensureArray<Municipality>(municipalities);
 
   const styles = useMemo(() => {
     const map = new Map<number, L.PathOptions>();
-    for (const m of municipalities) {
+    for (const m of municipalityList) {
       map.set(
         m.id,
         computeStyle({
@@ -211,11 +213,11 @@ export const MunicipalityBoundaries: React.FC<MunicipalityBoundariesProps> = ({
       );
     }
     return map;
-  }, [municipalities, selectedId, highlightedSubregion, dimmed, ethnicHeatmap]);
+  }, [municipalityList, selectedId, highlightedSubregion, dimmed, ethnicHeatmap]);
 
   return (
     <>
-      {municipalities.map((municipality) => {
+      {municipalityList.map((municipality) => {
         if (!municipality.geometry) return null;
 
         const ownSub = municipioToSubregion(municipality.name);
