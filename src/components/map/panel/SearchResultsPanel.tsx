@@ -8,6 +8,7 @@ import { municipioToSubregion } from "../../../utils/subregionFromMunicipio";
 import { SUBREGION_META, SUBREGION_ORDER } from "../../../utils/subregionData";
 import { QUICK_LINKS } from "../../../data/quickLinks";
 import { useSearchNavigation } from "../../../hooks/useSearchNavigation";
+import { ensureArray } from "../../../utils/ensureArray";
 
 const normalize = (s: string | null | undefined) =>
   (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -38,6 +39,7 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 }) => {
   const navigate = useNavigate();
   const q = normalize(query);
+  const municipalityList = ensureArray<Municipality>(municipalities);
 
   const subregionHits = useMemo(() =>
     q ? SUBREGION_ORDER.filter((k) => normalize(SUBREGION_META[k].label).includes(q)).slice(0, 5) : [],
@@ -46,7 +48,7 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
 
   const municipalityHits = useMemo(() =>
     q
-      ? municipalities
+      ? municipalityList
           .filter((m) =>
             normalize(m.name).includes(q) ||
             normalize(m.description ?? "").includes(q) ||
@@ -54,7 +56,7 @@ export const SearchResultsPanel: React.FC<SearchResultsPanelProps> = ({
           )
           .slice(0, 6)
       : [],
-    [municipalities, q]
+    [municipalityList, q]
   );
 
   const sectionHits = useMemo(() =>

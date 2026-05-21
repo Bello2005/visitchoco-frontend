@@ -4,6 +4,7 @@ import L from "leaflet";
 import type { Municipality } from "../../services/municipality.service";
 import type { SubregionKey } from "../../utils/subregionFromMunicipio";
 import { municipioToSubregion } from "../../utils/subregionFromMunicipio";
+import { ensureArray } from "../../utils/ensureArray";
 
 interface MunicipalityLabelsProps {
   municipalities: Municipality[];
@@ -43,7 +44,7 @@ export const MunicipalityLabels: React.FC<MunicipalityLabelsProps> = ({
     }
     labelsLayer.clearLayers();
 
-    municipalities.forEach((m) => {
+    ensureArray<Municipality>(municipalities).forEach((m) => {
       const ownSub = municipioToSubregion(m.name);
       const isInHighlighted =
         highlightedSubregion !== null && ownSub === highlightedSubregion;

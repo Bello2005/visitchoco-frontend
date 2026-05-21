@@ -9,6 +9,7 @@ import type { IndigenousReserve } from "../services/indigenousReserve.service";
 import type { FilterCategory } from "../types/filters";
 import type { SubregionKey } from "../utils/subregionFromMunicipio";
 import { municipioToSubregion } from "../utils/subregionFromMunicipio";
+import { ensureArray } from "../utils/ensureArray";
 
 const CHOCO_CENTER: [number, number] = [5.6919, -76.6583];
 const CHOCO_DEFAULT_ZOOM = 7.5;
@@ -125,8 +126,8 @@ export function useMapState(): MapState {
           indigenousReserveService.getAllIndigenousReserves(),
           fetch("/data/chocoRegion.geojson").then((r) => r.json()),
         ]);
-        setMunicipalities(municipalitiesData);
-        setReserves(reservesData);
+        setMunicipalities(ensureArray<Municipality>(municipalitiesData));
+        setReserves(ensureArray<IndigenousReserve>(reservesData));
         setChocoGeoJson(geoJsonRes);
 
         const mSlug = searchParams.get("m");
