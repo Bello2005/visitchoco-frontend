@@ -1,5 +1,6 @@
 // URL base para el backend
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "https://visitchoco-backend.vercel.app";
 
 // Environment
 export const IS_DEVELOPMENT = import.meta.env.VITE_APP_ENV === 'development';
