@@ -18,6 +18,7 @@ import Fuentes from "./pages/Fuentes/Fuentes";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
 import Directorio from "./pages/Directorio/Directorio";
+import Negocio from "./pages/Negocio/Negocio";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
@@ -114,6 +115,7 @@ function AppContent() {
           <Route path="/fiestas" element={<Festival />} />
           <Route path="/atrato" element={<AtratoPage />} />
           <Route path="/directorio" element={<Directorio />} />
+          <Route path="/negocio/:slug" element={<Negocio />} />
           <Route
             path="/admin/dashboard"
             element={
