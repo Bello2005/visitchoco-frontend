@@ -112,6 +112,8 @@ function AppContent() {
           <Route path="/fiesta" element={<Festival />} />
           <Route path="/fiestas" element={<Festival />} />
           <Route path="/atrato" element={<AtratoPage />} />
+          {/* Fase 3: /directorio real; placeholder para que los links de Fase 2 no den 404 */}
+          <Route path="/directorio" element={<NotFound />} />
           <Route
             path="/admin/dashboard"
             element={

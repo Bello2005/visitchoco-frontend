@@ -3,7 +3,7 @@ import { motion, useScroll, useMotionValueEvent, useReducedMotion } from "framer
 import { useLocation, Link } from "react-router-dom";
 import {
   MapPinned, PawPrint, PartyPopper, MountainSnow, Landmark, BookOpen,
-  Search, Command, Home as HomeIcon, type LucideIcon,
+  Search, Command, Store, Home as HomeIcon, type LucideIcon,
 } from "lucide-react";
 import { Logo } from "../brand/Logo";
 import { cn } from "../../lib/cn";
@@ -26,18 +26,29 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { id: "home",     label: "Inicio",   href: "/",         Icon: HomeIcon,     description: "Portada y descubrimiento" },
-  { id: "mapa",     label: "Mapa",     href: "/mapa",     Icon: MapPinned,    description: "31 municipios · 125 resguardos" },
-  { id: "fauna",    label: "Fauna",    href: "/animales", Icon: PawPrint,     description: "577 aves · ballenas · jaguares" },
-  { id: "cultura",  label: "Cultura",  href: "/cultura",  Icon: Landmark,     description: "PES UNESCO · chirimía · gastronomía" },
-  { id: "historia", label: "Historia", href: "/historia", Icon: BookOpen,     description: "500 años · cimarronaje · Atrato" },
-  { id: "turismo",  label: "Turismo",  href: "/turismo",  Icon: MountainSnow, description: "Costa · selva · 602 prestadores RNT" },
-  { id: "fiestas",  label: "Fiestas",  href: "/fiesta",   Icon: PartyPopper,  description: "37 fiestas · 12 meses · UNESCO" },
+  { id: "mapa",       label: "Mapa",       href: "/mapa",        Icon: MapPinned,    description: "31 municipios · 125 resguardos" },
+  { id: "directorio", label: "Directorio", href: "/directorio",  Icon: Store,        description: "602 prestadores RNT · hoteles · guías" },
+  { id: "fauna",      label: "Fauna",      href: "/animales",    Icon: PawPrint,     description: "577 aves · ballenas · jaguares" },
+  { id: "cultura",    label: "Cultura",    href: "/cultura",     Icon: Landmark,     description: "PES UNESCO · chirimía · gastronomía" },
+  { id: "historia",   label: "Historia",   href: "/historia",    Icon: BookOpen,     description: "500 años · cimarronaje · Atrato" },
+  { id: "turismo",    label: "Turismo",    href: "/turismo",     Icon: MountainSnow, description: "Costa · selva · 602 prestadores RNT" },
+  { id: "fiestas",    label: "Fiestas",    href: "/fiestas",     Icon: PartyPopper,  description: "37 fiestas · 12 meses · UNESCO" },
+];
+
+// Tab móvil: sin logo, así que "Inicio" se queda; Historia y Fauna salen
+// (siguen en desktop, landing, search y footer)
+const MOBILE_NAV_LINKS: NavLink[] = [
+  { id: "inicio", label: "Inicio", href: "/", Icon: HomeIcon, description: "Portada y descubrimiento" },
+  ...["mapa", "directorio", "turismo", "cultura", "fiestas"].map(
+    (id) => NAV_LINKS.find((l) => l.id === id)!,
+  ),
 ];
 
 function getActiveId(pathname: string): string {
-  if (pathname === "/")                  return "home";
-  if (pathname.startsWith("/mapa"))      return "mapa";
+  if (pathname === "/")                    return "inicio";
+  if (pathname.startsWith("/mapa"))        return "mapa";
+  if (pathname.startsWith("/directorio"))  return "directorio";
+  if (pathname.startsWith("/negocio"))     return "directorio";
   if (pathname.startsWith("/animales"))  return "fauna";
   if (pathname.startsWith("/cultura"))   return "cultura";
   if (pathname.startsWith("/historia"))  return "historia";
@@ -119,7 +130,7 @@ export function MainNav({ initialQuery = "" }: MainNavProps) {
           <span className="mx-1 h-5 w-px bg-white/10" aria-hidden />
 
           <ul className="flex items-center gap-0.5">
-            {NAV_LINKS.filter((l) => l.id !== "home").map(({ id, label, href, Icon }) => {
+            {NAV_LINKS.map(({ id, label, href, Icon }) => {
               const isActive = activeId === id;
               return (
                 <li key={id}>
@@ -211,7 +222,7 @@ export function MainNav({ initialQuery = "" }: MainNavProps) {
         transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 28 }}
       >
         <ul className="flex h-full items-stretch justify-around">
-          {NAV_LINKS.filter((l) => l.id !== "home").slice(0, 6).map(({ id, label, href, Icon }) => {
+          {MOBILE_NAV_LINKS.map(({ id, label, href, Icon }) => {
             const isActive = activeId === id;
             return (
               <li key={id} className="flex-1 min-w-0">
