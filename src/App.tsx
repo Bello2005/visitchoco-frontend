@@ -17,6 +17,7 @@ import Acerca from "./pages/Acerca/Acerca";
 import Fuentes from "./pages/Fuentes/Fuentes";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
+import Directorio from "./pages/Directorio/Directorio";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 
@@ -112,8 +113,7 @@ function AppContent() {
           <Route path="/fiesta" element={<Festival />} />
           <Route path="/fiestas" element={<Festival />} />
           <Route path="/atrato" element={<AtratoPage />} />
-          {/* Fase 3: /directorio real; placeholder para que los links de Fase 2 no den 404 */}
-          <Route path="/directorio" element={<NotFound />} />
+          <Route path="/directorio" element={<Directorio />} />
           <Route
             path="/admin/dashboard"
             element={
