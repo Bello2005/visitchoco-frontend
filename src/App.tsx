@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Landing } from "./pages/Landing/Landing";
 import AtratoPage from "./pages/Atrato/Atrato";
@@ -21,6 +21,8 @@ import Directorio from "./pages/Directorio/Directorio";
 import Negocio from "./pages/Negocio/Negocio";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+
+const Mundo = lazy(() => import("./pages/Mundo/Mundo"));
 
 function AppContent() {
   const location = useLocation();
@@ -116,6 +118,14 @@ function AppContent() {
           <Route path="/atrato" element={<AtratoPage />} />
           <Route path="/directorio" element={<Directorio />} />
           <Route path="/negocio/:slug" element={<Negocio />} />
+          <Route
+            path="/mundo"
+            element={
+              <Suspense fallback={null}>
+                <Mundo />
+              </Suspense>
+            }
+          />
           <Route
             path="/admin/dashboard"
             element={

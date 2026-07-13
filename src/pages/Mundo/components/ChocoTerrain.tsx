@@ -1,0 +1,196 @@
+import { useEffect, useState } from "react";
+import * as THREE from "three";
+
+// Diorama estilizado: NO es un DEM real. El plano es alargado N-S como el Chocó.
+const WIDTH = 40;
+const HEIGHT = 60;
+const SEG_X = 96;
+const SEG_Y = 144;
+
+// ---------- value noise 2D determinista (seed fija, sin librerías) ----------
+function hash2(ix: number, iy: number): number {
+  let h = (ix * 374761393 + iy * 668265263 + 1013904223) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967295;
+}
+
+function smooth(t: number): number {
+  return t * t * (3 - 2 * t);
+}
+
+function valueNoise(x: number, y: number): number {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const fx = smooth(x - ix);
+  const fy = smooth(y - iy);
+  const a = hash2(ix, iy);
+  const b = hash2(ix + 1, iy);
+  const c = hash2(ix, iy + 1);
+  const d = hash2(ix + 1, iy + 1);
+  return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+}
+
+// fbm de 3 octavas, rango aprox [0,1]
+function fbm(x: number, y: number): number {
+  return (
+    (valueNoise(x, y) * 0.5 +
+      valueNoise(x * 2.1 + 17.3, y * 2.1 + 31.7) * 0.3 +
+      valueNoise(x * 4.3 + 53.1, y * 4.3 + 11.9) * 0.2)
+  );
+}
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+// ---------- función de altura estilizada (x: oeste→este, y: sur→norte) ----------
+function terrainHeight(x: number, y: number): number {
+  const nx = x / (WIDTH / 2); // -1 oeste .. 1 este
+  const ny = y / (HEIGHT / 2); // -1 sur .. 1 norte
+
+  let h = 0;
+
+  // Serranía del Baudó: cresta N-S cerca del borde occidental, pico ~4
+  const crestX = -0.68 + (valueNoise(3.7, y * 0.12) - 0.5) * 0.16;
+  const dRidge = (nx - crestX) / 0.16;
+  h += Math.exp(-dRidge * dRidge) * (2.6 + 1.4 * fbm(x * 0.35, y * 0.35));
+
+  // Estribaciones de la cordillera Occidental: sube suave hacia el este, ~2.5
+  h += smoothstep(0.25, 1, nx) * (1.6 + 0.9 * fbm(x * 0.3 + 41, y * 0.3 + 7));
+
+  // Cuenca del San Juan: relieve medio al sur
+  h += smoothstep(0.3, 1, -ny) * (0.7 + 0.8 * fbm(x * 0.4 + 91, y * 0.4 + 63));
+
+  // Ondulación base suave en todo el territorio
+  h += 0.35 * fbm(x * 0.22 + 7.7, y * 0.22 + 3.3);
+
+  // Valle del Atrato: franja central-este casi plana (~0.2) donde correrá el río
+  const dValley = (nx - 0.12) / 0.24;
+  const valley =
+    Math.exp(-dValley * dValley) * smoothstep(-0.55, -0.15, ny);
+  h = h * (1 - valley * 0.95) + 0.2 * valley;
+
+  return Math.max(h, 0.15);
+}
+
+// ---------- punto-en-polígono (ray casting) ----------
+type Ring = number[][]; // [[lon, lat], ...]
+
+function pointInRing(lon: number, lat: number, ring: Ring): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+interface PolyEntry {
+  ring: Ring;
+  bbox: [number, number, number, number]; // minLon, minLat, maxLon, maxLat
+}
+
+export default function ChocoTerrain() {
+  const [geometry, setGeometry] = useState<THREE.PlaneGeometry | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/data/chocoRegion.geojson")
+      .then((res) => res.json())
+      .then((geojson) => {
+        if (cancelled) return;
+
+        // Anillos exteriores de cada polígono del MultiPolygon, con bbox precalculado
+        const polys: PolyEntry[] = [];
+        let minLon = Infinity;
+        let maxLon = -Infinity;
+        let minLat = Infinity;
+        let maxLat = -Infinity;
+
+        for (const feature of geojson.features) {
+          const geom = feature.geometry;
+          const multi: Ring[][] =
+            geom.type === "MultiPolygon" ? geom.coordinates : [geom.coordinates];
+          for (const polygon of multi) {
+            const ring = polygon[0];
+            let bMinLon = Infinity;
+            let bMaxLon = -Infinity;
+            let bMinLat = Infinity;
+            let bMaxLat = -Infinity;
+            for (const [lon, lat] of ring) {
+              if (lon < bMinLon) bMinLon = lon;
+              if (lon > bMaxLon) bMaxLon = lon;
+              if (lat < bMinLat) bMinLat = lat;
+              if (lat > bMaxLat) bMaxLat = lat;
+            }
+            polys.push({ ring, bbox: [bMinLon, bMinLat, bMaxLon, bMaxLat] });
+            if (bMinLon < minLon) minLon = bMinLon;
+            if (bMaxLon > maxLon) maxLon = bMaxLon;
+            if (bMinLat < minLat) minLat = bMinLat;
+            if (bMaxLat > maxLat) maxLat = bMaxLat;
+          }
+        }
+
+        const geo = new THREE.PlaneGeometry(WIDTH, HEIGHT, SEG_X, SEG_Y);
+        const pos = geo.attributes.position;
+
+        for (let i = 0; i < pos.count; i++) {
+          // Coordenadas locales del plano: x oeste→este, y sur→norte
+          // (la rotación -PI/2 del mesh convierte y local en -Z mundial)
+          const x = pos.getX(i);
+          const y = pos.getY(i);
+
+          // Vértice → lon/lat dentro del bounding box del departamento
+          const lon = minLon + (x / WIDTH + 0.5) * (maxLon - minLon);
+          const lat = minLat + (y / HEIGHT + 0.5) * (maxLat - minLat);
+
+          let inside = false;
+          for (const { ring, bbox } of polys) {
+            if (lon < bbox[0] || lon > bbox[2] || lat < bbox[1] || lat > bbox[3]) {
+              continue;
+            }
+            if (pointInRing(lon, lat, ring)) {
+              inside = true;
+              break;
+            }
+          }
+
+          // Fuera del Chocó: hundir bajo el nivel del "mar" del diorama
+          pos.setZ(i, inside ? terrainHeight(x, y) : -2);
+        }
+
+        pos.needsUpdate = true;
+        setGeometry(geo);
+      })
+      .catch((err) => {
+        console.error("[ChocoTerrain] no se pudo cargar chocoRegion.geojson", err);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      geometry?.dispose();
+    };
+  }, [geometry]);
+
+  if (!geometry) return null;
+
+  return (
+    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
+      <meshStandardMaterial flatShading color="#0d3b2e" />
+    </mesh>
+  );
+}
