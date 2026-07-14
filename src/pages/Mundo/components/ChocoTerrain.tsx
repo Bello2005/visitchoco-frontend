@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import * as THREE from "three";
+import { RigidBody } from "@react-three/rapier";
 
 // Diorama estilizado: NO es un DEM real. El plano es alargado N-S como el Chocó.
-const WIDTH = 40;
-const HEIGHT = 60;
+export const WIDTH = 40;
+export const HEIGHT = 60;
 const SEG_X = 96;
 const SEG_Y = 144;
 
@@ -46,7 +47,8 @@ function smoothstep(edge0: number, edge1: number, x: number): number {
 }
 
 // ---------- función de altura estilizada (x: oeste→este, y: sur→norte) ----------
-function terrainHeight(x: number, y: number): number {
+// En coordenadas de mundo: altura del terreno en (X, Z) = terrainHeight(X, -Z)
+export function terrainHeight(x: number, y: number): number {
   const nx = x / (WIDTH / 2); // -1 oeste .. 1 este
   const ny = y / (HEIGHT / 2); // -1 sur .. 1 norte
 
@@ -188,9 +190,14 @@ export default function ChocoTerrain() {
 
   if (!geometry) return null;
 
+  // La geometría ya es final aquí (retornamos null antes), así que el trimesh
+  // se genera correcto en el primer montaje del RigidBody.
+  // TODO: si FPS sufre, migrar a heightfield collider desde terrainHeight.
   return (
-    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
-      <meshStandardMaterial flatShading color="#0d3b2e" />
-    </mesh>
+    <RigidBody type="fixed" colliders="trimesh">
+      <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
+        <meshStandardMaterial flatShading color="#0d3b2e" />
+      </mesh>
+    </RigidBody>
   );
 }
