@@ -34,8 +34,16 @@ export default function Water() {
           flatShading
           transparent
           opacity={0.85}
-          color="#04121f"
+          color="#041824"
+          metalness={0.3}
+          roughness={0.15}
         />
+      </mesh>
+      {/* Falso brillo ámbar de fondo bajo la superficie — sin collider.
+          opacity 0.02: con 0.05 teñía todo el mar de marrón rojizo */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_LEVEL - 0.15, 0]}>
+        <planeGeometry args={[200, 200]} />
+        <meshBasicMaterial color="#d97706" transparent opacity={0.02} />
       </mesh>
       {/* Volumen sensor desde la superficie hacia abajo — detecta al vehículo */}
       <RigidBody type="fixed" userData={{ type: "water" }}>
