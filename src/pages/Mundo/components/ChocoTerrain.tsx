@@ -5,6 +5,7 @@ import { RigidBody } from "@react-three/rapier";
 // Diorama estilizado: NO es un DEM real. El plano es alargado N-S como el Chocó.
 export const WIDTH = 40;
 export const HEIGHT = 60;
+export const WATER_LEVEL = 0.0;
 const SEG_X = 96;
 const SEG_Y = 144;
 
@@ -74,7 +75,19 @@ export function terrainHeight(x: number, y: number): number {
     Math.exp(-dValley * dValley) * smoothstep(-0.55, -0.15, ny);
   h = h * (1 - valley * 0.95) + 0.2 * valley;
 
-  return Math.max(h, 0.15);
+  // Piso duro de la tierra firme — ANTES de cavar el cauce
+  h = Math.max(h, 0.15);
+
+  // Cauce del Atrato: cinta serpenteante cavada bajo WATER_LEVEL,
+  // con la misma máscara N-S del valle (el río existe donde existe el valle)
+  const riverX = 0.12 + (valueNoise(9.1, y * 0.1) - 0.5) * 0.1;
+  // σ 0.09: con 0.045 el canal quedaba más angosto que el propio chasis
+  // del carro (lo puenteaba sin caer al agua) y el banco era un acantilado
+  const dRiver = (nx - riverX) / 0.09;
+  const carve = Math.exp(-dRiver * dRiver) * smoothstep(-0.55, -0.15, ny);
+  h = h * (1 - carve) + -0.45 * carve;
+
+  return h;
 }
 
 // ---------- punto-en-polígono (ray casting) ----------

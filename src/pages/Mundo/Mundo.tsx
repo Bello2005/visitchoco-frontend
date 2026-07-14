@@ -6,6 +6,7 @@ import { Physics } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
 import OceanFloor from "./components/OceanFloor";
+import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
 import FollowCamera from "./components/FollowCamera";
 
@@ -34,6 +35,7 @@ export default function Mundo() {
             <Physics gravity={[0, -9.81, 0]}>
               <ChocoTerrain />
               <OceanFloor />
+              <Water />
               <Vehicle chassisRef={chassisRef} />
             </Physics>
           </Suspense>
