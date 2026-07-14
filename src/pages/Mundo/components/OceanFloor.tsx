@@ -4,7 +4,7 @@ import { RigidBody } from "@react-three/rapier";
 export default function OceanFloor() {
   return (
     <RigidBody type="fixed" colliders="cuboid">
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.2, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.4, 0]}>
         <planeGeometry args={[200, 200]} />
         <meshStandardMaterial color="#04121f" />
       </mesh>
