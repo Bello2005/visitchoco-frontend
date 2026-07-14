@@ -253,7 +253,12 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
                 CHASSIS_HALF[2] * 2,
               ]}
             />
-            <meshStandardMaterial flatShading color="#d97706" />
+            <meshStandardMaterial
+              flatShading
+              color="#d97706"
+              emissive="#d97706"
+              emissiveIntensity={0.15}
+            />
           </mesh>
           {WHEELS.map(([x, , z], i) => (
             <mesh
@@ -272,9 +277,15 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
             <boxGeometry args={[1.4, 0.35, 3.4]} />
             <meshStandardMaterial flatShading color="#7c4a1e" />
           </mesh>
+          {/* Proa con linterna ámbar tenue — única luz de la panga */}
           <mesh position={[0, -0.02, 1.85]} rotation={[-0.35, 0, 0]}>
             <boxGeometry args={[1.2, 0.3, 0.9]} />
-            <meshStandardMaterial flatShading color="#7c4a1e" />
+            <meshStandardMaterial
+              flatShading
+              color="#7c4a1e"
+              emissive="#ffb347"
+              emissiveIntensity={0.4}
+            />
           </mesh>
         </group>
       </RigidBody>
