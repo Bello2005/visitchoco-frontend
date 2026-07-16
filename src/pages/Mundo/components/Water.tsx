@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
 import { WATER_LEVEL } from "./ChocoTerrain";
 
 // Superficie única mar+río a Y=WATER_LEVEL. El terreno cavado bajo ese
@@ -45,14 +44,6 @@ export default function Water() {
         <planeGeometry args={[200, 200]} />
         <meshBasicMaterial color="#d97706" transparent opacity={0.02} />
       </mesh>
-      {/* Volumen sensor desde la superficie hacia abajo — detecta al vehículo */}
-      <RigidBody type="fixed" userData={{ type: "water" }}>
-        <CuboidCollider
-          sensor
-          args={[100, 0.6, 100]}
-          position={[0, WATER_LEVEL - 0.6, 0]}
-        />
-      </RigidBody>
     </>
   );
 }
