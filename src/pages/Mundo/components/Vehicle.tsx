@@ -44,9 +44,13 @@ const WHEELS: [number, number, number][] = [
   [0.8, -0.25, -1.2],
 ];
 
-const ENGINE_FORWARD = 45;
-const ENGINE_REVERSE = -30;
+const ENGINE_FORWARD = 120;
+const ENGINE_REVERSE = -70;
 const MAX_STEER = 0.55;
+// Por encima de estas velocidades el motor deja de empujar (coast) — a 45N
+// tardaba ~9s en crucero; sin este cap, 120N acelera indefinidamente
+const CAR_COAST_SPEED = 14;
+const CAR_COAST_REVERSE_SPEED = 6;
 
 // Física de panga — calibrada para masa 120 (equilibrio: centro ~0.05
 // bajo el agua → casco visual ~60% sumergido, sin rozar el lecho a -0.45)
@@ -60,6 +64,20 @@ const DRAG_XZ = 0.985; // deriva de bote
 const DRAG_ANG = 0.96;
 const SWITCH_COOLDOWN_MS = 400; // histéresis anti-parpadeo
 
+// Transformación por profundidad de agua bajo el chasis (reemplaza el
+// sensor de Water.tsx): el sensor exigía que la panga trepara la orilla
+// por sí sola para salir de su volumen, y sin ruedas nunca lo lograba
+// (deadlock permanente en la orilla). Separación de 0.12 entre umbrales.
+const WATER_ENTER_DEPTH = 0.3; // car→boat: agua honda bajo el chasis
+const WATER_EXIT_DEPTH = 0.18; // boat→car: banco lo bastante somero
+// 0.75 y no 0.4: un carro RODANDO sobre el lecho (-0.3..-0.45) lleva el
+// centro a y≈0.47-0.60 por la suspensión — con 0.4 la entrada lenta al río
+// nunca disparaba (solo entrar saltando/cayendo). 0.75 sigue descartando
+// saltos balísticos altos por encima del cauce.
+const FLYOVER_MAX_Y = WATER_LEVEL + 0.75;
+const OPEN_SEA_SAFETY_Y = WATER_LEVEL - 0.6; // fuera del polígono terrainHeight no sabe que es mar
+const BOAT_BEACH_ASSIST = 400; // empuje extra a la proa para montar el banco
+
 const _quat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
 
@@ -68,8 +86,6 @@ interface VehicleProps {
 }
 
 export default function Vehicle({ chassisRef }: VehicleProps) {
-  // DEBUG temporal — quitar antes del commit
-  document.body.setAttribute("data-vehicle-render", "1");
   const { world, rapier } = useRapier();
   const vehicleRef = useRef<VehicleController | null>(null);
   const steering = useRef(0);
@@ -151,12 +167,39 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       lastSwitch.current = performance.now();
     }
 
+    // Transformación por profundidad de agua bajo el chasis (no por sensor):
+    // ver comentario de los umbrales arriba.
+    const t = chassis.translation();
+    const ground = terrainHeight(t.x, -t.z);
+    const waterDepth = WATER_LEVEL - ground; // >0 = hay agua sobre el lecho
+
     if (modeRef.current === "car") {
-      const engineForce = forward
-        ? ENGINE_FORWARD
-        : backward
-          ? ENGINE_REVERSE
-          : 0;
+      if (
+        (waterDepth > WATER_ENTER_DEPTH && t.y < FLYOVER_MAX_Y) ||
+        t.y < OPEN_SEA_SAFETY_Y // red de seguridad: mar abierto fuera del polígono
+      ) {
+        trySwitch("boat");
+      }
+    } else if (waterDepth < WATER_EXIT_DEPTH && t.y > ground) {
+      // t.y > ground: en mar abierto (fuera del polígono) terrainHeight
+      // reporta tierra fantasma POR ENCIMA del casco que flota en y≈0;
+      // sin este guard la panga oscilaba boat↔car cada 400ms en el borde
+      // este. Al vararse de verdad el chasis siempre queda sobre el suelo.
+      trySwitch("car");
+    }
+
+    if (modeRef.current === "car") {
+      const speed = Math.hypot(chassis.linvel().x, chassis.linvel().z);
+      const coasting =
+        (forward && speed > CAR_COAST_SPEED) ||
+        (backward && speed > CAR_COAST_REVERSE_SPEED);
+      const engineForce = coasting
+        ? 0
+        : forward
+          ? ENGINE_FORWARD
+          : backward
+            ? ENGINE_REVERSE
+            : 0;
       // Tracción 4x4: sin ella el chasis (largo) queda varado en la cresta
       // del banco del río con las traseras sin apoyo
       vehicle.setWheelEngineForce(0, engineForce);
@@ -164,7 +207,11 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       vehicle.setWheelEngineForce(2, engineForce);
       vehicle.setWheelEngineForce(3, engineForce);
 
-      const targetSteer = left ? MAX_STEER : right ? -MAX_STEER : 0;
+      // Steering pierde autoridad con la velocidad (patrón arcade) — a
+      // fondo y a máxima velocidad, giro completo volcaba el chasis
+      const steerScale = 1 - 0.5 * Math.min(speed / CAR_COAST_SPEED, 1);
+      const targetSteer =
+        (left ? MAX_STEER : right ? -MAX_STEER : 0) * steerScale;
       steering.current = THREE.MathUtils.lerp(
         steering.current,
         targetSteer,
@@ -173,8 +220,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       vehicle.setWheelSteering(0, steering.current);
       vehicle.setWheelSteering(1, steering.current);
 
-      // EXCLUDE_SENSORS: sin esto las ruedas raycastean contra el techo del
-      // sensor de agua y el carro "conduce" sobre la superficie del río
+      // EXCLUDE_SENSORS: Water.tsx ya no tiene sensor, pero sin este flag
+      // las ruedas raycastearían contra cualquier volumen sensor futuro y
+      // el carro "conduciría" sobre su techo — protección barata
       vehicle.updateVehicle(
         stepWorld.timestep,
         rapier.QueryFilterFlags.EXCLUDE_SENSORS
@@ -200,6 +248,11 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     }
     if (left || right) {
       chassis.addTorque({ x: 0, y: left ? BOAT_TURN : -BOAT_TURN, z: 0 }, true);
+    }
+    // Asistencia de orilla: empuje extra a la proa mientras llega la
+    // transformación a carro (sin ruedas, la panga sola no monta el banco)
+    if (forward && waterDepth < WATER_ENTER_DEPTH) {
+      chassis.addForce({ x: 0, y: BOAT_BEACH_ASSIST, z: 0 }, true);
     }
 
     const lv = chassis.linvel();
@@ -233,14 +286,6 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         position={[SPAWN_POS.x, SPAWN_POS.y, SPAWN_POS.z]}
         rotation={[0, Math.PI, 0]}
         canSleep={false}
-        onIntersectionEnter={({ other }) => {
-          const data = other.rigidBody?.userData as { type?: string } | undefined;
-          if (data?.type === "water") trySwitch("boat");
-        }}
-        onIntersectionExit={({ other }) => {
-          const data = other.rigidBody?.userData as { type?: string } | undefined;
-          if (data?.type === "water") trySwitch("car");
-        }}
       >
         <CuboidCollider args={CHASSIS_HALF} mass={120} />
         {/* Placeholder visual carro — el modelo real llega en fase posterior */}
