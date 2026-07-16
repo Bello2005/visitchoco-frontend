@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
 import { loadChocoGeo, WIDTH, HEIGHT } from "../utils/geo";
+import { applyReveal } from "../utils/applyReveal";
+import { triggerReveal } from "../utils/revealUniforms";
 
 // Diorama estilizado: NO es un DEM real. El plano es alargado N-S como el Chocó.
 export { WIDTH, HEIGHT };
@@ -176,8 +178,21 @@ export default function ChocoTerrain() {
   // TODO: si FPS sufre, migrar a heightfield collider desde terrainHeight.
   return (
     <RigidBody type="fixed" colliders="trimesh">
-      <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]}>
-        <meshStandardMaterial flatShading vertexColors />
+      <mesh
+        geometry={geometry}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          triggerReveal(e.point);
+        }}
+      >
+        <meshStandardMaterial
+          flatShading
+          vertexColors
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
       </mesh>
     </RigidBody>
   );
