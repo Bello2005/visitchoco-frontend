@@ -2,6 +2,7 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { WATER_LEVEL } from "./ChocoTerrain";
+import { applyReveal } from "../utils/applyReveal";
 
 // Superficie única mar+río a Y=WATER_LEVEL. El terreno cavado bajo ese
 // nivel (cauce del Atrato, borde del diorama) queda cubierto por ella.
@@ -36,13 +37,23 @@ export default function Water() {
           color="#041824"
           metalness={0.3}
           roughness={0.15}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
         />
       </mesh>
       {/* Falso brillo ámbar de fondo bajo la superficie — sin collider.
           opacity 0.02: con 0.05 teñía todo el mar de marrón rojizo */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_LEVEL - 0.15, 0]}>
         <planeGeometry args={[200, 200]} />
-        <meshBasicMaterial color="#d97706" transparent opacity={0.02} />
+        <meshBasicMaterial
+          color="#d97706"
+          transparent
+          opacity={0.02}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
       </mesh>
     </>
   );
