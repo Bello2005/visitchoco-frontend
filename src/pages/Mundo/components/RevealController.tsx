@@ -17,7 +17,7 @@ interface RevealControllerProps {
 }
 
 // Anima el radio de revelado (easeOutQuart, ~2.8s) y ata la intensidad
-// de las luces globales al progreso: penumbra (0.25/0.08) → pleno (0.9/0.25).
+// de las luces globales al progreso: amanecer (0.55/0.3) → día pleno (1.35/0.6).
 export default function RevealController({
   directionalRef,
   ambientRef,
@@ -42,9 +42,9 @@ export default function RevealController({
 
     const progress = revealUniforms.uRevealRadius.value / REVEAL_MAX;
     const directional = directionalRef.current;
-    if (directional) directional.intensity = 0.25 + 0.65 * progress;
+    if (directional) directional.intensity = 0.55 + 0.8 * progress;
     const ambient = ambientRef.current;
-    if (ambient) ambient.intensity = 0.08 + 0.17 * progress;
+    if (ambient) ambient.intensity = 0.3 + 0.3 * progress;
   });
 
   return null;

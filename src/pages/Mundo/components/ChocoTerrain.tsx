@@ -92,18 +92,27 @@ export function terrainHeight(x: number, y: number): number {
   return h;
 }
 
-// ---------- paleta por altura (vertex colors, look nocturno) ----------
-const C_FONDO = new THREE.Color("#030c14"); // fuera del polígono / fondo marino
-const C_LECHO = new THREE.Color("#06251d"); // lecho del río
-const C_VALLE = new THREE.Color("#0d3b2e"); // valle / selva baja (esmeralda)
-const C_LADERA = new THREE.Color("#071f18"); // laderas (verde-negro)
-const C_ROCA = new THREE.Color("#2a3b3e"); // crestas de la Serranía
+// ---------- paleta por altura (vertex colors, día estilo folio-2025) ----------
+// Rampa continua como el gradiente de Bruno (#ffa94e→#5bc2b9→#13375f):
+// arena cálida abajo, selva esmeralda, roca gris-lavanda en las crestas.
+const C_FONDO = new THREE.Color("#0f6e86"); // fuera del polígono / fondo marino
+const C_LECHO = new THREE.Color("#2f7d5f"); // lecho del río
+const C_ARENA = new THREE.Color("#e9b96e"); // orilla / playa
+const C_VALLE = new THREE.Color("#46a35e"); // valle / selva baja (esmeralda)
+const C_LADERA = new THREE.Color("#2e7d46"); // laderas (verde profundo)
+const C_ROCA = new THREE.Color("#9aa3b0"); // crestas de la Serranía
 
 function heightColor(h: number, out: THREE.Color): void {
   if (h <= -1) {
     out.copy(C_FONDO);
   } else if (h < WATER_LEVEL) {
     out.copy(C_LECHO);
+  } else if (h <= 0.12) {
+    // Arena SOLO en la rampa del cauce que emerge del agua (0..0.12);
+    // el piso duro de 0.15 y el valle (~0.2) son selva, no playa
+    out.copy(C_ARENA);
+  } else if (h <= 0.16) {
+    out.copy(C_ARENA).lerp(C_VALLE, (h - 0.12) / 0.04);
   } else if (h <= 0.9) {
     out.copy(C_VALLE);
   } else if (h <= 2.2) {
@@ -187,6 +196,7 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
       <mesh
         geometry={geometry}
         rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
         onDoubleClick={(e) => {
           e.stopPropagation();
           triggerReveal(e.point);
