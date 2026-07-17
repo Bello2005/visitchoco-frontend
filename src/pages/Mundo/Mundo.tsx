@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { KeyboardControls, PerspectiveCamera, Stars } from "@react-three/drei";
 // import { OrbitControls } from "@react-three/drei"; // debug cam
 import { EffectComposer, Bloom, Vignette, Noise } from "@react-three/postprocessing";
@@ -13,6 +13,8 @@ import Vehicle from "./components/Vehicle";
 import FollowCamera from "./components/FollowCamera";
 import MunicipalityLights from "./components/MunicipalityLights";
 import RevealController from "./components/RevealController";
+import MundoLoader from "./components/MundoLoader";
+import { revealUniforms, REVEAL_MAX } from "./utils/revealUniforms";
 
 const controlsMap = [
   { name: "forward", keys: ["KeyW", "ArrowUp"] },
@@ -22,14 +24,61 @@ const controlsMap = [
   { name: "reset", keys: ["KeyR"] },
 ];
 
+// Dispara el callback en el PRIMER frame renderizado del canvas —
+// segunda señal real (junto a onReady del terreno) para retirar el loader.
+function FirstFrame({ onFirstFrame }: { onFirstFrame: () => void }) {
+  const fired = useRef(false);
+  useFrame(() => {
+    if (!fired.current) {
+      fired.current = true;
+      onFirstFrame();
+    }
+  });
+  return null;
+}
+
+function detectWebGL(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    return !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
+
 export default function Mundo() {
   const chassisRef = useRef<RapierRigidBody>(null);
   const directionalRef = useRef<THREE.DirectionalLight>(null);
   const ambientRef = useRef<THREE.AmbientLight>(null);
 
-  // Overlay de instrucción: visible hasta el primer doble click,
-  // fade-out de 0.5s y unmount.
-  const [hintVisible, setHintVisible] = useState(true);
+  const [webglOk] = useState(detectWebGL);
+  const [reducedMotion] = useState(
+    () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+  );
+
+  // Loader: se retira con DOS señales reales — terreno construido y
+  // primer frame renderizado. 300ms de gracia, fade 600ms, unmount.
+  const [terrainReady, setTerrainReady] = useState(false);
+  const [firstFrame, setFirstFrame] = useState(false);
+  const [loaderFading, setLoaderFading] = useState(false);
+  const [loaderVisible, setLoaderVisible] = useState(true);
+
+  const handleTerrainReady = useCallback(() => setTerrainReady(true), []);
+  const handleFirstFrame = useCallback(() => setFirstFrame(true), []);
+
+  useEffect(() => {
+    if (!(terrainReady && firstFrame)) return;
+    const fadeTimer = setTimeout(() => setLoaderFading(true), 300);
+    const unmountTimer = setTimeout(() => setLoaderVisible(false), 900);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(unmountTimer);
+    };
+  }, [terrainReady, firstFrame]);
+
+  // Overlay de instrucción: visible hasta el primer doble click (nunca
+  // con reduced-motion — el mundo nace revelado, sin ritual).
+  const [hintVisible, setHintVisible] = useState(!reducedMotion);
   const [hintFading, setHintFading] = useState(false);
 
   useEffect(() => {
@@ -41,6 +90,46 @@ export default function Mundo() {
     window.addEventListener("mundo:reveal", onReveal);
     return () => window.removeEventListener("mundo:reveal", onReveal);
   }, []);
+
+  // reduced-motion: nacer con el territorio revelado (las luces siguen
+  // al progreso en RevealController).
+  useEffect(() => {
+    if (reducedMotion) revealUniforms.uRevealRadius.value = REVEAL_MAX;
+  }, [reducedMotion]);
+
+  // Título del documento mientras se está en /mundo
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = "El territorio — VisitChocó";
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
+
+  if (!webglOk) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center gap-4 px-6 text-center"
+        style={{ width: "100%", height: "100dvh", background: "#020d1a" }}
+      >
+        <h1 className="font-serif text-2xl text-white md:text-3xl">
+          El territorio necesita WebGL
+        </h1>
+        <p className="max-w-md text-sm text-white/60">
+          Tu navegador no soporta la experiencia 3D. Puedes seguir
+          explorando el Chocó en el mapa interactivo.
+        </p>
+        <a
+          href="/mapa"
+          className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white
+                     px-7 py-3.5 rounded-full text-sm font-semibold transition-all duration-200
+                     shadow-lg shadow-emerald-900/30"
+        >
+          Explorar el mapa
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -69,7 +158,7 @@ export default function Mundo() {
           <Stars radius={100} depth={40} count={1200} factor={3} fade />
           <Suspense fallback={null}>
             <Physics gravity={[0, -9.81, 0]}>
-              <ChocoTerrain />
+              <ChocoTerrain onReady={handleTerrainReady} />
               <OceanFloor />
               <Water />
               <Vehicle chassisRef={chassisRef} />
@@ -80,7 +169,9 @@ export default function Mundo() {
           <RevealController
             directionalRef={directionalRef}
             ambientRef={ambientRef}
+            reducedMotion={reducedMotion}
           />
+          <FirstFrame onFirstFrame={handleFirstFrame} />
           <EffectComposer>
             <Bloom luminanceThreshold={0.9} intensity={0.7} mipmapBlur />
             <Vignette darkness={0.65} />
@@ -88,6 +179,7 @@ export default function Mundo() {
           </EffectComposer>
         </Canvas>
       </KeyboardControls>
+      {loaderVisible && <MundoLoader fading={loaderFading} />}
       {hintVisible && (
         <div
           className={`pointer-events-none absolute inset-x-0 bottom-[10%] flex justify-center transition-opacity duration-500 ${

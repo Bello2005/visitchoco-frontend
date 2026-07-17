@@ -25,6 +25,8 @@ interface NavLink {
   description: string;
 }
 
+// /mundo es experiencia de entrada desde el hero, no destino de menú
+// (decisión de diseño)
 const NAV_LINKS: NavLink[] = [
   { id: "mapa",       label: "Mapa",       href: "/mapa",        Icon: MapPinned,    description: "31 municipios · 125 resguardos" },
   { id: "directorio", label: "Directorio", href: "/directorio",  Icon: Store,        description: "602 prestadores RNT · hoteles · guías" },
