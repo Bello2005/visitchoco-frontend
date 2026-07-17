@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPinned, ArrowRight } from "lucide-react";
+import { MapPinned, Compass } from "lucide-react";
 
 type HeroSlide = {
   src: string;
@@ -172,14 +172,14 @@ export function HeroSection() {
             Explorar el mapa
           </a>
           <a
-            href="/historia"
+            href="/mundo"
             className="flex items-center gap-2 text-white/80 hover:text-white
                        border border-white/30 hover:border-white/60
                        px-7 py-3.5 rounded-full text-sm font-medium transition-all duration-200
                        backdrop-blur-sm"
           >
-            Conocer la historia
-            <ArrowRight size={14} />
+            Recorrer el territorio
+            <Compass size={14} />
           </a>
         </div>
       </div>

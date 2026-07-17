@@ -113,7 +113,12 @@ function heightColor(h: number, out: THREE.Color): void {
   }
 }
 
-export default function ChocoTerrain() {
+interface ChocoTerrainProps {
+  /** Señal real de "terreno listo" (geometría construida) para el loader */
+  onReady?: () => void;
+}
+
+export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
   const [geometry, setGeometry] = useState<THREE.PlaneGeometry | null>(null);
 
   useEffect(() => {
@@ -155,6 +160,7 @@ export default function ChocoTerrain() {
         pos.needsUpdate = true;
         plane.setAttribute("color", new THREE.BufferAttribute(colors, 3));
         setGeometry(plane);
+        onReady?.();
       })
       .catch((err) => {
         console.error("[ChocoTerrain] no se pudo cargar chocoRegion.geojson", err);

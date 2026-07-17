@@ -21,6 +21,7 @@ import Directorio from "./pages/Directorio/Directorio";
 import Negocio from "./pages/Negocio/Negocio";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import MundoLoader from "./pages/Mundo/components/MundoLoader";
 
 const Mundo = lazy(() => import("./pages/Mundo/Mundo"));
 
@@ -121,7 +122,7 @@ function AppContent() {
           <Route
             path="/mundo"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<MundoLoader fading={false} />}>
                 <Mundo />
               </Suspense>
             }

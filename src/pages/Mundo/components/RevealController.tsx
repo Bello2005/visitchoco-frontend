@@ -12,6 +12,8 @@ const DURATION_MS = 2800;
 interface RevealControllerProps {
   directionalRef: RefObject<THREE.DirectionalLight | null>;
   ambientRef: RefObject<THREE.AmbientLight | null>;
+  /** prefers-reduced-motion: el revelado se aplica de inmediato, sin onda */
+  reducedMotion?: boolean;
 }
 
 // Anima el radio de revelado (easeOutQuart, ~2.8s) y ata la intensidad
@@ -19,16 +21,22 @@ interface RevealControllerProps {
 export default function RevealController({
   directionalRef,
   ambientRef,
+  reducedMotion = false,
 }: RevealControllerProps) {
   useFrame(() => {
     if (revealState.animating) {
-      const t = (performance.now() - revealState.startTime) / DURATION_MS;
-      if (t >= 1) {
+      if (reducedMotion) {
         revealState.animating = false;
         revealUniforms.uRevealRadius.value = REVEAL_MAX;
       } else {
-        const ease = 1 - Math.pow(1 - t, 4);
-        revealUniforms.uRevealRadius.value = ease * REVEAL_MAX;
+        const t = (performance.now() - revealState.startTime) / DURATION_MS;
+        if (t >= 1) {
+          revealState.animating = false;
+          revealUniforms.uRevealRadius.value = REVEAL_MAX;
+        } else {
+          const ease = 1 - Math.pow(1 - t, 4);
+          revealUniforms.uRevealRadius.value = ease * REVEAL_MAX;
+        }
       }
     }
 
