@@ -41,7 +41,7 @@ uniform float uRevealRadius;`
 	{
 		float dReveal = distance(vRevealWorldPos, uRevealCenter);
 		float revealLit = 1.0 - smoothstep(uRevealRadius - 3.0, uRevealRadius, dReveal);
-		float revealDark = mix(0.06, 1.0, revealLit);
+		float revealDark = mix(0.35, 1.0, revealLit);
 		float revealRing = smoothstep(1.5, 0.0, abs(dReveal - uRevealRadius)) * step(0.01, uRevealRadius);
 		vec3 revealRingColor = vec3(1.0, 0.702, 0.278) * revealRing * 1.5;
 		gl_FragColor.rgb = gl_FragColor.rgb * revealDark + revealRingColor;

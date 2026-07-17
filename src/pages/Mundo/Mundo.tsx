@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { KeyboardControls, PerspectiveCamera, Stars } from "@react-three/drei";
+import { KeyboardControls, PerspectiveCamera } from "@react-three/drei";
 // import { OrbitControls } from "@react-three/drei"; // debug cam
 import { EffectComposer, Bloom, Vignette, Noise } from "@react-three/postprocessing";
 import { Physics } from "@react-three/rapier";
@@ -136,26 +136,38 @@ export default function Mundo() {
       style={{
         width: "100%",
         height: "100dvh",
-        background: "#020d1a",
+        background: "#a5ddf2",
         position: "relative",
       }}
     >
       <KeyboardControls map={controlsMap}>
-        <Canvas>
-          <color attach="background" args={["#020d1a"]} />
-          <fog attach="fog" args={["#020d1a", 22, 60]} />
+        <Canvas shadows>
+          <color attach="background" args={["#a5ddf2"]} />
+          <fog attach="fog" args={["#a5ddf2", 30, 95]} />
           <PerspectiveCamera makeDefault fov={45} position={[0, 18, 26]} />
           {/* <OrbitControls enablePan={false} minDistance={12} maxDistance={45} maxPolarAngle={Math.PI / 2.2} enableDamping /> debug cam */}
-          {/* Penumbra inicial; RevealController las sube con el progreso
-              del revelado hasta 0.9 / 0.25 */}
+          {/* Día estilo folio-2025: sol salmón #ffd2c2 con sombras reales.
+              Amanecer tenue inicial; RevealController sube con el progreso
+              del revelado hasta 1.35 / 0.6 */}
           <directionalLight
             ref={directionalRef}
-            color="#ffb347"
-            intensity={0.25}
-            position={[10, 20, 5]}
+            color="#ffd2c2"
+            intensity={0.55}
+            position={[18, 28, 10]}
+            castShadow
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-left={-35}
+            shadow-camera-right={35}
+            shadow-camera-top={45}
+            shadow-camera-bottom={-45}
+            shadow-camera-near={1}
+            shadow-camera-far={100}
+            shadow-bias={-0.001}
+            shadow-normalBias={0.05}
           />
-          <ambientLight ref={ambientRef} intensity={0.08} />
-          <Stars radius={100} depth={40} count={1200} factor={3} fade />
+          {/* Ambiente lavanda: en sombra solo queda esta luz → sombras
+              violetas, el truco del shadowColor #6d3fff de Bruno */}
+          <ambientLight ref={ambientRef} color="#b9c3f5" intensity={0.3} />
           <Suspense fallback={null}>
             <Physics gravity={[0, -9.81, 0]}>
               <ChocoTerrain onReady={handleTerrainReady} />
@@ -174,7 +186,7 @@ export default function Mundo() {
           <FirstFrame onFirstFrame={handleFirstFrame} />
           <EffectComposer>
             <Bloom luminanceThreshold={0.9} intensity={0.7} mipmapBlur />
-            <Vignette darkness={0.65} />
+            <Vignette darkness={0.4} />
             <Noise opacity={0.025} />
           </EffectComposer>
         </Canvas>
@@ -186,7 +198,7 @@ export default function Mundo() {
             hintFading ? "opacity-0" : "opacity-100"
           }`}
         >
-          <p className="font-sans text-sm tracking-wide text-white/60 md:text-base">
+          <p className="font-sans text-sm tracking-wide text-white/90 drop-shadow-[0_1px_3px_rgba(2,13,26,0.6)] md:text-base">
             Doble click para despertar el territorio
           </p>
         </div>

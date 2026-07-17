@@ -33,23 +33,23 @@ export default function Water() {
         <meshStandardMaterial
           flatShading
           transparent
-          opacity={0.85}
-          color="#041824"
-          metalness={0.3}
-          roughness={0.15}
+          opacity={0.75}
+          color="#2ea8c4"
+          metalness={0.1}
+          roughness={0.25}
           ref={(m) => {
             if (m) applyReveal(m);
           }}
         />
       </mesh>
-      {/* Falso brillo ámbar de fondo bajo la superficie — sin collider.
-          opacity 0.02: con 0.05 teñía todo el mar de marrón rojizo */}
+      {/* Falso resplandor cian de fondo bajo la superficie — sin collider.
+          Aclara los bajos como el agua pastel de folio-2025 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_LEVEL - 0.15, 0]}>
         <planeGeometry args={[200, 200]} />
         <meshBasicMaterial
-          color="#d97706"
+          color="#7fd8e8"
           transparent
-          opacity={0.02}
+          opacity={0.05}
           ref={(m) => {
             if (m) applyReveal(m);
           }}

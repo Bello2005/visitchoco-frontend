@@ -8,7 +8,7 @@ export default function OceanFloor() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.4, 0]}>
         <planeGeometry args={[200, 200]} />
         <meshStandardMaterial
-          color="#04121f"
+          color="#0d5f78"
           ref={(m) => {
             if (m) applyReveal(m);
           }}

@@ -290,7 +290,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         <CuboidCollider args={CHASSIS_HALF} mass={120} />
         {/* Placeholder visual carro — el modelo real llega en fase posterior */}
         <group visible={modeVisual === "car"}>
-          <mesh>
+          <mesh castShadow>
             <boxGeometry
               args={[
                 CHASSIS_HALF[0] * 2,
@@ -308,6 +308,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
           {WHEELS.map(([x, , z], i) => (
             <mesh
               key={i}
+              castShadow
               position={[x, -0.45, z]}
               rotation={[0, 0, Math.PI / 2]}
             >
@@ -318,12 +319,12 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         </group>
         {/* Placeholder panga: casco de madera + proa inclinada al frente */}
         <group visible={modeVisual === "boat"}>
-          <mesh position={[0, -0.15, 0]}>
+          <mesh castShadow position={[0, -0.15, 0]}>
             <boxGeometry args={[1.4, 0.35, 3.4]} />
             <meshStandardMaterial flatShading color="#7c4a1e" />
           </mesh>
           {/* Proa con linterna ámbar tenue — única luz de la panga */}
-          <mesh position={[0, -0.02, 1.85]} rotation={[-0.35, 0, 0]}>
+          <mesh castShadow position={[0, -0.02, 1.85]} rotation={[-0.35, 0, 0]}>
             <boxGeometry args={[1.2, 0.3, 0.9]} />
             <meshStandardMaterial
               flatShading
