@@ -90,8 +90,32 @@ async function fetchGeo(): Promise<ChocoGeo> {
 
 // Caché a nivel de módulo: una sola promesa reutilizada por todos los consumidores
 let cache: Promise<ChocoGeo> | null = null;
+// Referencia SÍNCRONA al geo ya resuelto — la física (useBeforePhysicsStep)
+// corre síncrona y no puede await; en cuanto el fetch termina, este singleton
+// deja que Vehicle consulte el mismo polígono que usó la malla del terreno.
+let resolved: ChocoGeo | null = null;
 
 export function loadChocoGeo(): Promise<ChocoGeo> {
-  if (!cache) cache = fetchGeo();
+  if (!cache) cache = fetchGeo().then((geo) => (resolved = geo));
   return cache;
+}
+
+/** Geo ya resuelto, o null si el fetch aún no termina. Para consumidores
+ *  síncronos (física). Los async deben usar loadChocoGeo(). */
+export function getChocoGeoSync(): ChocoGeo | null {
+  return resolved;
+}
+
+/** Coords locales del plano → lon/lat (inverso de lonLatToLocal). Es el mismo
+ *  mapeo que ChocoTerrain usa al construir la malla vértice por vértice. */
+export function localToLonLat(
+  geo: ChocoGeo,
+  x: number,
+  y: number
+): { lon: number; lat: number } {
+  const { minLon, maxLon, minLat, maxLat } = geo.bbox;
+  return {
+    lon: minLon + (x / WIDTH + 0.5) * (maxLon - minLon),
+    lat: minLat + (y / HEIGHT + 0.5) * (maxLat - minLat),
+  };
 }

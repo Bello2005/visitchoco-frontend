@@ -10,7 +10,7 @@ import {
 import type { RapierRigidBody, RapierContext } from "@react-three/rapier";
 import { useKeyboardControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { terrainHeight, WATER_LEVEL } from "./ChocoTerrain";
+import { terrainHeight, worldGround, WATER_LEVEL } from "./ChocoTerrain";
 
 type VehicleController = ReturnType<
   RapierContext["world"]["createVehicleController"]
@@ -64,19 +64,17 @@ const DRAG_XZ = 0.985; // deriva de bote
 const DRAG_ANG = 0.96;
 const SWITCH_COOLDOWN_MS = 400; // histéresis anti-parpadeo
 
-// Transformación por profundidad de agua bajo el chasis (reemplaza el
-// sensor de Water.tsx): el sensor exigía que la panga trepara la orilla
-// por sí sola para salir de su volumen, y sin ruedas nunca lo lograba
-// (deadlock permanente en la orilla). Separación de 0.12 entre umbrales.
-const WATER_ENTER_DEPTH = 0.3; // car→boat: agua honda bajo el chasis
-const WATER_EXIT_DEPTH = 0.18; // boat→car: banco lo bastante somero
-// 0.75 y no 0.4: un carro RODANDO sobre el lecho (-0.3..-0.45) lleva el
-// centro a y≈0.47-0.60 por la suspensión — con 0.4 la entrada lenta al río
-// nunca disparaba (solo entrar saltando/cayendo). 0.75 sigue descartando
-// saltos balísticos altos por encima del cauce.
+// Transformación carro↔panga por REGIÓN de suelo (worldGround = polígono +
+// cauce, la misma verdad que la malla del terreno). Antes usábamos la altura
+// del chasis con guards frágiles (t.y > ground): una panga flota en y≈0 y NUNCA
+// podía cumplir ese guard cuando la orilla subía → deadlock, no desembarcaba.
+// Ahora: agua honda bajo el chasis = panga; suelo somero/tierra = carro.
+const WATER_ENTER_DEPTH = 0.3; // car→boat: agua honda de verdad bajo el chasis
+const WATER_EXIT_DEPTH = 0.15; // boat→car: banco somero → desembarca y el carro trepa
+// Evita que un carro en salto balístico sobre el cauce se vuelva panga en el
+// aire: solo transformar si el chasis está cerca del agua.
 const FLYOVER_MAX_Y = WATER_LEVEL + 0.75;
-const OPEN_SEA_SAFETY_Y = WATER_LEVEL - 0.6; // fuera del polígono terrainHeight no sabe que es mar
-const BOAT_BEACH_ASSIST = 400; // empuje extra a la proa para montar el banco
+const BOAT_BEACH_ASSIST = 400; // empuje a la proa en los bajos, antes del desembarco
 
 const _quat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
@@ -107,14 +105,16 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     splashStart.current = performance.now();
   };
 
-  const trySwitch = (next: Mode) => {
-    if (modeRef.current === next) return;
+  // Devuelve true si el cambio se aplicó (respeta el cooldown anti-parpadeo).
+  const trySwitch = (next: Mode): boolean => {
+    if (modeRef.current === next) return false;
     const now = performance.now();
-    if (now - lastSwitch.current < SWITCH_COOLDOWN_MS) return;
+    if (now - lastSwitch.current < SWITCH_COOLDOWN_MS) return false;
     lastSwitch.current = now;
     modeRef.current = next;
     setModeVisual(next);
     if (next === "boat") triggerSplash();
+    return true;
   };
 
   useEffect(() => {
@@ -167,25 +167,30 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       lastSwitch.current = performance.now();
     }
 
-    // Transformación por profundidad de agua bajo el chasis (no por sensor):
+    // Transformación por REGIÓN de suelo (worldGround conoce el polígono):
     // ver comentario de los umbrales arriba.
     const t = chassis.translation();
-    const ground = terrainHeight(t.x, -t.z);
+    const ground = worldGround(t.x, t.z);
     const waterDepth = WATER_LEVEL - ground; // >0 = hay agua sobre el lecho
 
     if (modeRef.current === "car") {
-      if (
-        (waterDepth > WATER_ENTER_DEPTH && t.y < FLYOVER_MAX_Y) ||
-        t.y < OPEN_SEA_SAFETY_Y // red de seguridad: mar abierto fuera del polígono
-      ) {
+      // Carro → panga: agua honda bajo el chasis y el chasis cerca del agua.
+      // En mar abierto worldGround = SEA_FLOOR (-2) → waterDepth≫ENTER, entra
+      // en modo panga de forma natural, sin red de seguridad por altura.
+      if (waterDepth > WATER_ENTER_DEPTH && t.y < FLYOVER_MAX_Y) {
         trySwitch("boat");
       }
-    } else if (waterDepth < WATER_EXIT_DEPTH && t.y > ground) {
-      // t.y > ground: en mar abierto (fuera del polígono) terrainHeight
-      // reporta tierra fantasma POR ENCIMA del casco que flota en y≈0;
-      // sin este guard la panga oscilaba boat↔car cada 400ms en el borde
-      // este. Al vararse de verdad el chasis siempre queda sobre el suelo.
-      trySwitch("car");
+    } else if (waterDepth < WATER_EXIT_DEPTH && trySwitch("car")) {
+      // Panga → carro: llegó a agua somera / orilla. Snap de desembarco: la
+      // panga flota en y≈0, pero si la orilla sube por encima el carro naciente
+      // quedaría clavado bajo el terreno. Lo apoyamos sobre el suelo (solo hacia
+      // arriba) y matamos la caída — entonces las ruedas agarran y trepa a tierra.
+      const restY = ground + 0.5;
+      if (t.y < restY) {
+        chassis.setTranslation({ x: t.x, y: restY, z: t.z }, true);
+        const lv = chassis.linvel();
+        chassis.setLinvel({ x: lv.x, y: Math.max(0, lv.y), z: lv.z }, true);
+      }
     }
 
     if (modeRef.current === "car") {

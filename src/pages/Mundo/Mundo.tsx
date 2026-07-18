@@ -10,6 +10,7 @@ import ChocoTerrain from "./components/ChocoTerrain";
 import OceanFloor from "./components/OceanFloor";
 import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
+import Vegetation from "./components/Vegetation";
 import FollowCamera from "./components/FollowCamera";
 import MunicipalityLights from "./components/MunicipalityLights";
 import RevealController from "./components/RevealController";
@@ -175,6 +176,11 @@ export default function Mundo() {
               <Water />
               <Vehicle chassisRef={chassisRef} />
             </Physics>
+          </Suspense>
+          {/* Vegetación en su PROPIO Suspense: la carga de los GLB de árboles
+              no debe retrasar la señal "terreno listo" del loader */}
+          <Suspense fallback={null}>
+            <Vegetation />
           </Suspense>
           <MunicipalityLights />
           <FollowCamera target={chassisRef} />
