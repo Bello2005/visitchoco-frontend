@@ -17,6 +17,10 @@ export const WATER_LEVEL = 0.0;
 // Fuera del polígono del Chocó el lecho se hunde a esta cota (mar abierto).
 // La malla y la física comparten esta constante — así no hay "tierra fantasma".
 export const SEA_FLOOR = -2;
+// Ancho (en unidades de mundo) de la rampa de playa a cada lado de la costa.
+// El terreno baja gradual de la tierra al lecho marino en vez de caer en
+// acantilado — así el carro sube a tierra manejando por la arena.
+const BEACH = 3.4;
 const SEG_X = 96;
 const SEG_Y = 144;
 
@@ -101,14 +105,84 @@ export function terrainHeight(x: number, y: number): number {
   return h;
 }
 
+// ---------- distance transform (chamfer 3-4, dos pasadas) ----------
+// Distancia en celdas de cada punto de la grilla a la semilla más cercana.
+// La usamos para saber a qué distancia de la costa está cada vértice y trazar
+// la rampa de playa. O(grilla), sin llamadas extra a isInside.
+function chamferDT(
+  cols: number,
+  rows: number,
+  isSeed: (i: number) => boolean
+): Float32Array {
+  const INF = 1e9;
+  const d = new Float32Array(cols * rows);
+  for (let i = 0; i < d.length; i++) d[i] = isSeed(i) ? 0 : INF;
+  const D1 = 1;
+  const D2 = Math.SQRT2;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      let v = d[i];
+      if (x > 0) v = Math.min(v, d[i - 1] + D1);
+      if (y > 0) v = Math.min(v, d[i - cols] + D1);
+      if (x > 0 && y > 0) v = Math.min(v, d[i - cols - 1] + D2);
+      if (x < cols - 1 && y > 0) v = Math.min(v, d[i - cols + 1] + D2);
+      d[i] = v;
+    }
+  }
+  for (let y = rows - 1; y >= 0; y--) {
+    for (let x = cols - 1; x >= 0; x--) {
+      const i = y * cols + x;
+      let v = d[i];
+      if (x < cols - 1) v = Math.min(v, d[i + 1] + D1);
+      if (y < rows - 1) v = Math.min(v, d[i + cols] + D1);
+      if (x < cols - 1 && y < rows - 1) v = Math.min(v, d[i + cols + 1] + D2);
+      if (x > 0 && y < rows - 1) v = Math.min(v, d[i + cols - 1] + D2);
+      d[i] = v;
+    }
+  }
+  return d;
+}
+
 // ---------- verdad de suelo del MUNDO (compartida con la física) ----------
-// terrainHeight() sola no sabe del polígono: fuera del Chocó devuelve relieve
-// "fantasma". Esta función aplica el mismo test punto-en-polígono que la malla,
-// así que el mar abierto vale SEA_FLOOR de verdad. Vehicle la usa para decidir
-// carro↔panga por REGIÓN (tierra vs agua), no por trucos de altura del chasis.
+// La malla del terreno YA es una playa suavizada (rampa a la costa). Publicamos
+// ese mismo grid de alturas y worldGround lo muestrea bilinealmente — así la
+// física (colisión trimesh) y la decisión carro↔panga usan EXACTAMENTE la
+// superficie que se ve, sin discontinuidades tierra/mar.
+let heightField: Float32Array | null = null;
+let fieldCols = 0;
+let fieldRows = 0;
+
+function publishHeightField(f: Float32Array, cols: number, rows: number): void {
+  heightField = f;
+  fieldCols = cols;
+  fieldRows = rows;
+}
+
 // x,z = coordenadas de MUNDO (world Z = -y local por la rotación del mesh).
 export function worldGround(x: number, z: number): number {
   const yLocal = -z;
+
+  if (heightField) {
+    // Mapeo world → grilla (mismo orden que PlaneGeometry: iy crece al bajar y)
+    const fx = (x / WIDTH + 0.5) * (fieldCols - 1);
+    const fy = (0.5 - yLocal / HEIGHT) * (fieldRows - 1);
+    const x0 = Math.max(0, Math.min(fieldCols - 1, Math.floor(fx)));
+    const y0 = Math.max(0, Math.min(fieldRows - 1, Math.floor(fy)));
+    const x1 = Math.min(fieldCols - 1, x0 + 1);
+    const y1 = Math.min(fieldRows - 1, y0 + 1);
+    const tx = fx - x0;
+    const ty = fy - y0;
+    const h00 = heightField[y0 * fieldCols + x0];
+    const h10 = heightField[y0 * fieldCols + x1];
+    const h01 = heightField[y1 * fieldCols + x0];
+    const h11 = heightField[y1 * fieldCols + x1];
+    const a = h00 + (h10 - h00) * tx;
+    const b = h01 + (h11 - h01) * tx;
+    return a + (b - a) * ty;
+  }
+
+  // Fallback antes de que la malla publique el campo (polígono + terrainHeight)
   const geo = getChocoGeoSync();
   if (geo) {
     const { lon, lat } = localToLonLat(geo, x, yLocal);
@@ -123,23 +197,31 @@ export function worldGround(x: number, z: number): number {
 // (no roca desnuda — en el Chocó la montaña también es selva).
 const C_FONDO = new THREE.Color("#12564d"); // fuera del polígono / lecho marino
 const C_LECHO = new THREE.Color("#6e5a34"); // cauce del Atrato (agua lodosa)
-const C_ARENA = new THREE.Color("#b8a06a"); // playa pacífica (arena parda)
+const C_ARENA_MOJADA = new THREE.Color("#8a7444"); // arena de playa bajo el agua
+const C_ARENA = new THREE.Color("#c4ac74"); // arena de playa seca (parda pacífica)
 const C_VALLE = new THREE.Color("#2f9b4e"); // selva baja (esmeralda vivo)
 const C_LADERA = new THREE.Color("#1c6e39"); // ladera (verde selva profundo)
 const C_ALTO = new THREE.Color("#245c3c"); // selva de altura (verde oscuro)
 const C_BRUMA = new THREE.Color("#5f7a63"); // crestas del Baudó (verde-gris bruma)
 
-function heightColor(h: number, out: THREE.Color): void {
+// sd = distancia con signo a la costa (unidades de mundo; + tierra, - mar).
+function heightColor(h: number, sd: number, out: THREE.Color): void {
+  // Playa: en la franja costera (|sd| < BEACH) y a media agua, pintar arena
+  // —mojada bajo el agua, seca al emerger— para que la rampa lea como playa.
+  if (sd < BEACH && h > -1.0 && h < 0.45) {
+    const t = smoothstep(-0.5, 0.15, h); // mojada→seca al subir
+    out.copy(C_ARENA_MOJADA).lerp(C_ARENA, t);
+    // borde selva: al tope de la playa, fundir a valle
+    if (h > 0.25) out.lerp(C_VALLE, (h - 0.25) / 0.2);
+    return;
+  }
+
   if (h <= -1) {
     out.copy(C_FONDO);
   } else if (h < WATER_LEVEL) {
     out.copy(C_LECHO);
-  } else if (h <= 0.12) {
-    // Arena SOLO en la rampa del cauce que emerge del agua (0..0.12);
-    // el piso duro de 0.15 y el valle (~0.2) son selva, no playa
-    out.copy(C_ARENA);
   } else if (h <= 0.18) {
-    out.copy(C_ARENA).lerp(C_VALLE, (h - 0.12) / 0.06);
+    out.copy(C_ARENA).lerp(C_VALLE, h / 0.18);
   } else if (h <= 0.9) {
     out.copy(C_VALLE);
   } else if (h <= 2.2) {
@@ -167,30 +249,57 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
       .then((geo) => {
         if (cancelled) return;
 
+        const cols = SEG_X + 1;
+        const rows = SEG_Y + 1;
         const plane = new THREE.PlaneGeometry(WIDTH, HEIGHT, SEG_X, SEG_Y);
         const pos = plane.attributes.position;
-        const colors = new Float32Array(pos.count * 3);
+        const N = pos.count; // = cols * rows
+        const colors = new Float32Array(N * 3);
         const tmpColor = new THREE.Color();
 
-        for (let i = 0; i < pos.count; i++) {
-          // Coordenadas locales del plano: x oeste→este, y sur→norte
-          // (la rotación -PI/2 del mesh convierte y local en -Z mundial)
+        // Pasada 1: dentro/fuera del polígono + altura "de tierra" por vértice
+        const inside = new Uint8Array(N);
+        const landH = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
           const x = pos.getX(i);
           const y = pos.getY(i);
-
-          // Vértice → lon/lat dentro del bounding box del departamento
           const lon =
             geo.bbox.minLon +
             (x / WIDTH + 0.5) * (geo.bbox.maxLon - geo.bbox.minLon);
           const lat =
             geo.bbox.minLat +
             (y / HEIGHT + 0.5) * (geo.bbox.maxLat - geo.bbox.minLat);
+          inside[i] = geo.isInside(lon, lat) ? 1 : 0;
+          landH[i] = terrainHeight(x, y);
+        }
 
-          // Fuera del Chocó: hundir al lecho marino (misma cota que worldGround)
-          const h = geo.isInside(lon, lat) ? terrainHeight(x, y) : SEA_FLOOR;
+        // Distancia con signo a la costa: fuera de la tierra → al vértice
+        // interior más cercano; dentro → al vértice exterior más cercano.
+        const dOut = chamferDT(cols, rows, (i) => inside[i] === 0);
+        const dIn = chamferDT(cols, rows, (i) => inside[i] === 1);
+        const cellSize = (WIDTH / SEG_X + HEIGHT / SEG_Y) / 2;
+
+        // Pasada 2: rampa de playa (tierra → lecho marino gradual) + color.
+        // Publicamos el grid de alturas para que la física muestree lo mismo.
+        const heights = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          const sd = (inside[i] ? dOut[i] : -dIn[i]) * cellSize;
+
+          let h: number;
+          if (sd >= BEACH) {
+            h = landH[i]; // tierra adentro: relieve pleno (incluye el cauce)
+          } else if (sd <= -BEACH) {
+            h = SEA_FLOOR; // mar afuera: lecho marino
+          } else {
+            // Rampa suave de SEA_FLOOR (mar) a la tierra sobre 2·BEACH
+            const t = smoothstep(-BEACH, BEACH, sd);
+            h = SEA_FLOOR + (landH[i] - SEA_FLOOR) * t;
+          }
+
+          heights[i] = h;
           pos.setZ(i, h);
 
-          heightColor(h, tmpColor);
+          heightColor(h, sd, tmpColor);
           colors[i * 3] = tmpColor.r;
           colors[i * 3 + 1] = tmpColor.g;
           colors[i * 3 + 2] = tmpColor.b;
@@ -198,6 +307,7 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
 
         pos.needsUpdate = true;
         plane.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+        publishHeightField(heights, cols, rows);
         setGeometry(plane);
         onReady?.();
       })
