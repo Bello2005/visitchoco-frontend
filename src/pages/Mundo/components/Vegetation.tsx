@@ -4,7 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
 import type { ChocoGeo } from "../utils/geo";
-import { terrainHeight } from "./ChocoTerrain";
+import { worldGround } from "./ChocoTerrain";
 
 // Vegetación de la selva húmeda del Pacífico. Modelos low-poly de Bruno Simon
 // (folio-2025, licencia MIT — ver public/models/folio/LICENSE.md), recoloreados
@@ -101,11 +101,14 @@ function scatter(
     const { lon, lat } = localToLonLat(geo, x, y);
     if (!geo.isInside(lon, lat)) continue;
 
-    const h = terrainHeight(x, y);
-    if (h < 0.28 || h > 3.4) continue; // ni agua/orilla ni cimas de bruma
+    // Altura REAL de la superficie (worldGround = malla con playa), no la
+    // terrainHeight cruda — si no, los árboles cerca de la costa flotan sobre
+    // la playa rebajada o caen al agua. worldGround(x, -y): world Z = -y local.
+    const h = worldGround(x, -y);
+    if (h < 0.42 || h > 3.4) continue; // por encima de la playa, bajo la bruma
 
-    // No sembrar encima del spawn del carro (5.5, 11 local)
-    if (Math.hypot(x - 5.5, y - 11) < 3) continue;
+    // Claro de aparición del carro (world 9,7 → local 9,-7): que se vea al nacer
+    if (Math.hypot(x - 9, y + 7) < 5) continue;
 
     out.push({
       x,

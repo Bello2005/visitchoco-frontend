@@ -17,19 +17,20 @@ type VehicleController = ReturnType<
 >;
 type Mode = "car" | "boat";
 
-// Spawn en el banco ESTE del Atrato. OJO: además de tierra firme
-// (h≥0.15) el punto debe caer DENTRO del polígono del Chocó — en y=8
-// el este ya es mar; en y=11 el banco x∈[4.5,7] es interior y firme.
-// Recordar: world Z = -y local.
-const SPAWN_X = 5.5;
-const SPAWN_LOCAL_Y = 11;
+// Spawn en la ESTRIBACIÓN ESTE, tierra firme clara y ANCHA (suelo ~0.56,
+// muy por encima del agua) con pendiente suave hacia el oeste — el carro
+// nace en tierra y maneja cuesta abajo al Atrato para transformarse en panga.
+// El valle central es apenas +0.2 (parece "dentro del agua"); esta cota alta
+// evita esa sensación. Recordar: terrainHeight toma (x, yLocal=-z).
+const SPAWN_X = 9;
+const SPAWN_Z = 7;
 const SPAWN_POS = {
   x: SPAWN_X,
-  y: terrainHeight(SPAWN_X, SPAWN_LOCAL_Y) + 3,
-  z: -SPAWN_LOCAL_Y,
+  y: terrainHeight(SPAWN_X, -SPAWN_Z) + 1.2,
+  z: SPAWN_Z,
 };
-// 180° en Y: el carro nace mirando al norte (-Z mundo)
-const SPAWN_ROT = { x: 0, y: 1, z: 0, w: 0 };
+// -90° en Y: el carro nace mirando al OESTE (-X), de frente al río
+const SPAWN_ROT = { x: 0, y: -0.7071068, z: 0, w: 0.7071068 };
 
 const CHASSIS_HALF: [number, number, number] = [0.9, 0.35, 1.6];
 const WHEEL_RADIUS = 0.32;
@@ -78,10 +79,15 @@ const WATER_EXIT_DEPTH = 0.24;
 // Evita que un carro en salto balístico sobre el cauce se vuelva panga en el
 // aire: solo transformar si el chasis está cerca del agua.
 const FLYOVER_MAX_Y = WATER_LEVEL + 0.75;
-// Empuje vertical a la proa en los bajos (antes del desembarco): sin ruedas, el
-// casco solo no monta el banco. 900N vs peso 1177N: no vuela, pero sí trepa el
-// talud somero hasta cruzar el umbral y volverse carro.
-const BOAT_BEACH_ASSIST = 900;
+// Ariete de playa: la panga es LARGA (casco 3.4), su proa vara en el banco
+// mientras el centro sigue sobre agua honda — y el umbral de transformación
+// mira el centro. Sin ayuda queda clavada ahí. Cuando la PROA toca banco/tierra
+// empujamos arriba (1150N < peso 1177N: aligera sin volar) + adelante (extra)
+// para montar el casco hasta que el CENTRO llegue a agua somera y transforme.
+const BOAT_BEACH_ASSIST = 1150; // componente vertical (aligera el casco)
+const BOAT_BEACH_PUSH = 850; // componente hacia adelante (monta el banco)
+// La panga es larga: sondeamos el suelo a esta distancia de la proa.
+const BOW_REACH = 1.7;
 
 const _quat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
@@ -188,16 +194,20 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         trySwitch("boat");
       }
     } else if (waterDepth < WATER_EXIT_DEPTH && trySwitch("car")) {
-      // Panga → carro: llegó a agua somera / orilla. Snap de desembarco: la
-      // panga flota en y≈0, pero si la orilla sube por encima el carro naciente
-      // quedaría clavado bajo el terreno. Lo apoyamos sobre el suelo (solo hacia
-      // arriba) y matamos la caída — entonces las ruedas agarran y trepa a tierra.
+      // Panga → carro: llegó a agua somera / orilla. Snap de desembarco: si la
+      // orilla sube por encima del casco (que flota en y≈0), el carro naciente
+      // quedaría clavado bajo el terreno — lo apoyamos sobre el suelo.
       const restY = ground + 0.5;
-      if (t.y < restY) {
-        chassis.setTranslation({ x: t.x, y: restY, z: t.z }, true);
-        const lv = chassis.linvel();
-        chassis.setLinvel({ x: lv.x, y: Math.max(0, lv.y), z: lv.z }, true);
-      }
+      if (t.y < restY) chassis.setTranslation({ x: t.x, y: restY, z: t.z }, true);
+      // Amortiguar el impulso del ariete: sin esto el carro sale volando (el
+      // empuje de playa acumula velocidad vertical). Matar el vertical y limitar
+      // el horizontal a velocidad de conducción — aterriza suave y sigue rodando.
+      const lv = chassis.linvel();
+      const horiz = Math.hypot(lv.x, lv.z);
+      const cap = horiz > 6 ? 6 / horiz : 1;
+      chassis.setLinvel({ x: lv.x * cap * 0.6, y: 0, z: lv.z * cap * 0.6 }, true);
+      const av = chassis.angvel();
+      chassis.setAngvel({ x: 0, y: av.y * 0.5, z: 0 }, true);
     }
 
     if (modeRef.current === "car") {
@@ -261,10 +271,24 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     if (left || right) {
       chassis.addTorque({ x: 0, y: left ? BOAT_TURN : -BOAT_TURN, z: 0 }, true);
     }
-    // Asistencia de orilla: empuje extra a la proa mientras llega la
-    // transformación a carro (sin ruedas, la panga sola no monta el banco)
-    if (forward && waterDepth < WATER_ENTER_DEPTH) {
-      chassis.addForce({ x: 0, y: BOAT_BEACH_ASSIST, z: 0 }, true);
+    // Ariete de playa: mira el suelo bajo la PROA (la panga vara de proa antes
+    // que de centro). Si la proa toca banco/tierra, empuja arriba + adelante
+    // para montar el casco hasta que el centro entre en agua somera.
+    const tp = chassis.translation();
+    const bowGround = worldGround(
+      tp.x + _forward.x * BOW_REACH,
+      tp.z + _forward.z * BOW_REACH
+    );
+    const bowShallow = WATER_LEVEL - bowGround < WATER_ENTER_DEPTH;
+    if (forward && (bowShallow || waterDepth < WATER_ENTER_DEPTH)) {
+      chassis.addForce(
+        {
+          x: _forward.x * BOAT_BEACH_PUSH,
+          y: BOAT_BEACH_ASSIST,
+          z: _forward.z * BOAT_BEACH_PUSH,
+        },
+        true
+      );
     }
 
     const lv = chassis.linvel();
@@ -296,7 +320,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         ref={chassisRef}
         colliders={false}
         position={[SPAWN_POS.x, SPAWN_POS.y, SPAWN_POS.z]}
-        rotation={[0, Math.PI, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
         canSleep={false}
       >
         <CuboidCollider args={CHASSIS_HALF} mass={120} />
