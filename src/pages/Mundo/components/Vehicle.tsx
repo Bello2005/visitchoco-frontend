@@ -69,12 +69,19 @@ const SWITCH_COOLDOWN_MS = 400; // histéresis anti-parpadeo
 // del chasis con guards frágiles (t.y > ground): una panga flota en y≈0 y NUNCA
 // podía cumplir ese guard cuando la orilla subía → deadlock, no desembarcaba.
 // Ahora: agua honda bajo el chasis = panga; suelo somero/tierra = carro.
-const WATER_ENTER_DEPTH = 0.3; // car→boat: agua honda de verdad bajo el chasis
-const WATER_EXIT_DEPTH = 0.15; // boat→car: banco somero → desembarca y el carro trepa
+const WATER_ENTER_DEPTH = 0.32; // car→boat: agua honda de verdad bajo el chasis
+// boat→car: se transforma en agua aún somera (0.24) para que el CARRO —con
+// tracción 4x4 y motor— haga el tramo final de trepada, mucho más capaz que un
+// casco flotando. Banda de histéresis 0.32→0.24 = 0.08 (con cooldown 400ms
+// basta contra el parpadeo).
+const WATER_EXIT_DEPTH = 0.24;
 // Evita que un carro en salto balístico sobre el cauce se vuelva panga en el
 // aire: solo transformar si el chasis está cerca del agua.
 const FLYOVER_MAX_Y = WATER_LEVEL + 0.75;
-const BOAT_BEACH_ASSIST = 400; // empuje a la proa en los bajos, antes del desembarco
+// Empuje vertical a la proa en los bajos (antes del desembarco): sin ruedas, el
+// casco solo no monta el banco. 900N vs peso 1177N: no vuela, pero sí trepa el
+// talud somero hasta cruzar el umbral y volverse carro.
+const BOAT_BEACH_ASSIST = 900;
 
 const _quat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
