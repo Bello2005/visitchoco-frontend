@@ -176,7 +176,7 @@ export default function Mundo() {
       <KeyboardControls map={controlsMap}>
         <Canvas shadows>
           <color attach="background" args={["#a5ddf2"]} />
-          <fog attach="fog" args={["#a5ddf2", 30, 95]} />
+          <fog attach="fog" args={["#a5ddf2", 34, 120]} />
           <PerspectiveCamera makeDefault fov={45} position={[0, 18, 26]} />
           {/* <OrbitControls enablePan={false} minDistance={12} maxDistance={45} maxPolarAngle={Math.PI / 2.2} enableDamping /> debug cam */}
           {/* Día estilo folio-2025: sol salmón #ffd2c2 con sombras reales.
@@ -189,12 +189,12 @@ export default function Mundo() {
             position={[18, 28, 10]}
             castShadow
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-35}
-            shadow-camera-right={35}
-            shadow-camera-top={45}
-            shadow-camera-bottom={-45}
+            shadow-camera-left={-42}
+            shadow-camera-right={42}
+            shadow-camera-top={55}
+            shadow-camera-bottom={-55}
             shadow-camera-near={1}
-            shadow-camera-far={100}
+            shadow-camera-far={130}
             shadow-bias={-0.001}
             shadow-normalBias={0.05}
           />

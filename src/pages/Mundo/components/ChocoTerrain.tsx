@@ -20,8 +20,9 @@ export const SEA_FLOOR = -2;
 // El terreno baja gradual de la tierra al lecho marino en vez de caer en
 // acantilado — así el carro sube a tierra manejando por la arena.
 const BEACH = 3.4;
-const SEG_X = 96;
-const SEG_Y = 144;
+// Mundo 60×90: más segmentos para conservar la densidad de vértices
+const SEG_X = 120;
+const SEG_Y = 180;
 
 // ---------- value noise 2D determinista (seed fija, sin librerías) ----------
 function hash2(ix: number, iy: number): number {
@@ -94,14 +95,48 @@ export function terrainHeight(x: number, y: number): number {
 
   // Cauce del Atrato: cinta serpenteante cavada bajo WATER_LEVEL,
   // con la misma máscara N-S del valle (el río existe donde existe el valle)
-  const riverX = 0.12 + (valueNoise(9.1, y * 0.1) - 0.5) * 0.1;
+  const riverX = riverCenterNx(y);
   // σ 0.09: con 0.045 el canal quedaba más angosto que el propio chasis
   // del carro (lo puenteaba sin caer al agua) y el banco era un acantilado
   const dRiver = (nx - riverX) / 0.09;
-  const carve = Math.exp(-dRiver * dRiver) * smoothstep(-0.55, -0.15, ny);
+  const nsMask = smoothstep(-0.55, -0.15, ny);
+  const carve = Math.exp(-dRiver * dRiver) * nsMask;
   h = h * (1 - carve) + -0.45 * carve;
 
+  // Carretera al Atrato: franja paralela al río por el banco este, aplanada a
+  // cota fija — misma malla, cero geometría extra. worldGround la comparte,
+  // así que se CONDUCE de verdad sobre ella.
+  const rm = roadMaskAt(nx, ny, riverX);
+  h = h * (1 - rm * 0.88) + ROAD_LEVEL * rm * 0.88;
+
   return h;
+}
+
+// Centro del cauce en x normalizado (compartido por río y carretera)
+function riverCenterNx(y: number): number {
+  return 0.12 + (valueNoise(9.1, y * 0.1) - 0.5) * 0.1;
+}
+
+// Cota de la carretera (sobre el agua, bajo la selva del valle)
+const ROAD_LEVEL = 0.34;
+// Desplazamiento de la carretera al ESTE del centro del río (normalizado)
+const ROAD_OFFSET_NX = 0.17;
+const ROAD_SIGMA_NX = 0.028;
+
+function roadMaskAt(nx: number, ny: number, riverX: number): number {
+  const d = (nx - (riverX + ROAD_OFFSET_NX)) / ROAD_SIGMA_NX;
+  return Math.exp(-d * d) * smoothstep(-0.55, -0.15, ny);
+}
+
+/** Máscara de carretera en coords LOCALES del plano (x, y=-worldZ), 0..1 */
+export function roadMask(x: number, y: number): number {
+  return roadMaskAt(x / (WIDTH / 2), y / (HEIGHT / 2), riverCenterNx(y));
+}
+
+/** Centro (x de MUNDO) de la carretera a la altura worldZ dada */
+export function roadCenterWorldX(z: number): number {
+  const yLocal = -z;
+  return (riverCenterNx(yLocal) + ROAD_OFFSET_NX) * (WIDTH / 2);
 }
 
 // ---------- distance transform (chamfer 3-4, dos pasadas) ----------
@@ -202,9 +237,16 @@ const C_VALLE = new THREE.Color("#2f9b4e"); // selva baja (esmeralda vivo)
 const C_LADERA = new THREE.Color("#1c6e39"); // ladera (verde selva profundo)
 const C_ALTO = new THREE.Color("#245c3c"); // selva de altura (verde oscuro)
 const C_BRUMA = new THREE.Color("#5f7a63"); // crestas del Baudó (verde-gris bruma)
+const C_VIA = new THREE.Color("#a3835a"); // carretera destapada (tierra chocoana)
 
 // sd = distancia con signo a la costa (unidades de mundo; + tierra, - mar).
-function heightColor(h: number, sd: number, out: THREE.Color): void {
+// rd = máscara de carretera 0..1 (pinta la vía sobre lo que toque).
+function heightColor(h: number, sd: number, rd: number, out: THREE.Color): void {
+  baseHeightColor(h, sd, out);
+  if (rd > 0.3) out.lerp(C_VIA, smoothstep(0.3, 0.8, rd));
+}
+
+function baseHeightColor(h: number, sd: number, out: THREE.Color): void {
   // Playa: en la franja costera (|sd| < BEACH) y a media agua, pintar arena
   // —mojada bajo el agua, seca al emerger— para que la rampa lea como playa.
   if (sd < BEACH && h > -1.0 && h < 0.45) {
@@ -298,7 +340,7 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
           heights[i] = h;
           pos.setZ(i, h);
 
-          heightColor(h, sd, tmpColor);
+          heightColor(h, sd, roadMask(pos.getX(i), pos.getY(i)), tmpColor);
           colors[i * 3] = tmpColor.r;
           colors[i * 3 + 1] = tmpColor.g;
           colors[i * 3 + 2] = tmpColor.b;

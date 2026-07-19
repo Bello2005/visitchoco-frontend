@@ -10,27 +10,29 @@ import {
 import type { RapierRigidBody, RapierContext } from "@react-three/rapier";
 import { useKeyboardControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { terrainHeight, worldGround, WATER_LEVEL } from "./ChocoTerrain";
+import {
+  terrainHeight,
+  worldGround,
+  roadCenterWorldX,
+  WATER_LEVEL,
+} from "./ChocoTerrain";
 
 type VehicleController = ReturnType<
   RapierContext["world"]["createVehicleController"]
 >;
 type Mode = "car" | "boat";
 
-// Spawn en la ESTRIBACIÓN ESTE, tierra firme clara y ANCHA (suelo ~0.56,
-// muy por encima del agua) con pendiente suave hacia el oeste — el carro
-// nace en tierra y maneja cuesta abajo al Atrato para transformarse en panga.
-// El valle central es apenas +0.2 (parece "dentro del agua"); esta cota alta
-// evita esa sensación. Recordar: terrainHeight toma (x, yLocal=-z).
-const SPAWN_X = 9;
-const SPAWN_Z = 7;
+// Spawn SOBRE LA CARRETERA del banco este del Atrato (cota plana ~0.34,
+// tierra firme), mirando al norte a lo largo de la vía — el jugador nace en
+// un camino que invita a conducir, con el río a un costado para la panga.
+const SPAWN_Z = 14;
 export const SPAWN_POS = {
-  x: SPAWN_X,
-  y: terrainHeight(SPAWN_X, -SPAWN_Z) + 1.2,
+  x: roadCenterWorldX(SPAWN_Z),
+  y: terrainHeight(roadCenterWorldX(SPAWN_Z), -SPAWN_Z) + 1.2,
   z: SPAWN_Z,
 };
-// -90° en Y: el carro nace mirando al OESTE (-X), de frente al río
-const SPAWN_ROT = { x: 0, y: -0.7071068, z: 0, w: 0.7071068 };
+// 180° en Y: mirando al NORTE (-Z mundo), a lo largo de la carretera
+const SPAWN_ROT = { x: 0, y: 1, z: 0, w: 0 };
 
 const CHASSIS_HALF: [number, number, number] = [0.9, 0.35, 1.6];
 const WHEEL_RADIUS = 0.32;
@@ -45,28 +47,34 @@ const WHEELS: [number, number, number][] = [
   [0.8, -0.25, -1.2],
 ];
 
-const ENGINE_FORWARD = 120;
-const ENGINE_REVERSE = -70;
+// Motor estilo folio-2025 (PhysicsVehicle.js, MIT): en vez de "coast" duro
+// (cortar el motor sobre una velocidad), la fuerza decae suave con el exceso:
+// force = ENGINE / (1 + exceso). Y frenos por intención: S con el carro andando
+// hacia adelante = FRENAR (no reversa); al ralentí, freno suave (no rueda solo).
+const ENGINE_FORWARD = 130;
+const ENGINE_REVERSE = -80;
 const MAX_STEER = 0.55;
-// Por encima de estas velocidades el motor deja de empujar (coast) — a 45N
-// tardaba ~9s en crucero; sin este cap, 120N acelera indefinidamente
-const CAR_COAST_SPEED = 14;
-const CAR_COAST_REVERSE_SPEED = 6;
-// Freno de mano al ralentí: sin él el chasis rueda solo cuesta abajo (el spawn
-// está en la playa en pendiente) y se metía al agua sin que el jugador tocara
-// nada. Al soltar acelerador se frena y queda quieto.
-const BRAKE_FORCE = 6;
+const CAR_TOP_SPEED = 16;
+const CAR_TOP_REVERSE = 7;
+const IDLE_BRAKE = 6; // ralentí: quieto en pendiente
+const REVERSE_BRAKE = 40; // S en marcha = frenada de verdad
 
-// Física de panga — calibrada para masa 120 (equilibrio: centro ~0.05
-// bajo el agua → casco visual ~60% sumergido, sin rozar el lecho a -0.45)
-const BUOY_K = 24000; // resorte de flotación (N por unidad de profundidad)
-const BUOY_C = 1400; // amortiguación vertical
-const BUOY_MAX_DEPTH = 0.5; // clamp: caer al mar no catapulta
-const BOAT_FORWARD = 500; // suficiente para vararse en orillas someras
-const BOAT_REVERSE = -350;
-const BOAT_TURN = 250;
-const DRAG_XZ = 0.985; // deriva de bote
-const DRAG_ANG = 0.96;
+// Flotación kinemática (patrón arcade): la altura del casco se fija por lerp
+// al nivel de flotación y la orientación se nivela por slerp — la física solo
+// gobierna el plano XZ (propulsión, deriva, choques). El fondo del collider
+// (half 0.35) queda en -0.40, con holgura sobre el lecho del cauce (-0.45).
+const FLOAT_DEPTH = 0.05; // centro del casco bajo el nivel del agua
+const FLOAT_LERP = 0.18; // sube de una entrada clavada en ~6 steps
+const WATER_LIN_DAMP = 1.1; // deriva de bote (el agua frena)
+const WATER_ANG_DAMP = 2.0;
+// Auto-enderezado del casco: slerp kinemático de la rotación hacia "solo yaw"
+// (pitch/roll → 0) cada step. Con torques el enderezado era demasiado lento
+// (inercia + damping); el slerp garantiza casco horizontal en ~0.5s sin tocar
+// el rumbo. Patrón arcade estándar de juegos de botes.
+const RIGHT_SLERP = 0.2;
+const BOAT_FORWARD = 520;
+const BOAT_REVERSE = -360;
+const BOAT_TURN = 420;
 const SWITCH_COOLDOWN_MS = 400; // histéresis anti-parpadeo
 
 // Transformación carro↔panga por REGIÓN de suelo (worldGround = polígono +
@@ -86,15 +94,17 @@ const FLYOVER_MAX_Y = WATER_LEVEL + 0.75;
 // Ariete de playa: la panga es LARGA (casco 3.4), su proa vara en el banco
 // mientras el centro sigue sobre agua honda — y el umbral de transformación
 // mira el centro. Sin ayuda queda clavada ahí. Cuando la PROA toca banco/tierra
-// empujamos arriba (1150N < peso 1177N: aligera sin volar) + adelante (extra)
-// para montar el casco hasta que el CENTRO llegue a agua somera y transforme.
-const BOAT_BEACH_ASSIST = 1150; // componente vertical (aligera el casco)
-const BOAT_BEACH_PUSH = 850; // componente hacia adelante (monta el banco)
+// empujamos hacia adelante (la flotación por gravityScale ya aligera el casco;
+// un empuje vertical aquí lo catapultaría) hasta que el centro llegue a agua
+// somera y transforme a carro, que termina la trepada con ruedas.
+const BOAT_BEACH_PUSH = 900;
 // La panga es larga: sondeamos el suelo a esta distancia de la proa.
 const BOW_REACH = 1.7;
 
 const _quat = new THREE.Quaternion();
+const _yawQuat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
+const _WORLD_UP = new THREE.Vector3(0, 1, 0);
 
 // Casco de panga (canoa de madera del Atrato): parte de una caja y la deforma —
 // puntas afinadas en proa/popa, borde superior elevado (sheer) y quilla curvada
@@ -199,6 +209,13 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     chassis.resetForces(true);
     chassis.resetTorques(true);
 
+    // Física de tierra: deshace lo que el modo panga cambia en el body
+    const landPhysics = () => {
+      chassis.setGravityScale(1, true);
+      chassis.setLinearDamping(0);
+      chassis.setAngularDamping(0);
+    };
+
     // Reset manual (R) o anti-caída: SIEMPRE vuelve como carro al spawn
     if (reset || chassis.translation().y < -5) {
       chassis.setTranslation(SPAWN_POS, true);
@@ -206,6 +223,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       chassis.setLinvel({ x: 0, y: 0, z: 0 }, true);
       chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
       steering.current = 0;
+      landPhysics();
       modeRef.current = "car";
       setModeVisual("car");
       lastSwitch.current = performance.now();
@@ -230,39 +248,54 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       // quedaría clavado bajo el terreno — lo apoyamos sobre el suelo.
       const restY = ground + 0.5;
       if (t.y < restY) chassis.setTranslation({ x: t.x, y: restY, z: t.z }, true);
-      // Amortiguar el impulso del ariete: sin esto el carro sale volando (el
-      // empuje de playa acumula velocidad vertical). Matar el vertical y limitar
-      // el horizontal a velocidad de conducción — aterriza suave y sigue rodando.
+      // Amortiguar el impulso del ariete: matar vertical y limitar horizontal
+      // a velocidad de conducción — aterriza suave y sigue rodando.
       const lv = chassis.linvel();
       const horiz = Math.hypot(lv.x, lv.z);
       const cap = horiz > 6 ? 6 / horiz : 1;
       chassis.setLinvel({ x: lv.x * cap * 0.6, y: 0, z: lv.z * cap * 0.6 }, true);
       const av = chassis.angvel();
       chassis.setAngvel({ x: 0, y: av.y * 0.5, z: 0 }, true);
+      landPhysics();
     }
 
     if (modeRef.current === "car") {
       const speed = Math.hypot(chassis.linvel().x, chassis.linvel().z);
-      const coasting =
-        (forward && speed > CAR_COAST_SPEED) ||
-        (backward && speed > CAR_COAST_REVERSE_SPEED);
-      const engineForce = coasting
-        ? 0
-        : forward
-          ? ENGINE_FORWARD
-          : backward
-            ? ENGINE_REVERSE
-            : 0;
+
+      // Motor estilo folio-2025: decae suave con el exceso sobre el tope
+      // (sin corte duro) — force = ENGINE / (1 + exceso).
+      const topSpeed = forward ? CAR_TOP_SPEED : CAR_TOP_REVERSE;
+      const overflow = Math.max(0, speed - topSpeed);
+      let engineForce = forward
+        ? ENGINE_FORWARD / (1 + overflow)
+        : backward
+          ? ENGINE_REVERSE / (1 + overflow)
+          : 0;
+
+      // Frenos por intención (folio-2025): S con el carro andando hacia
+      // adelante = FRENAR (no reversa); sin acelerador = freno de ralentí.
+      const vel = chassis.linvel();
+      const r0 = chassis.rotation();
+      _quat.set(r0.x, r0.y, r0.z, r0.w);
+      _forward.set(0, 0, 1).applyQuaternion(_quat);
+      const forwardSpeed = vel.x * _forward.x + vel.z * _forward.z;
+      let brake = 0;
+      if (!forward && !backward) {
+        brake = IDLE_BRAKE;
+      } else if (backward && forwardSpeed > 0.8) {
+        brake = REVERSE_BRAKE;
+        engineForce = 0;
+      } else if (forward && forwardSpeed < -0.8) {
+        brake = REVERSE_BRAKE;
+        engineForce = 0;
+      }
+
       // Tracción 4x4: sin ella el chasis (largo) queda varado en la cresta
       // del banco del río con las traseras sin apoyo
       vehicle.setWheelEngineForce(0, engineForce);
       vehicle.setWheelEngineForce(1, engineForce);
       vehicle.setWheelEngineForce(2, engineForce);
       vehicle.setWheelEngineForce(3, engineForce);
-
-      // Freno al ralentí (sin acelerador): mantiene el carro quieto en la
-      // pendiente del spawn en vez de rodar solo al agua.
-      const brake = !forward && !backward ? BRAKE_FORCE : 0;
       vehicle.setWheelBrake(0, brake);
       vehicle.setWheelBrake(1, brake);
       vehicle.setWheelBrake(2, brake);
@@ -270,7 +303,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
 
       // Steering pierde autoridad con la velocidad (patrón arcade) — a
       // fondo y a máxima velocidad, giro completo volcaba el chasis
-      const steerScale = 1 - 0.5 * Math.min(speed / CAR_COAST_SPEED, 1);
+      const steerScale = 1 - 0.5 * Math.min(speed / CAR_TOP_SPEED, 1);
       const targetSteer =
         (left ? MAX_STEER : right ? -MAX_STEER : 0) * steerScale;
       steering.current = THREE.MathUtils.lerp(
@@ -291,17 +324,37 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       return;
     }
 
-    // ---- modo panga: flotación + propulsión, sin raycast vehicle ----
-    const depth = WATER_LEVEL - chassis.translation().y;
-    if (depth > 0) {
-      const clamped = Math.min(depth, BUOY_MAX_DEPTH);
-      const fUp = clamped * BUOY_K - chassis.linvel().y * BUOY_C;
-      chassis.addForce({ x: 0, y: fUp, z: 0 }, true);
-    }
+    // ---- modo panga: vertical y orientación KINEMÁTICOS, física solo en XZ --
+    // La flotación por fuerzas (resorte o gravityScale) fallaba en los bordes:
+    // el casco entraba clavado por el barranco, los contactos con el lecho lo
+    // dejaban de punta y ninguna fuerza ganaba esa pelea. Patrón arcade
+    // definitivo: cada step se FIJA la altura de flotación (lerp al nivel del
+    // agua) y se nivela el casco (slerp fuerte a "solo yaw"); la propulsión y
+    // la deriva siguen siendo físicas en el plano XZ. Cero atascos posibles.
+    chassis.setGravityScale(0, true);
+    chassis.setLinearDamping(WATER_LIN_DAMP);
+    chassis.setAngularDamping(WATER_ANG_DAMP);
+
+    const tb = chassis.translation();
+    const targetY = WATER_LEVEL - FLOAT_DEPTH;
+    chassis.setTranslation(
+      { x: tb.x, y: tb.y + (targetY - tb.y) * FLOAT_LERP, z: tb.z },
+      true
+    );
+    const lvB = chassis.linvel();
+    chassis.setLinvel({ x: lvB.x, y: 0, z: lvB.z }, true);
 
     const r = chassis.rotation();
     _quat.set(r.x, r.y, r.z, r.w);
-    _forward.set(0, 0, 1).applyQuaternion(_quat); // +Z local = frente
+    _forward.set(0, 0, 1).applyQuaternion(_quat);
+    const yaw = Math.atan2(_forward.x, _forward.z);
+    _yawQuat.setFromAxisAngle(_WORLD_UP, yaw);
+    _quat.slerp(_yawQuat, RIGHT_SLERP);
+    chassis.setRotation(
+      { x: _quat.x, y: _quat.y, z: _quat.z, w: _quat.w },
+      true
+    );
+    _forward.set(0, 0, 1).applyQuaternion(_quat); // frente ya nivelado
 
     if (forward || backward) {
       const f = forward ? BOAT_FORWARD : BOAT_REVERSE;
@@ -311,32 +364,19 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       chassis.addTorque({ x: 0, y: left ? BOAT_TURN : -BOAT_TURN, z: 0 }, true);
     }
     // Ariete de playa: mira el suelo bajo la PROA (la panga vara de proa antes
-    // que de centro). Si la proa toca banco/tierra, empuja arriba + adelante
-    // para montar el casco hasta que el centro entre en agua somera.
-    const tp = chassis.translation();
+    // que de centro). Si la proa toca banco/tierra, empuja hacia adelante hasta
+    // que el centro entre en agua somera y transforme a carro.
     const bowGround = worldGround(
-      tp.x + _forward.x * BOW_REACH,
-      tp.z + _forward.z * BOW_REACH
+      tb.x + _forward.x * BOW_REACH,
+      tb.z + _forward.z * BOW_REACH
     );
     const bowShallow = WATER_LEVEL - bowGround < WATER_ENTER_DEPTH;
     if (forward && (bowShallow || waterDepth < WATER_ENTER_DEPTH)) {
       chassis.addForce(
-        {
-          x: _forward.x * BOAT_BEACH_PUSH,
-          y: BOAT_BEACH_ASSIST,
-          z: _forward.z * BOAT_BEACH_PUSH,
-        },
+        { x: _forward.x * BOAT_BEACH_PUSH, y: 0, z: _forward.z * BOAT_BEACH_PUSH },
         true
       );
     }
-
-    const lv = chassis.linvel();
-    chassis.setLinvel({ x: lv.x * DRAG_XZ, y: lv.y, z: lv.z * DRAG_XZ }, true);
-    const av = chassis.angvel();
-    chassis.setAngvel(
-      { x: av.x * DRAG_ANG, y: av.y * DRAG_ANG, z: av.z * DRAG_ANG },
-      true
-    );
   });
 
   // Splash: anillo reutilizable, escala 0.5→3 y opacity 0.5→0 en ~0.35s
@@ -359,7 +399,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         ref={chassisRef}
         colliders={false}
         position={[SPAWN_POS.x, SPAWN_POS.y, SPAWN_POS.z]}
-        rotation={[0, -Math.PI / 2, 0]}
+        rotation={[0, Math.PI, 0]}
         canSleep={false}
       >
         <CuboidCollider args={CHASSIS_HALF} mass={120} />
