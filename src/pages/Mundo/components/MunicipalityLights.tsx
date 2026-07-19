@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { loadChocoGeo } from "../utils/geo";
 import { terrainHeight, WATER_LEVEL } from "./ChocoTerrain";
+import { applyReveal } from "../utils/applyReveal";
 
 // TODO: vendrá de la API. Coordenadas aproximadas — el diorama es estilizado.
 const MUNICIPIOS: { name: string; lon: number; lat: number }[] = [
@@ -101,14 +102,15 @@ export default function MunicipalityLights() {
   // emissiveIntensity sin recorrer meshes. PROHIBIDO pointLight por municipio.
   const materials = useMemo(
     () =>
-      towns?.map(
-        () =>
-          new THREE.MeshStandardMaterial({
-            color: "#ffb347",
-            emissive: "#ffb347",
-            emissiveIntensity: 2,
-          })
-      ) ?? null,
+      towns?.map(() => {
+        const m = new THREE.MeshStandardMaterial({
+          color: "#ffb347",
+          emissive: "#ffb347",
+          emissiveIntensity: 2,
+        });
+        applyReveal(m); // se materializan con el territorio
+        return m;
+      }) ?? null,
     [towns]
   );
 

@@ -9,7 +9,6 @@ import {
   HEIGHT,
 } from "../utils/geo";
 import { applyReveal } from "../utils/applyReveal";
-import { triggerReveal } from "../utils/revealUniforms";
 
 // Diorama estilizado: NO es un DEM real. El plano es alargado N-S como el Chocó.
 export { WIDTH, HEIGHT };
@@ -333,15 +332,7 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
   // TODO: si FPS sufre, migrar a heightfield collider desde terrainHeight.
   return (
     <RigidBody type="fixed" colliders="trimesh">
-      <mesh
-        geometry={geometry}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          triggerReveal(e.point);
-        }}
-      >
+      <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <meshStandardMaterial
           flatShading
           vertexColors

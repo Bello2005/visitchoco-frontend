@@ -1,27 +1,38 @@
 import * as THREE from "three";
 import { revealUniforms } from "./revealUniforms";
 
-// Inyecta el efecto de revelado radial en un material de Three sin
-// romper vertexColors, flatShading, transparencia ni desplazamiento de
-// vértices por CPU (la posición mundial se calcula desde `transformed`).
+// Materialización estilo folio-2025 (Bruno Simon, MIT — ver
+// public/models/folio/LICENSE.md): más allá del radio de revelado el fragmento
+// se DESCARTA (el mundo aparece desde el centro hacia afuera), con un frente de
+// onda brillante en el borde. Distancia HORIZONTAL (xz) como en el original.
+// Compatible con vertexColors, flatShading, transparencia, desplazamiento de
+// vértices por CPU (agua) e INSTANCING (árboles).
 export function applyReveal(material: THREE.Material): void {
   material.onBeforeCompile = (shader) => {
-    // Referencias al singleton: la animación externa muta estos values
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
     shader.uniforms.uRevealRadius = revealUniforms.uRevealRadius;
+    shader.uniforms.uRevealThickness = revealUniforms.uRevealThickness;
+    shader.uniforms.uRevealColor = revealUniforms.uRevealColor;
+    shader.uniforms.uRevealIntensity = revealUniforms.uRevealIntensity;
 
     shader.vertexShader = shader.vertexShader
       .replace(
         "#include <common>",
         "#include <common>\nvarying vec3 vRevealWorldPos;"
       )
-      // No dependemos de worldPosition (solo existe con ciertos defines):
-      // lo calculamos siempre desde `transformed`, que ya incluye el
-      // desplazamiento de vértices del agua.
+      // Posición mundial desde `transformed` (incluye el oleaje del agua) y, si
+      // el mesh es instanciado (árboles), la matriz de instancia.
       .replace(
         "#include <worldpos_vertex>",
         `#include <worldpos_vertex>
-	vRevealWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`
+	{
+		vec4 revealWP = vec4(transformed, 1.0);
+		#ifdef USE_INSTANCING
+			revealWP = instanceMatrix * revealWP;
+		#endif
+		revealWP = modelMatrix * revealWP;
+		vRevealWorldPos = revealWP.xyz;
+	}`
       );
 
     shader.fragmentShader = shader.fragmentShader
@@ -30,27 +41,27 @@ export function applyReveal(material: THREE.Material): void {
         `#include <common>
 varying vec3 vRevealWorldPos;
 uniform vec3 uRevealCenter;
-uniform float uRevealRadius;`
+uniform float uRevealRadius;
+uniform float uRevealThickness;
+uniform vec3 uRevealColor;
+uniform float uRevealIntensity;`
       )
-      // Al FINAL del pipeline (tras tonemapping/encoding): oscurecer fuera
-      // del radio y pintar el frente de onda ámbar. El 1.5 empuja el anillo
-      // por encima del threshold 0.9 del Bloom (buffers HalfFloat).
+      // Al FINAL del pipeline (tras tonemapping/encoding): descartar fuera del
+      // radio y pintar el frente de onda. El *intensity (>1) empuja el anillo
+      // por encima del threshold 0.9 del Bloom (buffers HalfFloat) → brilla.
       .replace(
         "#include <dithering_fragment>",
         `#include <dithering_fragment>
 	{
-		float dReveal = distance(vRevealWorldPos, uRevealCenter);
-		float revealLit = 1.0 - smoothstep(uRevealRadius - 3.0, uRevealRadius, dReveal);
-		float revealDark = mix(0.35, 1.0, revealLit);
-		float revealRing = smoothstep(1.5, 0.0, abs(dReveal - uRevealRadius)) * step(0.01, uRevealRadius);
-		vec3 revealRingColor = vec3(1.0, 0.702, 0.278) * revealRing * 1.5;
-		gl_FragColor.rgb = gl_FragColor.rgb * revealDark + revealRingColor;
+		float dReveal = distance(vRevealWorldPos.xz, uRevealCenter.xz);
+		if (dReveal > uRevealRadius) discard;
+		float ring = smoothstep(uRevealRadius - uRevealThickness, uRevealRadius, dReveal);
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, uRevealColor * uRevealIntensity, ring);
 	}`
       );
   };
 
-  // Sin esto Three reutiliza programas cacheados de materiales con los
-  // mismos defines pero SIN la inyección (p.ej. el casco de la panga
-  // comparte defines con el agua) — o al revés.
+  // Sin esto Three reutiliza programas cacheados de materiales con los mismos
+  // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
   material.customProgramCacheKey = () => "reveal";
 }

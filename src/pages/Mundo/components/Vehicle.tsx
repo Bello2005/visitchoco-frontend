@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import * as THREE from "three";
 import {
@@ -24,7 +24,7 @@ type Mode = "car" | "boat";
 // evita esa sensación. Recordar: terrainHeight toma (x, yLocal=-z).
 const SPAWN_X = 9;
 const SPAWN_Z = 7;
-const SPAWN_POS = {
+export const SPAWN_POS = {
   x: SPAWN_X,
   y: terrainHeight(SPAWN_X, -SPAWN_Z) + 1.2,
   z: SPAWN_Z,
@@ -52,6 +52,10 @@ const MAX_STEER = 0.55;
 // tardaba ~9s en crucero; sin este cap, 120N acelera indefinidamente
 const CAR_COAST_SPEED = 14;
 const CAR_COAST_REVERSE_SPEED = 6;
+// Freno de mano al ralentí: sin él el chasis rueda solo cuesta abajo (el spawn
+// está en la playa en pendiente) y se metía al agua sin que el jugador tocara
+// nada. Al soltar acelerador se frena y queda quieto.
+const BRAKE_FORCE = 6;
 
 // Física de panga — calibrada para masa 120 (equilibrio: centro ~0.05
 // bajo el agua → casco visual ~60% sumergido, sin rozar el lecho a -0.45)
@@ -92,6 +96,30 @@ const BOW_REACH = 1.7;
 const _quat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
 
+// Casco de panga (canoa de madera del Atrato): parte de una caja y la deforma —
+// puntas afinadas en proa/popa, borde superior elevado (sheer) y quilla curvada
+// (rocker). Low-poly, flat-shaded. Frente = +Z local.
+function makeCanoeGeometry(): THREE.BufferGeometry {
+  const g = new THREE.BoxGeometry(0.95, 0.5, 3.4, 3, 3, 14);
+  const pos = g.attributes.position;
+  const halfLen = 1.7;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const t = Math.min(1, Math.abs(z) / halfLen); // 0 centro .. 1 puntas
+    const taper = 1 - Math.pow(t, 1.5) * 0.95; // afinar ancho hacia las puntas
+    let ny = y;
+    if (y > 0) ny += Math.pow(t, 2.2) * 0.6; // sheer: borde superior sube
+    else ny += Math.pow(t, 2.4) * 0.3; // rocker: quilla sube en las puntas
+    pos.setX(i, x * taper);
+    pos.setY(i, ny);
+  }
+  pos.needsUpdate = true;
+  g.computeVertexNormals();
+  return g;
+}
+
 interface VehicleProps {
   chassisRef: RefObject<RapierRigidBody | null>;
 }
@@ -106,6 +134,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
   const splashRef = useRef<THREE.Mesh>(null);
   const splashStart = useRef(-1);
   const [, getKeys] = useKeyboardControls();
+
+  const canoeGeo = useMemo(makeCanoeGeometry, []);
+  useEffect(() => () => canoeGeo.dispose(), [canoeGeo]);
 
   const triggerSplash = () => {
     const splash = splashRef.current;
@@ -228,6 +259,14 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       vehicle.setWheelEngineForce(1, engineForce);
       vehicle.setWheelEngineForce(2, engineForce);
       vehicle.setWheelEngineForce(3, engineForce);
+
+      // Freno al ralentí (sin acelerador): mantiene el carro quieto en la
+      // pendiente del spawn en vez de rodar solo al agua.
+      const brake = !forward && !backward ? BRAKE_FORCE : 0;
+      vehicle.setWheelBrake(0, brake);
+      vehicle.setWheelBrake(1, brake);
+      vehicle.setWheelBrake(2, brake);
+      vehicle.setWheelBrake(3, brake);
 
       // Steering pierde autoridad con la velocidad (patrón arcade) — a
       // fondo y a máxima velocidad, giro completo volcaba el chasis
@@ -353,20 +392,28 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
             </mesh>
           ))}
         </group>
-        {/* Placeholder panga: casco de madera + proa inclinada al frente */}
-        <group visible={modeVisual === "boat"}>
-          <mesh castShadow position={[0, -0.15, 0]}>
-            <boxGeometry args={[1.4, 0.35, 3.4]} />
-            <meshStandardMaterial flatShading color="#7c4a1e" />
+        {/* Panga: canoa de madera del Atrato (casco afinado en las puntas) */}
+        <group visible={modeVisual === "boat"} position={[0, -0.12, 0]}>
+          <mesh castShadow geometry={canoeGeo}>
+            <meshStandardMaterial flatShading color="#7c4a1e" roughness={0.9} />
           </mesh>
-          {/* Proa con linterna ámbar tenue — única luz de la panga */}
-          <mesh castShadow position={[0, -0.02, 1.85]} rotation={[-0.35, 0, 0]}>
-            <boxGeometry args={[1.2, 0.3, 0.9]} />
+          {/* Interior oscuro: sensación de bote hueco */}
+          <mesh position={[0, 0.16, 0]}>
+            <boxGeometry args={[0.5, 0.05, 2.5]} />
+            <meshStandardMaterial flatShading color="#3a2712" roughness={1} />
+          </mesh>
+          {/* Banco central */}
+          <mesh castShadow position={[0, 0.24, -0.1]}>
+            <boxGeometry args={[0.62, 0.07, 0.28]} />
+            <meshStandardMaterial flatShading color="#8a5a2b" />
+          </mesh>
+          {/* Farol de proa ámbar — única luz de la panga */}
+          <mesh castShadow position={[0, 0.42, 1.35]}>
+            <boxGeometry args={[0.16, 0.28, 0.16]} />
             <meshStandardMaterial
-              flatShading
-              color="#7c4a1e"
+              color="#5b3814"
               emissive="#ffb347"
-              emissiveIntensity={0.4}
+              emissiveIntensity={0.7}
             />
           </mesh>
         </group>

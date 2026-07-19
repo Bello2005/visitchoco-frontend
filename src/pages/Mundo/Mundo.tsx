@@ -15,7 +15,14 @@ import FollowCamera from "./components/FollowCamera";
 import MunicipalityLights from "./components/MunicipalityLights";
 import RevealController from "./components/RevealController";
 import MundoLoader from "./components/MundoLoader";
-import { revealUniforms, REVEAL_MAX } from "./utils/revealUniforms";
+import { SPAWN_POS } from "./components/Vehicle";
+import {
+  startIntro,
+  explodeReveal,
+  revealAll,
+  setRevealCenter,
+  revealState,
+} from "./utils/revealUniforms";
 
 const controlsMap = [
   { name: "forward", keys: ["KeyW", "ArrowUp"] },
@@ -67,35 +74,60 @@ export default function Mundo() {
   const handleTerrainReady = useCallback(() => setTerrainReady(true), []);
   const handleFirstFrame = useCallback(() => setFirstFrame(true), []);
 
+  // Centro del revelado = spawn (xz). reduced-motion: mundo nace revelado.
+  const introStarted = useRef(false);
+  useEffect(() => {
+    setRevealCenter(SPAWN_POS.x, SPAWN_POS.z);
+    if (reducedMotion) revealAll();
+  }, [reducedMotion]);
+
+  // Loader + ETAPA 1 del intro: con las dos señales reales (terreno + primer
+  // frame) retiramos el loader y brota el círculo pequeño alrededor del spawn
+  // (el territorio se materializa desde ahí, estilo folio-2025).
   useEffect(() => {
     if (!(terrainReady && firstFrame)) return;
     const fadeTimer = setTimeout(() => setLoaderFading(true), 300);
     const unmountTimer = setTimeout(() => setLoaderVisible(false), 900);
+    let introTimer: ReturnType<typeof setTimeout> | undefined;
+    if (!reducedMotion && !introStarted.current) {
+      introStarted.current = true;
+      introTimer = setTimeout(() => startIntro(), 350);
+    }
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(unmountTimer);
+      if (introTimer) clearTimeout(introTimer);
     };
-  }, [terrainReady, firstFrame]);
+  }, [terrainReady, firstFrame, reducedMotion]);
 
-  // Overlay de instrucción: visible hasta el primer doble click (nunca
-  // con reduced-motion — el mundo nace revelado, sin ritual).
+  // Overlay de instrucción + ETAPA 2: clic o tecla de movimiento hace EXPLOTAR
+  // el territorio hacia afuera (una sola vez) y entrega el control al jugador.
   const [hintVisible, setHintVisible] = useState(!reducedMotion);
   const [hintFading, setHintFading] = useState(false);
 
   useEffect(() => {
+    if (reducedMotion) return;
     const onReveal = () => {
       setHintFading(true);
       setTimeout(() => setHintVisible(false), 500);
-      window.removeEventListener("mundo:reveal", onReveal);
+    };
+    const onInteract = () => {
+      if (!introStarted.current) return;
+      if (revealState.phase === "exploding" || revealState.phase === "done")
+        return;
+      explodeReveal();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (["Enter", "Space", "ArrowUp", "KeyW"].includes(e.code)) onInteract();
     };
     window.addEventListener("mundo:reveal", onReveal);
-    return () => window.removeEventListener("mundo:reveal", onReveal);
-  }, []);
-
-  // reduced-motion: nacer con el territorio revelado (las luces siguen
-  // al progreso en RevealController).
-  useEffect(() => {
-    if (reducedMotion) revealUniforms.uRevealRadius.value = REVEAL_MAX;
+    window.addEventListener("pointerdown", onInteract);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mundo:reveal", onReveal);
+      window.removeEventListener("pointerdown", onInteract);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [reducedMotion]);
 
   // Título del documento mientras se está en /mundo
@@ -205,7 +237,7 @@ export default function Mundo() {
           }`}
         >
           <p className="font-sans text-sm tracking-wide text-white/90 drop-shadow-[0_1px_3px_rgba(2,13,26,0.6)] md:text-base">
-            Doble click para despertar el territorio
+            Haz clic para descubrir el territorio
           </p>
         </div>
       )}
