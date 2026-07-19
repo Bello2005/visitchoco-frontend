@@ -5,6 +5,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
 import type { ChocoGeo } from "../utils/geo";
 import { worldGround } from "./ChocoTerrain";
+import { applyReveal } from "../utils/applyReveal";
 
 // Vegetación de la selva húmeda del Pacífico. Modelos low-poly de Bruno Simon
 // (folio-2025, licencia MIT — ver public/models/folio/LICENSE.md), recoloreados
@@ -200,7 +201,14 @@ function TreeSpecies({
         receiveShadow
         frustumCulled={false}
       >
-        <meshStandardMaterial color={trunkColor} flatShading roughness={0.9} />
+        <meshStandardMaterial
+          color={trunkColor}
+          flatShading
+          roughness={0.9}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
       </instancedMesh>
       <instancedMesh
         ref={canopyRef}
@@ -209,7 +217,14 @@ function TreeSpecies({
         receiveShadow
         frustumCulled={false}
       >
-        <meshStandardMaterial color={canopyColor} flatShading roughness={0.85} />
+        <meshStandardMaterial
+          color={canopyColor}
+          flatShading
+          roughness={0.85}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
       </instancedMesh>
     </group>
   );
