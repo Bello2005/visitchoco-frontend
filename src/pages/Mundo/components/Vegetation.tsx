@@ -4,7 +4,8 @@ import { useGLTF } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
 import type { ChocoGeo } from "../utils/geo";
-import { worldGround } from "./ChocoTerrain";
+import { worldGround, roadMask } from "./ChocoTerrain";
+import { SPAWN_POS } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
 
 // Vegetación de la selva húmeda del Pacífico. Modelos low-poly de Bruno Simon
@@ -108,8 +109,11 @@ function scatter(
     const h = worldGround(x, -y);
     if (h < 0.42 || h > 3.4) continue; // por encima de la playa, bajo la bruma
 
-    // Claro de aparición del carro (world 9,7 → local 9,-7): que se vea al nacer
-    if (Math.hypot(x - 9, y + 7) < 5) continue;
+    // Ni sobre la carretera ni en su berma
+    if (roadMask(x, y) > 0.18) continue;
+
+    // Claro de aparición del carro (coords locales: x, y = -z mundo)
+    if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 4) continue;
 
     out.push({
       x,
@@ -230,14 +234,96 @@ function TreeSpecies({
   );
 }
 
-// Selva del Chocó: dos siluetas, copa esmeralda y una variedad más clara para
-// dar profundidad al dosel. Tronco de corteza húmeda oscura.
+// Rocas de la Serranía: dodecaedros instanciados en las cotas altas — 1 draw
+// call, dan textura a las crestas que se veían peladas.
+function Rocks({ count, seedBase }: { count: number; seedBase: number }) {
+  const geometry = useMemo(() => new THREE.DodecahedronGeometry(0.32, 0), []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  const [instances, setInstances] = useState<Instance[] | null>(null);
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadChocoGeo().then((geo) => {
+      if (cancelled) return;
+      const out: Instance[] = [];
+      let tries = 0;
+      while (out.length < count && tries < count * 80) {
+        const s = seedBase + tries * 11;
+        tries++;
+        const x = (seeded(s) - 0.5) * WIDTH;
+        const y = (seeded(s + 1) - 0.5) * HEIGHT;
+        const { lon, lat } = localToLonLat(geo, x, y);
+        if (!geo.isInside(lon, lat)) continue;
+        const h = worldGround(x, -y);
+        if (h < 1.9 || h > 4.2) continue; // solo cotas altas de la Serranía
+        out.push({
+          x,
+          z: -y,
+          y: h - 0.1,
+          rotY: seeded(s + 2) * Math.PI * 2,
+          tiltX: (seeded(s + 3) - 0.5) * 0.6,
+          tiltZ: (seeded(s + 4) - 0.5) * 0.6,
+          scale: 0.5 + seeded(s + 5) * 1.1,
+        });
+      }
+      setInstances(out);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [count, seedBase, geometry]);
+
+  useLayoutEffect(() => {
+    if (!instances || !meshRef.current) return;
+    const m = new THREE.Matrix4();
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scl = new THREE.Vector3();
+    const euler = new THREE.Euler();
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i];
+      pos.set(inst.x, inst.y, inst.z);
+      euler.set(inst.tiltX, inst.rotY, inst.tiltZ);
+      quat.setFromEuler(euler);
+      scl.setScalar(inst.scale);
+      m.compose(pos, quat, scl);
+      meshRef.current.setMatrixAt(i, m);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [instances]);
+
+  if (!instances || instances.length === 0) return null;
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, undefined, instances.length]}
+      castShadow
+      receiveShadow
+      frustumCulled={false}
+    >
+      <meshStandardMaterial
+        color="#7d8577"
+        flatShading
+        roughness={0.95}
+        ref={(m) => {
+          if (m) applyReveal(m);
+        }}
+      />
+    </instancedMesh>
+  );
+}
+
+// Selva del Chocó: dos siluetas de árbol + matorral bajo + rocas de cresta.
+// Todo instanciado: 7 draw calls en total.
 export default function Vegetation() {
   return (
     <>
       <TreeSpecies
         url={MODELS.oak}
-        count={320}
+        count={520}
         seedBase={101}
         targetHeight={2.1}
         trunkColor="#4a3a28"
@@ -245,12 +331,22 @@ export default function Vegetation() {
       />
       <TreeSpecies
         url={MODELS.cherry}
-        count={220}
+        count={380}
         seedBase={877}
         targetHeight={1.7}
         trunkColor="#4a3a28"
         canopyColor="#37a457"
       />
+      {/* Matorral: la misma silueta cherry a escala de arbusto, pegada al piso */}
+      <TreeSpecies
+        url={MODELS.cherry}
+        count={300}
+        seedBase={3301}
+        targetHeight={0.55}
+        trunkColor="#3a2d1e"
+        canopyColor="#2c8a4b"
+      />
+      <Rocks count={150} seedBase={7717} />
     </>
   );
 }

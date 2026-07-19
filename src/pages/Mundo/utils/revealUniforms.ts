@@ -17,10 +17,10 @@ export const revealUniforms = {
   uRevealIntensity: { value: 2.6 },
 };
 
-// Radio que cubre el diorama (40x60) desde el spawn; al terminar salta a ∞.
-export const REVEAL_MAX = 65;
+// Radio que cubre el diorama (60x90) desde el spawn; al terminar salta a ∞.
+export const REVEAL_MAX = 105;
 // Círculo pequeño inicial alrededor del spawn (etapa 1).
-export const INTRO_RADIUS = 7;
+export const INTRO_RADIUS = 8;
 
 type Phase = "idle" | "intro" | "exploding" | "done";
 

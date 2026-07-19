@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { loadChocoGeo } from "../utils/geo";
-import { terrainHeight, WATER_LEVEL } from "./ChocoTerrain";
+import { terrainHeight, worldGround, WATER_LEVEL } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 
 // TODO: vendrá de la API. Coordenadas aproximadas — el diorama es estilizado.
@@ -151,6 +151,114 @@ export default function MunicipalityLights() {
           ))}
         </group>
       ))}
+      <Caserios towns={towns} />
+    </>
+  );
+}
+
+// Caseríos: casitas low-poly instanciadas alrededor de cada municipio
+// (paredes + techos = 2 draw calls). El pueblo deja de ser solo un puntito.
+function Caserios({ towns }: { towns: Town[] }) {
+  const wallGeo = useMemo(() => new THREE.BoxGeometry(0.34, 0.22, 0.28), []);
+  const roofGeo = useMemo(() => {
+    const g = new THREE.ConeGeometry(0.26, 0.16, 4);
+    g.rotateY(Math.PI / 4);
+    return g;
+  }, []);
+  useEffect(
+    () => () => {
+      wallGeo.dispose();
+      roofGeo.dispose();
+    },
+    [wallGeo, roofGeo]
+  );
+
+  const placements = useMemo(() => {
+    const out: { x: number; y: number; z: number; rotY: number; s: number }[] =
+      [];
+    for (let i = 0; i < towns.length; i++) {
+      const t = towns[i];
+      const n = 3 + Math.floor(seeded(i * 91 + 5) * 3); // 3..5 casas
+      for (let k = 0; k < n; k++) {
+        const ox = (seeded(i * 131 + k * 17 + 3) - 0.5) * 2.4;
+        const oz = (seeded(i * 151 + k * 19 + 8) - 0.5) * 2.4;
+        const wx = t.center[0] + ox;
+        const wz = t.center[2] + oz;
+        const g = worldGround(wx, wz);
+        if (g < 0.1) continue; // ni en el agua ni en la playa mojada
+        out.push({
+          x: wx,
+          y: g + 0.1,
+          z: wz,
+          rotY: seeded(i * 171 + k * 23) * Math.PI * 2,
+          s: 0.85 + seeded(i * 191 + k * 29) * 0.5,
+        });
+      }
+    }
+    return out;
+  }, [towns]);
+
+  const wallsRef = useRef<THREE.InstancedMesh>(null);
+  const roofsRef = useRef<THREE.InstancedMesh>(null);
+
+  useLayoutEffect(() => {
+    if (!placements.length) return;
+    const m = new THREE.Matrix4();
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scl = new THREE.Vector3();
+    const euler = new THREE.Euler();
+    for (let i = 0; i < placements.length; i++) {
+      const p = placements[i];
+      euler.set(0, p.rotY, 0);
+      quat.setFromEuler(euler);
+      scl.setScalar(p.s);
+      pos.set(p.x, p.y, p.z);
+      m.compose(pos, quat, scl);
+      wallsRef.current?.setMatrixAt(i, m);
+      pos.y += 0.19 * p.s;
+      m.compose(pos, quat, scl);
+      roofsRef.current?.setMatrixAt(i, m);
+    }
+    if (wallsRef.current) wallsRef.current.instanceMatrix.needsUpdate = true;
+    if (roofsRef.current) roofsRef.current.instanceMatrix.needsUpdate = true;
+  }, [placements]);
+
+  if (!placements.length) return null;
+
+  return (
+    <>
+      <instancedMesh
+        ref={wallsRef}
+        args={[wallGeo, undefined, placements.length]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      >
+        <meshStandardMaterial
+          color="#e6d7bd"
+          flatShading
+          roughness={0.9}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
+      </instancedMesh>
+      <instancedMesh
+        ref={roofsRef}
+        args={[roofGeo, undefined, placements.length]}
+        castShadow
+        frustumCulled={false}
+      >
+        <meshStandardMaterial
+          color="#b0562f"
+          flatShading
+          roughness={0.85}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
+      </instancedMesh>
     </>
   );
 }
