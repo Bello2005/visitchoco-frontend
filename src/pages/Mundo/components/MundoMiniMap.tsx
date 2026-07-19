@@ -118,7 +118,7 @@ export default function MundoMiniMap() {
 
   return (
     <div
-      className="pointer-events-none absolute bottom-4 right-4 z-10 hidden select-none
+      className="pointer-events-none absolute right-4 top-4 z-10 hidden select-none
                  overflow-hidden rounded-2xl border border-white/15 shadow-[0_8px_32px_rgba(2,13,26,0.45)]
                  backdrop-blur-md md:block"
       style={{ background: "rgba(2, 13, 26, 0.55)" }}

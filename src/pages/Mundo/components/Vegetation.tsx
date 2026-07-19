@@ -268,7 +268,7 @@ function Rocks({ count, seedBase }: { count: number; seedBase: number }) {
         const { lon, lat } = localToLonLat(geo, x, y);
         if (!geo.isInside(lon, lat)) continue;
         const h = worldGround(x, -y);
-        if (h < 1.9 || h > 4.2) continue; // solo cotas altas de la Serranía
+        if (h < 1.9 || h > 5.4) continue; // solo cotas altas de la Serranía
         out.push({
           x,
           z: -y,
@@ -556,7 +556,7 @@ export default function Vegetation() {
         trunkColor="#3a3226"
         canopyColor="#3d6b52"
         minH={2.2}
-        maxH={3.8}
+        maxH={4.6}
       />
       <Palms count={240} seedBase={9091} />
       <BeachedCanoes count={16} seedBase={12007} />
