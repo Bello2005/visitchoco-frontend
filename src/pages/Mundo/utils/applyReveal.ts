@@ -7,7 +7,15 @@ import { revealUniforms } from "./revealUniforms";
 // onda brillante en el borde. Distancia HORIZONTAL (xz) como en el original.
 // Compatible con vertexColors, flatShading, transparencia, desplazamiento de
 // vértices por CPU (agua) e INSTANCING (árboles).
-export function applyReveal(material: THREE.Material): void {
+//
+// opts.groundDetail: además inyecta moteado de ruido en espacio de mundo sobre
+// el albedo (2 octavas + grano fino). Sin esto los vertex colors interpolados
+// se ven planos como un PNG — con esto el suelo tiene "textura" sin texturas.
+export function applyReveal(
+  material: THREE.Material,
+  opts?: { groundDetail?: boolean }
+): void {
+  const groundDetail = opts?.groundDetail === true;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
     shader.uniforms.uRevealRadius = revealUniforms.uRevealRadius;
@@ -59,9 +67,44 @@ uniform float uRevealIntensity;`
 		gl_FragColor.rgb = mix(gl_FragColor.rgb, uRevealColor * uRevealIntensity, ring);
 	}`
       );
+
+    if (groundDetail) {
+      // Moteado de suelo: value-noise 2 octavas + grano fino, modulando el
+      // albedo ANTES de la iluminación (color_fragment). Espacio de mundo →
+      // no nada con la cámara y respeta el flat shading.
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "varying vec3 vRevealWorldPos;",
+          `varying vec3 vRevealWorldPos;
+float mundoHash(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+float mundoNoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(
+		mix(mundoHash(i), mundoHash(i + vec2(1.0, 0.0)), u.x),
+		mix(mundoHash(i + vec2(0.0, 1.0)), mundoHash(i + vec2(1.0, 1.0)), u.x),
+		u.y
+	);
+}`
+        )
+        .replace(
+          "#include <color_fragment>",
+          `#include <color_fragment>
+	{
+		vec2 wp = vRevealWorldPos.xz;
+		float mottle = mundoNoise(wp * 0.85) * 0.6 + mundoNoise(wp * 3.1) * 0.4;
+		float grain = mundoHash(floor(wp * 24.0)) - 0.5;
+		diffuseColor.rgb *= 0.93 + 0.14 * mottle + 0.05 * grain;
+	}`
+        );
+    }
   };
 
   // Sin esto Three reutiliza programas cacheados de materiales con los mismos
   // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
-  material.customProgramCacheKey = () => "reveal";
+  material.customProgramCacheKey = () =>
+    groundDetail ? "reveal-detail" : "reveal";
 }

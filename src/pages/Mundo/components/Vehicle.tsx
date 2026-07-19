@@ -16,6 +16,8 @@ import {
   roadCenterWorldX,
   WATER_LEVEL,
 } from "./ChocoTerrain";
+import { applyReveal } from "../utils/applyReveal";
+import { vehicleState } from "../utils/vehicleState";
 
 type VehicleController = ReturnType<
   RapierContext["world"]["createVehicleController"]
@@ -65,6 +67,9 @@ const REVERSE_BRAKE = 40; // S en marcha = frenada de verdad
 // (half 0.35) queda en -0.40, con holgura sobre el lecho del cauce (-0.45).
 const FLOAT_DEPTH = 0.05; // centro del casco bajo el nivel del agua
 const FLOAT_LERP = 0.18; // sube de una entrada clavada en ~6 steps
+// Holgura del fondo del casco (half 0.35) sobre el suelo cuando la flotación
+// sigue la rampa de la playa: bottom = suelo + 0.05.
+const HULL_CLEARANCE = 0.4;
 const WATER_LIN_DAMP = 1.1; // deriva de bote (el agua frena)
 const WATER_ANG_DAMP = 2.0;
 // Auto-enderezado del casco: slerp kinemático de la rotación hacia "solo yaw"
@@ -108,8 +113,9 @@ const _WORLD_UP = new THREE.Vector3(0, 1, 0);
 
 // Casco de panga (canoa de madera del Atrato): parte de una caja y la deforma —
 // puntas afinadas en proa/popa, borde superior elevado (sheer) y quilla curvada
-// (rocker). Low-poly, flat-shaded. Frente = +Z local.
-function makeCanoeGeometry(): THREE.BufferGeometry {
+// (rocker). Low-poly, flat-shaded. Frente = +Z local. Exportada para las
+// pangas varadas decorativas de las playas (Vegetation).
+export function makeCanoeGeometry(): THREE.BufferGeometry {
   const g = new THREE.BoxGeometry(0.95, 0.5, 3.4, 3, 3, 14);
   const pos = g.attributes.position;
   const halfLen = 1.7;
@@ -190,6 +196,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       vehicle.setWheelMaxSuspensionTravel(i, 0.5);
       vehicle.setWheelSuspensionCompression(i, 1.4);
       vehicle.setWheelSuspensionRelaxation(i, 2.3);
+      // Grip lateral estilo folio-2025 (sideFrictionStiffness 3): el carro se
+      // siente plantado en las curvas en vez de patinar de lado.
+      vehicle.setWheelSideFrictionStiffness(i, 3);
     }
     vehicleRef.current = vehicle;
 
@@ -209,11 +218,12 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     chassis.resetForces(true);
     chassis.resetTorques(true);
 
-    // Física de tierra: deshace lo que el modo panga cambia en el body
+    // Física de tierra: deshace lo que el modo panga cambia en el body.
+    // Dampings 0.1/0.1 como folio-2025 (suaviza microtemblor del chasis).
     const landPhysics = () => {
       chassis.setGravityScale(1, true);
-      chassis.setLinearDamping(0);
-      chassis.setAngularDamping(0);
+      chassis.setLinearDamping(0.1);
+      chassis.setAngularDamping(0.1);
     };
 
     // Reset manual (R) o anti-caída: SIEMPRE vuelve como carro al spawn
@@ -336,14 +346,8 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     chassis.setAngularDamping(WATER_ANG_DAMP);
 
     const tb = chassis.translation();
-    const targetY = WATER_LEVEL - FLOAT_DEPTH;
-    chassis.setTranslation(
-      { x: tb.x, y: tb.y + (targetY - tb.y) * FLOAT_LERP, z: tb.z },
-      true
-    );
-    const lvB = chassis.linvel();
-    chassis.setLinvel({ x: lvB.x, y: 0, z: lvB.z }, true);
 
+    // Nivelar el casco primero (slerp a "solo yaw" conservando rumbo)
     const r = chassis.rotation();
     _quat.set(r.x, r.y, r.z, r.w);
     _forward.set(0, 0, 1).applyQuaternion(_quat);
@@ -356,6 +360,28 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     );
     _forward.set(0, 0, 1).applyQuaternion(_quat); // frente ya nivelado
 
+    // La flotación SIGUE EL SUELO cuando este sube — y mira TAMBIÉN bajo la
+    // PROA: el casco es largo y vara de proa antes que de centro; sin el
+    // sondeo de proa, el frente chocaba contra la rampa del banco (el centro
+    // seguía hondo y no levantaba) y la panga quedaba clavada empujando.
+    // Con el max(centro, proa) el casco SUBE la rampa deslizándose hasta que
+    // el centro llega a agua somera y transforma a carro.
+    const bowGround = worldGround(
+      tb.x + _forward.x * BOW_REACH,
+      tb.z + _forward.z * BOW_REACH
+    );
+    const underHull = Math.max(worldGround(tb.x, tb.z), bowGround);
+    const targetY = Math.max(
+      WATER_LEVEL - FLOAT_DEPTH,
+      underHull + HULL_CLEARANCE
+    );
+    chassis.setTranslation(
+      { x: tb.x, y: tb.y + (targetY - tb.y) * FLOAT_LERP, z: tb.z },
+      true
+    );
+    const lvB = chassis.linvel();
+    chassis.setLinvel({ x: lvB.x, y: 0, z: lvB.z }, true);
+
     if (forward || backward) {
       const f = forward ? BOAT_FORWARD : BOAT_REVERSE;
       chassis.addForce({ x: _forward.x * f, y: 0, z: _forward.z * f }, true);
@@ -363,13 +389,8 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     if (left || right) {
       chassis.addTorque({ x: 0, y: left ? BOAT_TURN : -BOAT_TURN, z: 0 }, true);
     }
-    // Ariete de playa: mira el suelo bajo la PROA (la panga vara de proa antes
-    // que de centro). Si la proa toca banco/tierra, empuja hacia adelante hasta
-    // que el centro entre en agua somera y transforme a carro.
-    const bowGround = worldGround(
-      tb.x + _forward.x * BOW_REACH,
-      tb.z + _forward.z * BOW_REACH
-    );
+    // Ariete de playa: empuje extra hacia adelante mientras la proa está en
+    // los bajos, para montar la rampa contra la fricción del casco.
     const bowShallow = WATER_LEVEL - bowGround < WATER_ENTER_DEPTH;
     if (forward && (bowShallow || waterDepth < WATER_ENTER_DEPTH)) {
       chassis.addForce(
@@ -393,6 +414,20 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     (splash.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - e);
   });
 
+  // Estado vivo para la UI HTML (minimapa): posición, rumbo y modo
+  useFrame(() => {
+    const chassis = chassisRef.current;
+    if (!chassis) return;
+    const t = chassis.translation();
+    const r = chassis.rotation();
+    _quat.set(r.x, r.y, r.z, r.w);
+    _forward.set(0, 0, 1).applyQuaternion(_quat);
+    vehicleState.x = t.x;
+    vehicleState.z = t.z;
+    vehicleState.yaw = Math.atan2(_forward.x, _forward.z);
+    vehicleState.mode = modeRef.current;
+  });
+
   return (
     <>
       <RigidBody
@@ -403,6 +438,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         canSleep={false}
       >
         <CuboidCollider args={CHASSIS_HALF} mass={120} />
+        {/* Todos los materiales del vehículo llevan applyReveal: en la
+            oscuridad del intro el carro también está sin materializar y
+            aparece con el territorio en la explosión. */}
         {/* Placeholder visual carro — el modelo real llega en fase posterior */}
         <group visible={modeVisual === "car"}>
           <mesh castShadow>
@@ -418,6 +456,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
               color="#d97706"
               emissive="#d97706"
               emissiveIntensity={0.15}
+              ref={(m) => {
+                if (m) applyReveal(m);
+              }}
             />
           </mesh>
           {WHEELS.map(([x, , z], i) => (
@@ -428,24 +469,50 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
               rotation={[0, 0, Math.PI / 2]}
             >
               <cylinderGeometry args={[WHEEL_RADIUS, WHEEL_RADIUS, 0.24, 12]} />
-              <meshStandardMaterial flatShading color="#111827" />
+              <meshStandardMaterial
+                flatShading
+                color="#111827"
+                ref={(m) => {
+                  if (m) applyReveal(m);
+                }}
+              />
             </mesh>
           ))}
         </group>
         {/* Panga: canoa de madera del Atrato (casco afinado en las puntas) */}
         <group visible={modeVisual === "boat"} position={[0, -0.12, 0]}>
           <mesh castShadow geometry={canoeGeo}>
-            <meshStandardMaterial flatShading color="#7c4a1e" roughness={0.9} />
+            <meshStandardMaterial
+              flatShading
+              color="#7c4a1e"
+              roughness={0.9}
+              ref={(m) => {
+                if (m) applyReveal(m);
+              }}
+            />
           </mesh>
           {/* Interior oscuro: sensación de bote hueco */}
           <mesh position={[0, 0.16, 0]}>
             <boxGeometry args={[0.5, 0.05, 2.5]} />
-            <meshStandardMaterial flatShading color="#3a2712" roughness={1} />
+            <meshStandardMaterial
+              flatShading
+              color="#3a2712"
+              roughness={1}
+              ref={(m) => {
+                if (m) applyReveal(m);
+              }}
+            />
           </mesh>
           {/* Banco central */}
           <mesh castShadow position={[0, 0.24, -0.1]}>
             <boxGeometry args={[0.62, 0.07, 0.28]} />
-            <meshStandardMaterial flatShading color="#8a5a2b" />
+            <meshStandardMaterial
+              flatShading
+              color="#8a5a2b"
+              ref={(m) => {
+                if (m) applyReveal(m);
+              }}
+            />
           </mesh>
           {/* Farol de proa ámbar — única luz de la panga */}
           <mesh castShadow position={[0, 0.42, 1.35]}>
@@ -454,6 +521,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
               color="#5b3814"
               emissive="#ffb347"
               emissiveIntensity={0.7}
+              ref={(m) => {
+                if (m) applyReveal(m);
+              }}
             />
           </mesh>
         </group>
