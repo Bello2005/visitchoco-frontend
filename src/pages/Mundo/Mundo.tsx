@@ -14,14 +14,15 @@ import Vegetation from "./components/Vegetation";
 import FollowCamera from "./components/FollowCamera";
 import MunicipalityLights from "./components/MunicipalityLights";
 import RevealController from "./components/RevealController";
+import IntroBeacon from "./components/IntroBeacon";
+import MundoMiniMap from "./components/MundoMiniMap";
 import MundoLoader from "./components/MundoLoader";
 import { SPAWN_POS } from "./components/Vehicle";
 import {
   startIntro,
-  explodeReveal,
+  wakeTerritory,
   revealAll,
   setRevealCenter,
-  revealState,
 } from "./utils/revealUniforms";
 
 const controlsMap = [
@@ -81,27 +82,26 @@ export default function Mundo() {
     if (reducedMotion) revealAll();
   }, [reducedMotion]);
 
-  // Loader + ETAPA 1 del intro: con las dos señales reales (terreno + primer
-  // frame) retiramos el loader y brota el círculo pequeño alrededor del spawn
-  // (el territorio se materializa desde ahí, estilo folio-2025).
+  // Loader → DESPERTAR: con las dos señales reales (terreno + primer frame)
+  // se retira el loader y el mundo queda DORMIDO — oscuridad, un punto de luz
+  // ámbar en el spawn y el hint. Nada más existe todavía.
   useEffect(() => {
     if (!(terrainReady && firstFrame)) return;
     const fadeTimer = setTimeout(() => setLoaderFading(true), 300);
     const unmountTimer = setTimeout(() => setLoaderVisible(false), 900);
-    let introTimer: ReturnType<typeof setTimeout> | undefined;
     if (!reducedMotion && !introStarted.current) {
       introStarted.current = true;
-      introTimer = setTimeout(() => startIntro(), 350);
+      startIntro();
     }
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(unmountTimer);
-      if (introTimer) clearTimeout(introTimer);
     };
   }, [terrainReady, firstFrame, reducedMotion]);
 
-  // Overlay de instrucción + ETAPA 2: clic o tecla de movimiento hace EXPLOTAR
-  // el territorio hacia afuera (una sola vez) y entrega el control al jugador.
+  // Interacción (clic, doble clic o tecla de movimiento): la línea dorada
+  // traza el círculo alrededor del punto y el territorio EXPLOTA mientras
+  // amanece. wakeTerritory solo actúa en fase "asleep" (una sola vez).
   const [hintVisible, setHintVisible] = useState(!reducedMotion);
   const [hintFading, setHintFading] = useState(false);
 
@@ -113,9 +113,7 @@ export default function Mundo() {
     };
     const onInteract = () => {
       if (!introStarted.current) return;
-      if (revealState.phase === "exploding" || revealState.phase === "done")
-        return;
-      explodeReveal();
+      wakeTerritory();
     };
     const onKey = (e: KeyboardEvent) => {
       if (["Enter", "Space", "ArrowUp", "KeyW"].includes(e.code)) onInteract();
@@ -215,6 +213,7 @@ export default function Mundo() {
             <Vegetation />
           </Suspense>
           <MunicipalityLights />
+          {!reducedMotion && <IntroBeacon />}
           <FollowCamera target={chassisRef} />
           <RevealController
             directionalRef={directionalRef}
@@ -229,6 +228,7 @@ export default function Mundo() {
           </EffectComposer>
         </Canvas>
       </KeyboardControls>
+      <MundoMiniMap />
       {loaderVisible && <MundoLoader fading={loaderFading} />}
       {hintVisible && (
         <div
@@ -236,8 +236,8 @@ export default function Mundo() {
             hintFading ? "opacity-0" : "opacity-100"
           }`}
         >
-          <p className="font-sans text-sm tracking-wide text-white/90 drop-shadow-[0_1px_3px_rgba(2,13,26,0.6)] md:text-base">
-            Haz clic para descubrir el territorio
+          <p className="font-sans text-sm tracking-[0.18em] text-white/80 drop-shadow-[0_1px_6px_rgba(255,179,71,0.25)] md:text-base">
+            Un territorio duerme — haz clic para despertarlo
           </p>
         </div>
       )}

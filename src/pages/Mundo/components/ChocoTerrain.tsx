@@ -379,7 +379,7 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
           flatShading
           vertexColors
           ref={(m) => {
-            if (m) applyReveal(m);
+            if (m) applyReveal(m, { groundDetail: true });
           }}
         />
       </mesh>

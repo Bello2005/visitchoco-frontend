@@ -5,7 +5,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
 import type { ChocoGeo } from "../utils/geo";
 import { worldGround, roadMask } from "./ChocoTerrain";
-import { SPAWN_POS } from "./Vehicle";
+import { SPAWN_POS, makeCanoeGeometry } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
 
 // Vegetación de la selva húmeda del Pacífico. Modelos low-poly de Bruno Simon
@@ -81,19 +81,23 @@ interface Instance {
   scale: number;
 }
 
-// Dispersa árboles en tierra firme (dentro del polígono, sobre el agua, bajo las
-// cimas peladas), evitando el punto de aparición del vehículo.
+// Dispersa instancias en tierra firme (dentro del polígono), en la BANDA de
+// alturas del bioma [minH, maxH], evitando carretera y spawn. La banda es lo
+// que hace los biomas del Chocó real: playa (palmas), selva baja, bosque de
+// niebla en las cimas.
 function scatter(
   geo: ChocoGeo,
   count: number,
   seedBase: number,
   targetHeight: number,
-  nativeHeight: number
+  nativeHeight: number,
+  minH: number,
+  maxH: number
 ): Instance[] {
   const base = targetHeight / nativeHeight;
   const out: Instance[] = [];
   let tries = 0;
-  const maxTries = count * 60;
+  const maxTries = count * 80;
 
   while (out.length < count && tries < maxTries) {
     const s = seedBase + tries * 7;
@@ -107,7 +111,7 @@ function scatter(
     // terrainHeight cruda — si no, los árboles cerca de la costa flotan sobre
     // la playa rebajada o caen al agua. worldGround(x, -y): world Z = -y local.
     const h = worldGround(x, -y);
-    if (h < 0.42 || h > 3.4) continue; // por encima de la playa, bajo la bruma
+    if (h < minH || h > maxH) continue;
 
     // Ni sobre la carretera ni en su berma
     if (roadMask(x, y) > 0.18) continue;
@@ -135,6 +139,9 @@ interface SpeciesProps {
   targetHeight: number;
   trunkColor: string;
   canopyColor: string;
+  /** banda de alturas del bioma (defaults: selva baja) */
+  minH?: number;
+  maxH?: number;
 }
 
 function TreeSpecies({
@@ -144,6 +151,8 @@ function TreeSpecies({
   targetHeight,
   trunkColor,
   canopyColor,
+  minH = 0.42,
+  maxH = 2.3,
 }: SpeciesProps) {
   const { scene } = useGLTF(url);
   const { trunk, canopy, nativeHeight } = useMemo(
@@ -159,12 +168,14 @@ function TreeSpecies({
     let cancelled = false;
     loadChocoGeo().then((geo) => {
       if (!cancelled)
-        setInstances(scatter(geo, count, seedBase, targetHeight, nativeHeight));
+        setInstances(
+          scatter(geo, count, seedBase, targetHeight, nativeHeight, minH, maxH)
+        );
     });
     return () => {
       cancelled = true;
     };
-  }, [count, seedBase, targetHeight, nativeHeight]);
+  }, [count, seedBase, targetHeight, nativeHeight, minH, maxH]);
 
   useLayoutEffect(() => {
     if (!instances) return;
@@ -316,8 +327,198 @@ function Rocks({ count, seedBase }: { count: number; seedBase: number }) {
   );
 }
 
-// Selva del Chocó: dos siluetas de árbol + matorral bajo + rocas de cresta.
-// Todo instanciado: 7 draw calls en total.
+// ---------- palma chocoana procedural (tronco curvado + frondas radiales) ---
+function makePalmGeometry(): {
+  trunk: THREE.BufferGeometry;
+  fronds: THREE.BufferGeometry;
+} {
+  // Escala pensada contra el carro (1.8×3.2): palma ~1.3 de alto, frondas
+  // de ~0.55 — silueta costera, no monstruo jurásico.
+  const trunk = new THREE.CylinderGeometry(0.035, 0.065, 1.1, 5, 4);
+  trunk.translate(0, 0.55, 0); // base en y=0
+  const tp = trunk.attributes.position;
+  for (let i = 0; i < tp.count; i++) {
+    const y = tp.getY(i);
+    tp.setX(i, tp.getX(i) + Math.pow(y / 1.1, 2) * 0.22); // curvatura al mar
+  }
+  trunk.computeVertexNormals();
+
+  const frondParts: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 6; i++) {
+    const f = new THREE.PlaneGeometry(0.58, 0.15, 3, 1);
+    f.translate(0.29, 0, 0); // extender hacia afuera desde el eje
+    const fp = f.attributes.position;
+    for (let k = 0; k < fp.count; k++) {
+      const x = fp.getX(k);
+      fp.setY(k, fp.getY(k) - Math.pow(x / 0.58, 2) * 0.24); // caída de la hoja
+    }
+    f.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+    f.applyMatrix4(
+      new THREE.Matrix4().makeRotationY((i * Math.PI) / 3 + 0.25)
+    );
+    f.translate(0.22, 1.12, 0); // copa del tronco curvado
+    frondParts.push(f);
+  }
+  const fronds = mergeGeometries(frondParts, false);
+  fronds.computeVertexNormals();
+  return { trunk, fronds };
+}
+
+// Palmas del litoral Pacífico: solo en la banda de playa (biome real del
+// Chocó costero). 2 draw calls instanciados.
+function Palms({ count, seedBase }: { count: number; seedBase: number }) {
+  const { trunk, fronds } = useMemo(makePalmGeometry, []);
+  useEffect(
+    () => () => {
+      trunk.dispose();
+      fronds.dispose();
+    },
+    [trunk, fronds]
+  );
+
+  const [instances, setInstances] = useState<Instance[] | null>(null);
+  const trunkRef = useRef<THREE.InstancedMesh>(null);
+  const frondsRef = useRef<THREE.InstancedMesh>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadChocoGeo().then((geo) => {
+      if (!cancelled)
+        setInstances(scatter(geo, count, seedBase, 1.9, 1.9, 0.1, 0.42));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [count, seedBase]);
+
+  useLayoutEffect(() => {
+    if (!instances) return;
+    const m = new THREE.Matrix4();
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scl = new THREE.Vector3();
+    const euler = new THREE.Euler();
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i];
+      pos.set(inst.x, inst.y + 0.08, inst.z);
+      euler.set(inst.tiltX * 0.5, inst.rotY, inst.tiltZ * 0.5);
+      quat.setFromEuler(euler);
+      scl.setScalar(inst.scale);
+      m.compose(pos, quat, scl);
+      trunkRef.current?.setMatrixAt(i, m);
+      frondsRef.current?.setMatrixAt(i, m);
+    }
+    if (trunkRef.current) trunkRef.current.instanceMatrix.needsUpdate = true;
+    if (frondsRef.current) frondsRef.current.instanceMatrix.needsUpdate = true;
+  }, [instances]);
+
+  if (!instances || instances.length === 0) return null;
+
+  return (
+    <group>
+      <instancedMesh
+        ref={trunkRef}
+        args={[trunk, undefined, instances.length]}
+        castShadow
+        frustumCulled={false}
+      >
+        <meshStandardMaterial
+          color="#8a6a42"
+          flatShading
+          roughness={0.95}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
+      </instancedMesh>
+      {/* Las frondas NO proyectan sombra: planos horizontales → manchas
+          enormes y duras en el suelo que confunden más de lo que aportan */}
+      <instancedMesh
+        ref={frondsRef}
+        args={[fronds, undefined, instances.length]}
+        frustumCulled={false}
+      >
+        <meshStandardMaterial
+          color="#3fae5a"
+          flatShading
+          roughness={0.85}
+          side={THREE.DoubleSide}
+          ref={(m) => {
+            if (m) applyReveal(m);
+          }}
+        />
+      </instancedMesh>
+    </group>
+  );
+}
+
+// Pangas varadas en las orillas — la escena cotidiana del Chocó ribereño.
+// Reusa el casco del vehículo. 1 draw call.
+function BeachedCanoes({ count, seedBase }: { count: number; seedBase: number }) {
+  const geometry = useMemo(makeCanoeGeometry, []);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  const [instances, setInstances] = useState<Instance[] | null>(null);
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadChocoGeo().then((geo) => {
+      if (!cancelled)
+        setInstances(scatter(geo, count, seedBase, 1, 1, 0.12, 0.3));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [count, seedBase]);
+
+  useLayoutEffect(() => {
+    if (!instances || !meshRef.current) return;
+    const m = new THREE.Matrix4();
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scl = new THREE.Vector3();
+    const euler = new THREE.Euler();
+    for (let i = 0; i < instances.length; i++) {
+      const inst = instances[i];
+      pos.set(inst.x, inst.y + 0.28, inst.z);
+      euler.set(inst.tiltX * 0.4, inst.rotY, inst.tiltZ * 0.4);
+      quat.setFromEuler(euler);
+      scl.setScalar(0.75 + (inst.scale % 0.3));
+      m.compose(pos, quat, scl);
+      meshRef.current.setMatrixAt(i, m);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  }, [instances]);
+
+  if (!instances || instances.length === 0) return null;
+
+  return (
+    <instancedMesh
+      ref={meshRef}
+      args={[geometry, undefined, instances.length]}
+      castShadow
+      receiveShadow
+      frustumCulled={false}
+    >
+      <meshStandardMaterial
+        color="#6e4519"
+        flatShading
+        roughness={0.9}
+        ref={(m) => {
+          if (m) applyReveal(m);
+        }}
+      />
+    </instancedMesh>
+  );
+}
+
+// Biomas del Chocó real, por banda de altura de la superficie:
+//   playa (0.10-0.42): palmas del litoral + pangas varadas
+//   selva baja (0.42-2.3): dosel denso de dos siluetas + matorral
+//   bosque de niebla del Baudó (2.2-3.8): árboles bajos verde-bruma
+//   crestas (1.9-4.2): rocas
+// Todo instanciado: ~11 draw calls.
 export default function Vegetation() {
   return (
     <>
@@ -346,6 +547,19 @@ export default function Vegetation() {
         trunkColor="#3a2d1e"
         canopyColor="#2c8a4b"
       />
+      {/* Bosque de niebla de la Serranía del Baudó: bajo, denso, verde-bruma */}
+      <TreeSpecies
+        url={MODELS.oak}
+        count={260}
+        seedBase={5507}
+        targetHeight={1.15}
+        trunkColor="#3a3226"
+        canopyColor="#3d6b52"
+        minH={2.2}
+        maxH={3.8}
+      />
+      <Palms count={240} seedBase={9091} />
+      <BeachedCanoes count={16} seedBase={12007} />
       <Rocks count={150} seedBase={7717} />
     </>
   );
