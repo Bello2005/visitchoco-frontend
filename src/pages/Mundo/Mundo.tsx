@@ -15,7 +15,10 @@ import FollowCamera from "./components/FollowCamera";
 import MunicipalityLights from "./components/MunicipalityLights";
 import RevealController from "./components/RevealController";
 import IntroBeacon from "./components/IntroBeacon";
+import ShadowRig from "./components/ShadowRig";
+import Fauna from "./components/Fauna";
 import MundoMiniMap from "./components/MundoMiniMap";
+import MundoAudio from "./components/MundoAudio";
 import MundoLoader from "./components/MundoLoader";
 import { SPAWN_POS } from "./components/Vehicle";
 import {
@@ -174,12 +177,15 @@ export default function Mundo() {
       <KeyboardControls map={controlsMap}>
         <Canvas shadows>
           <color attach="background" args={["#a5ddf2"]} />
-          <fog attach="fog" args={["#a5ddf2", 34, 120]} />
+          <fog attach="fog" args={["#a5ddf2", 34, 135]} />
           <PerspectiveCamera makeDefault fov={45} position={[0, 18, 26]} />
           {/* <OrbitControls enablePan={false} minDistance={12} maxDistance={45} maxPolarAngle={Math.PI / 2.2} enableDamping /> debug cam */}
           {/* Día estilo folio-2025: sol salmón #ffd2c2 con sombras reales.
               Amanecer tenue inicial; RevealController sube con el progreso
               del revelado hasta 1.35 / 0.6 */}
+          {/* La cámara de sombras la gobierna ShadowRig: pequeña (±17) y
+              siguiendo al carro → sombras nítidas (el "piso pixelado" era
+              el shadow map estirado sobre todo el mapa) */}
           <directionalLight
             ref={directionalRef}
             color="#ffd2c2"
@@ -187,12 +193,6 @@ export default function Mundo() {
             position={[18, 28, 10]}
             castShadow
             shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-42}
-            shadow-camera-right={42}
-            shadow-camera-top={55}
-            shadow-camera-bottom={-55}
-            shadow-camera-near={1}
-            shadow-camera-far={130}
             shadow-bias={-0.001}
             shadow-normalBias={0.05}
           />
@@ -213,7 +213,9 @@ export default function Mundo() {
             <Vegetation />
           </Suspense>
           <MunicipalityLights />
+          <Fauna />
           {!reducedMotion && <IntroBeacon />}
+          <ShadowRig directionalRef={directionalRef} />
           <FollowCamera target={chassisRef} />
           <RevealController
             directionalRef={directionalRef}
@@ -229,6 +231,7 @@ export default function Mundo() {
         </Canvas>
       </KeyboardControls>
       <MundoMiniMap />
+      <MundoAudio />
       {loaderVisible && <MundoLoader fading={loaderFading} />}
       {hintVisible && (
         <div

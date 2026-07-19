@@ -21,7 +21,9 @@ function backIn(t: number): number {
 const SKY_NIGHT = new THREE.Color("#020d1a");
 const SKY_DAY = new THREE.Color("#a5ddf2");
 const FOG_NIGHT = { near: 10, far: 55 };
-const FOG_DAY = { near: 34, far: 120 };
+// far 135: la Serranía del Baudó (picos ~5.5) se ve como sierra al fondo
+// mientras conduces por la carretera del valle
+const FOG_DAY = { near: 34, far: 135 };
 
 interface RevealControllerProps {
   directionalRef: RefObject<THREE.DirectionalLight | null>;

@@ -70,10 +70,11 @@ export function terrainHeight(x: number, y: number): number {
 
   let h = 0;
 
-  // Serranía del Baudó: cresta N-S cerca del borde occidental, pico ~4
+  // Serranía del Baudó: cresta N-S cerca del borde occidental, picos ~5.5 —
+  // lo bastante alta para verse como SIERRA desde la carretera del valle
   const crestX = -0.68 + (valueNoise(3.7, y * 0.12) - 0.5) * 0.16;
-  const dRidge = (nx - crestX) / 0.16;
-  h += Math.exp(-dRidge * dRidge) * (2.6 + 1.4 * fbm(x * 0.35, y * 0.35));
+  const dRidge = (nx - crestX) / 0.18;
+  h += Math.exp(-dRidge * dRidge) * (3.6 + 1.9 * fbm(x * 0.35, y * 0.35));
 
   // Estribaciones de la cordillera Occidental: sube suave hacia el este, ~2.5
   h += smoothstep(0.25, 1, nx) * (1.6 + 0.9 * fbm(x * 0.3 + 41, y * 0.3 + 7));
@@ -231,8 +232,9 @@ export function worldGround(x: number, z: number): number {
 // (no roca desnuda — en el Chocó la montaña también es selva).
 const C_FONDO = new THREE.Color("#12564d"); // fuera del polígono / lecho marino
 const C_LECHO = new THREE.Color("#6e5a34"); // cauce del Atrato (agua lodosa)
-const C_ARENA_MOJADA = new THREE.Color("#8a7444"); // arena de playa bajo el agua
-const C_ARENA = new THREE.Color("#c4ac74"); // arena de playa seca (parda pacífica)
+const C_ARENA_MOJADA = new THREE.Color("#9a8354"); // arena de playa bajo el agua
+const C_ARENA = new THREE.Color("#d8be82"); // arena de playa seca (parda clara)
+const C_ESPUMA = new THREE.Color("#e9f5f0"); // espuma de las olas en la orilla
 const C_VALLE = new THREE.Color("#2f9b4e"); // selva baja (esmeralda vivo)
 const C_LADERA = new THREE.Color("#1c6e39"); // ladera (verde selva profundo)
 const C_ALTO = new THREE.Color("#245c3c"); // selva de altura (verde oscuro)
@@ -243,7 +245,14 @@ const C_VIA = new THREE.Color("#a3835a"); // carretera destapada (tierra chocoan
 // rd = máscara de carretera 0..1 (pinta la vía sobre lo que toque).
 function heightColor(h: number, sd: number, rd: number, out: THREE.Color): void {
   baseHeightColor(h, sd, out);
-  if (rd > 0.3) out.lerp(C_VIA, smoothstep(0.3, 0.8, rd));
+  if (rd > 0.18) {
+    // Vía con BORDE definido (como la road de folio-2025, no un degradado):
+    // núcleo sólido + berma ligeramente oscurecida a los lados
+    out.lerp(C_VIA, smoothstep(0.42, 0.6, rd));
+    const berma =
+      smoothstep(0.18, 0.34, rd) * (1 - smoothstep(0.48, 0.64, rd));
+    out.multiplyScalar(1 - 0.14 * berma);
+  }
 }
 
 function baseHeightColor(h: number, sd: number, out: THREE.Color): void {
@@ -252,6 +261,9 @@ function baseHeightColor(h: number, sd: number, out: THREE.Color): void {
   if (sd < BEACH && h > -1.0 && h < 0.45) {
     const t = smoothstep(-0.5, 0.15, h); // mojada→seca al subir
     out.copy(C_ARENA_MOJADA).lerp(C_ARENA, t);
+    // ESPUMA: banda blanca justo en la línea del agua — la orilla "rompe"
+    const foam = smoothstep(-0.09, -0.02, h) * (1 - smoothstep(0.02, 0.1, h));
+    if (foam > 0) out.lerp(C_ESPUMA, foam * 0.75);
     // borde selva: al tope de la playa, fundir a valle
     if (h > 0.25) out.lerp(C_VALLE, (h - 0.25) / 0.2);
     return;

@@ -17,11 +17,51 @@ import { worldGround } from "./ChocoTerrain";
 export default function IntroBeacon() {
   const pointRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
+  const gridRef = useRef<THREE.Mesh>(null);
 
   const groundY = useMemo(
     () => worldGround(SPAWN_POS.x, SPAWN_POS.z),
     []
   );
+
+  // Grid del vacío (el "piso" de la intro de folio-2025): líneas tenues que
+  // se desvanecen lejos del punto de luz. Es lo único que sugiere un suelo
+  // mientras el mundo duerme.
+  const gridMaterial = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: {},
+        vertexShader: /* glsl */ `
+          varying vec2 vXZ;
+          void main() {
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vXZ = wp.xz;
+            gl_Position = projectionMatrix * viewMatrix * wp;
+          }
+        `,
+        fragmentShader: /* glsl */ `
+          varying vec2 vXZ;
+          uniform vec2 uCenter;
+          void main() {
+            vec2 g = abs(fract(vXZ / 2.0) - 0.5) * 2.0; // 0 en la línea
+            float line = 1.0 - min(1.0, min(g.x, g.y) / 0.022);
+            if (line <= 0.0) discard;
+            float d = distance(vXZ, uCenter);
+            float fade = 1.0 - smoothstep(3.0, 15.0, d);
+            if (fade <= 0.0) discard;
+            gl_FragColor = vec4(vec3(0.2, 0.38, 0.5), line * fade * 0.16);
+          }
+        `,
+      }),
+    []
+  );
+  useMemo(() => {
+    gridMaterial.uniforms.uCenter = {
+      value: new THREE.Vector2(SPAWN_POS.x, SPAWN_POS.z),
+    };
+  }, [gridMaterial]);
 
   const ringMaterial = useMemo(
     () =>
@@ -64,11 +104,13 @@ export default function IntroBeacon() {
   useFrame(() => {
     const point = pointRef.current;
     const ring = ringRef.current;
-    if (!point || !ring) return;
+    const grid = gridRef.current;
+    if (!point || !ring || !grid) return;
 
     const phase = revealState.phase;
     point.visible = phase === "asleep" || phase === "tracing";
     ring.visible = phase === "tracing";
+    grid.visible = phase === "asleep" || phase === "tracing";
 
     if (point.visible) {
       const t = performance.now() / 1000;
@@ -82,6 +124,15 @@ export default function IntroBeacon() {
 
   return (
     <group position={[SPAWN_POS.x, 0, SPAWN_POS.z]}>
+      {/* Grid del vacío (piso sugerido durante el sueño) */}
+      <mesh
+        ref={gridRef}
+        position={[0, groundY + 0.02, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        material={gridMaterial}
+      >
+        <planeGeometry args={[70, 70]} />
+      </mesh>
       {/* Punto de luz: lo único que existe en la oscuridad */}
       <mesh ref={pointRef} position={[0, groundY + 0.45, 0]}>
         <sphereGeometry args={[0.11, 12, 12]} />

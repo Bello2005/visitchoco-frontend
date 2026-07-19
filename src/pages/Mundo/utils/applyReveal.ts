@@ -95,9 +95,9 @@ float mundoNoise(vec2 p) {
           `#include <color_fragment>
 	{
 		vec2 wp = vRevealWorldPos.xz;
-		float mottle = mundoNoise(wp * 0.85) * 0.6 + mundoNoise(wp * 3.1) * 0.4;
-		float grain = mundoHash(floor(wp * 24.0)) - 0.5;
-		diffuseColor.rgb *= 0.93 + 0.14 * mottle + 0.05 * grain;
+		float mottle = mundoNoise(wp * 2.2) * 0.55 + mundoNoise(wp * 7.0) * 0.45;
+		float grain = mundoHash(floor(wp * 40.0)) - 0.5;
+		diffuseColor.rgb *= 0.945 + 0.09 * mottle + 0.045 * grain;
 	}`
         );
     }
