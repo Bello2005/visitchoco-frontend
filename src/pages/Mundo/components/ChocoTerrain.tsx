@@ -296,32 +296,21 @@ const C_VALLE = new THREE.Color("#2f9b4e"); // selva baja (esmeralda vivo)
 const C_LADERA = new THREE.Color("#1c6e39"); // ladera (verde selva profundo)
 const C_ALTO = new THREE.Color("#245c3c"); // selva de altura (verde oscuro)
 const C_BRUMA = new THREE.Color("#5f7a63"); // crestas del Baudó (verde-gris bruma)
-const C_VIA = new THREE.Color("#8a7050"); // calzada (tierra compactada oscura)
-const C_SARDINEL_A = new THREE.Color("#c0492f"); // sardinel rojo teja
-const C_SARDINEL_B = new THREE.Color("#efe6d2"); // sardinel crema
+const C_BERMA = new THREE.Color("#3f3b34"); // arcén (tierra compactada oscura)
 
-// sd = distancia con signo a la costa; rd = máscara de carretera 0..1;
-// yLocal = coordenada N-S (para alternar las rayas del sardinel a lo largo).
+// sd = distancia con signo a la costa; rd = máscara de carretera 0..1.
+// La CALZADA NEGRA la pinta el mesh dedicado RoadRibbon; aquí solo tintamos un
+// arcén oscuro bajo la vía para que cualquier filo entre el asfalto y el
+// terreno lea como berma, no como pasto brillante.
 function heightColor(
   h: number,
   sd: number,
   rd: number,
-  yLocal: number,
   out: THREE.Color
 ): void {
   baseHeightColor(h, sd, out);
   if (rd > 0.2) {
-    // Calzada sólida de borde definido + SARDINELES A RAYAS a los lados
-    // (el detalle-firma de la road de folio-2025, en colores VisitChocó).
-    // Banda angosta y umbral alto: las rayas viven SOLO en el filo de la
-    // calzada, sin sangrar al pasto en las curvas.
-    out.lerp(C_VIA, smoothstep(0.5, 0.66, rd));
-    const sardinel =
-      smoothstep(0.3, 0.42, rd) * (1 - smoothstep(0.46, 0.56, rd));
-    if (sardinel > 0.55) {
-      const stripe = Math.floor(yLocal / 2.4) % 2 === 0;
-      out.lerp(stripe ? C_SARDINEL_A : C_SARDINEL_B, sardinel);
-    }
+    out.lerp(C_BERMA, smoothstep(0.35, 0.72, rd) * 0.85);
   }
 }
 
@@ -422,13 +411,7 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
           heights[i] = h;
           pos.setZ(i, h);
 
-          heightColor(
-            h,
-            sd,
-            roadMask(pos.getX(i), pos.getY(i)),
-            pos.getY(i),
-            tmpColor
-          );
+          heightColor(h, sd, roadMask(pos.getX(i), pos.getY(i)), tmpColor);
           colors[i * 3] = tmpColor.r;
           colors[i * 3 + 1] = tmpColor.g;
           colors[i * 3 + 2] = tmpColor.b;

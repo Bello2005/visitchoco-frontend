@@ -13,10 +13,11 @@ import { revealUniforms } from "./revealUniforms";
 // se ven planos como un PNG — con esto el suelo tiene "textura" sin texturas.
 export function applyReveal(
   material: THREE.Material,
-  opts?: { groundDetail?: boolean; sway?: boolean }
+  opts?: { groundDetail?: boolean; sway?: boolean; glitter?: boolean }
 ): void {
   const groundDetail = opts?.groundDetail === true;
   const sway = opts?.sway === true;
+  const glitter = opts?.glitter === true;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
     shader.uniforms.uRevealRadius = revealUniforms.uRevealRadius;
@@ -95,14 +96,12 @@ uniform float uRevealIntensity;`
 	}`
       );
 
-    if (groundDetail) {
-      // Moteado de suelo: value-noise 2 octavas + grano fino, modulando el
-      // albedo ANTES de la iluminación (color_fragment). Espacio de mundo →
-      // no nada con la cámara y respeta el flat shading.
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          "varying vec3 vRevealWorldPos;",
-          `varying vec3 vRevealWorldPos;
+    if (groundDetail || glitter) {
+      // Helpers de ruido compartidos por moteado y glitter
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "varying vec3 vRevealWorldPos;",
+        `varying vec3 vRevealWorldPos;
+uniform float uMundoTime;
 float mundoHash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
@@ -116,22 +115,45 @@ float mundoNoise(vec2 p) {
 		u.y
 	);
 }`
-        )
-        .replace(
-          "#include <color_fragment>",
-          `#include <color_fragment>
+      );
+    }
+
+    if (groundDetail) {
+      // Moteado de suelo: value-noise 2 octavas + grano fino, modulando el
+      // albedo ANTES de la iluminación (color_fragment). Espacio de mundo →
+      // no nada con la cámara y respeta el flat shading.
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
 	{
 		vec2 wp = vRevealWorldPos.xz;
 		float mottle = mundoNoise(wp * 2.2) * 0.55 + mundoNoise(wp * 7.0) * 0.45;
 		float grain = mundoHash(floor(wp * 40.0)) - 0.5;
 		diffuseColor.rgb *= 0.945 + 0.09 * mottle + 0.045 * grain;
 	}`
-        );
+      );
+    }
+
+    if (glitter) {
+      // El "glitter" del asfalto de folio-2025 (Scenery.js/setRoad): destellos
+      // escasos que titilan sobre la calzada — la vía brilla viva de noche/día.
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+	{
+		vec2 gp = floor(vRevealWorldPos.xz * 9.0);
+		float gh = mundoHash(gp);
+		if (gh > 0.962) {
+			float tw = 0.5 + 0.5 * sin(uMundoTime * 2.6 + gh * 251.0);
+			diffuseColor.rgb += vec3(0.55, 0.5, 0.4) * tw * 0.55;
+		}
+	}`
+      );
     }
   };
 
   // Sin esto Three reutiliza programas cacheados de materiales con los mismos
   // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
   material.customProgramCacheKey = () =>
-    `reveal${groundDetail ? "-detail" : ""}${sway ? "-sway" : ""}`;
+    `reveal${groundDetail ? "-detail" : ""}${sway ? "-sway" : ""}${glitter ? "-glitter" : ""}`;
 }

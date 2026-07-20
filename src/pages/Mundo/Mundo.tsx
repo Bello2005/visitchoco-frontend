@@ -7,6 +7,7 @@ import { EffectComposer, Bloom, Vignette, Noise } from "@react-three/postprocess
 import { Physics } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
+import RoadRibbon from "./components/RoadRibbon";
 import OceanFloor from "./components/OceanFloor";
 import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
@@ -207,6 +208,10 @@ export default function Mundo() {
               <Vehicle chassisRef={chassisRef} />
             </Physics>
           </Suspense>
+          {/* La Vía del Chocó: mesh dedicado de asfalto negro (no pintura sobre
+              el terreno). Fuera de Physics — solo visual; el suelo bajo la vía
+              ya está aplanado en worldGround, que gobierna la conducción. */}
+          <RoadRibbon />
           {/* Vegetación en su PROPIO Suspense: la carga de los GLB de árboles
               no debe retrasar la señal "terreno listo" del loader */}
           <Suspense fallback={null}>
