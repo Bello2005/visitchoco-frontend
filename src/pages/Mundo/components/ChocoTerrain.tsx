@@ -109,8 +109,13 @@ export function terrainHeight(x: number, y: number): number {
   // extra, y worldGround la comparte: se CONDUCE de verdad sobre ella. 0.96:
   // calzada casi lisa (la suavidad ES la sensación premium al conducir). En
   // los tramos de sierra el aplanado TALLA el paso entre paredes verdes.
+  // PERO solo aplana sobre TIERRA: donde la vía cruza agua (río/mar) deja el
+  // canal ABIERTO (landness→0) para que la panga navegue por DEBAJO — ahí la
+  // carretera pasa en PUENTE (deck elevado con física propia, RoadRibbon).
   const rm = roadMaskAt(nx, ny);
-  h = h * (1 - rm * 0.96) + ROAD_LEVEL * rm * 0.96;
+  const landness = smoothstep(WATER_LEVEL - 0.05, WATER_LEVEL + 0.4, h);
+  const fill = rm * 0.96 * landness;
+  h = h * (1 - fill) + ROAD_LEVEL * fill;
 
   return h;
 }

@@ -206,12 +206,13 @@ export default function Mundo() {
               <OceanFloor />
               <Water />
               <Vehicle chassisRef={chassisRef} />
+              {/* La Vía del Chocó: mesh dedicado de asfalto negro (no pintura
+                  sobre el terreno). Dentro de Physics porque donde cruza agua
+                  se vuelve PUENTE con colliders de deck propios; el carro pasa
+                  por encima y la panga navega por debajo del canal abierto. */}
+              <RoadRibbon />
             </Physics>
           </Suspense>
-          {/* La Vía del Chocó: mesh dedicado de asfalto negro (no pintura sobre
-              el terreno). Fuera de Physics — solo visual; el suelo bajo la vía
-              ya está aplanado en worldGround, que gobierna la conducción. */}
-          <RoadRibbon />
           {/* Vegetación en su PROPIO Suspense: la carga de los GLB de árboles
               no debe retrasar la señal "terreno listo" del loader */}
           <Suspense fallback={null}>
