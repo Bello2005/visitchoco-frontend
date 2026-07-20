@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 import { loadChocoGeo, WIDTH, HEIGHT } from "../utils/geo";
-import { roadCenterWorldX, worldGround, WATER_LEVEL } from "./ChocoTerrain";
+import {
+  roadCenterWorldX,
+  riverCenterWorldX,
+  worldGround,
+  WATER_LEVEL,
+} from "./ChocoTerrain";
 import { vehicleState } from "../utils/vehicleState";
 
 // Minimapa premium (overlay HTML, fuera del canvas 3D): silueta real del
@@ -64,13 +69,17 @@ export default function MundoMiniMap() {
         ctx.lineCap = "round";
         ctx.beginPath();
         let started = false;
-        // la máscara N-S del valle existe para yLocal > -0.55·(H/2)
-        for (let z = 24; z >= -HEIGHT / 2 + 2; z -= 1.5) {
+        // de punta a punta del departamento
+        for (let z = HEIGHT / 2 - 1.5; z >= -HEIGHT / 2 + 1.5; z -= 1.2) {
           const x = offsetFn(z);
-          // solo donde el suelo confirma cauce/carretera: ni montañas (>1.2)
-          // ni mar abierto fuera del polígono (SEA_FLOOR)
+          // solo donde el suelo confirma cauce/carretera: ni cimas muy altas
+          // ni mar abierto fuera del polígono (SEA_FLOOR); la vía talla pasos
+          // de sierra, así que el umbral alto es generoso
           const g = worldGround(x, z);
-          if (g > 1.2 || g < -1.5) continue;
+          if (g > 2.2 || g < -1.5) {
+            started = false;
+            continue;
+          }
           const { px, py } = worldToMap(x, z);
           if (!started) {
             ctx.moveTo(px, py);
@@ -79,14 +88,10 @@ export default function MundoMiniMap() {
         }
         ctx.stroke();
       };
-      // Río (centro del cauce = carretera − offset este)
-      drawPath(
-        (z) => roadCenterWorldX(z) - 0.17 * (WIDTH / 2),
-        "rgba(84, 150, 199, 0.95)",
-        3
-      );
-      // Carretera
-      drawPath((z) => roadCenterWorldX(z), "rgba(163, 131, 90, 0.95)", 1.6);
+      // Río Atrato (solo existe en el valle; el filtro de suelo lo corta)
+      drawPath((z) => riverCenterWorldX(z), "rgba(84, 150, 199, 0.95)", 3);
+      // La Vía del Chocó, de punta a punta
+      drawPath((z) => roadCenterWorldX(z), "rgba(196, 158, 110, 0.95)", 1.8);
 
       // Marca de agua del nivel del mar (contexto)
       void WATER_LEVEL;

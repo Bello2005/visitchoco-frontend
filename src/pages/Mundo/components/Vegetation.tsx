@@ -4,7 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
 import type { ChocoGeo } from "../utils/geo";
-import { worldGround, roadMask } from "./ChocoTerrain";
+import { worldGround, roadMask, patchNoise } from "./ChocoTerrain";
 import { SPAWN_POS, makeCanoeGeometry } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
 
@@ -113,11 +113,15 @@ function scatter(
     const h = worldGround(x, -y);
     if (h < minH || h > maxH) continue;
 
-    // Ni sobre la carretera ni en su berma
-    if (roadMask(x, y) > 0.18) continue;
+    // MATAS con claros: solo crece donde el ruido de parches lo permite —
+    // colocación con intención (bosquecillos + espacio negativo), no confeti
+    if (patchNoise(x, y) < 0.55) continue;
+
+    // Despeje generoso de la carretera: la vía es protagonista y respira
+    if (roadMask(x, y) > 0.08) continue;
 
     // Claro de aparición del carro (coords locales: x, y = -z mundo)
-    if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 4) continue;
+    if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 5) continue;
 
     out.push({
       x,
@@ -237,7 +241,7 @@ function TreeSpecies({
           flatShading
           roughness={0.85}
           ref={(m) => {
-            if (m) applyReveal(m);
+            if (m) applyReveal(m, { sway: true });
           }}
         />
       </instancedMesh>
@@ -444,7 +448,7 @@ function Palms({ count, seedBase }: { count: number; seedBase: number }) {
           roughness={0.85}
           side={THREE.DoubleSide}
           ref={(m) => {
-            if (m) applyReveal(m);
+            if (m) applyReveal(m, { sway: true });
           }}
         />
       </instancedMesh>
@@ -519,12 +523,14 @@ function BeachedCanoes({ count, seedBase }: { count: number; seedBase: number })
 //   bosque de niebla del Baudó (2.2-3.8): árboles bajos verde-bruma
 //   crestas (1.9-4.2): rocas
 // Todo instanciado: ~11 draw calls.
+// CALIDAD sobre cantidad (lección de folio-2025): la mitad de elementos,
+// agrupados en matas por patchNoise con claros y la carretera despejada.
 export default function Vegetation() {
   return (
     <>
       <TreeSpecies
         url={MODELS.oak}
-        count={520}
+        count={240}
         seedBase={101}
         targetHeight={2.1}
         trunkColor="#4a3a28"
@@ -532,7 +538,7 @@ export default function Vegetation() {
       />
       <TreeSpecies
         url={MODELS.cherry}
-        count={380}
+        count={170}
         seedBase={877}
         targetHeight={1.7}
         trunkColor="#4a3a28"
@@ -541,7 +547,7 @@ export default function Vegetation() {
       {/* Matorral: la misma silueta cherry a escala de arbusto, pegada al piso */}
       <TreeSpecies
         url={MODELS.cherry}
-        count={300}
+        count={120}
         seedBase={3301}
         targetHeight={0.55}
         trunkColor="#3a2d1e"
@@ -550,7 +556,7 @@ export default function Vegetation() {
       {/* Bosque de niebla de la Serranía del Baudó: bajo, denso, verde-bruma */}
       <TreeSpecies
         url={MODELS.oak}
-        count={260}
+        count={140}
         seedBase={5507}
         targetHeight={1.15}
         trunkColor="#3a3226"
@@ -558,9 +564,9 @@ export default function Vegetation() {
         minH={2.2}
         maxH={4.6}
       />
-      <Palms count={240} seedBase={9091} />
-      <BeachedCanoes count={16} seedBase={12007} />
-      <Rocks count={150} seedBase={7717} />
+      <Palms count={110} seedBase={9091} />
+      <BeachedCanoes count={10} seedBase={12007} />
+      <Rocks count={90} seedBase={7717} />
     </>
   );
 }

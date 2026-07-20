@@ -16,6 +16,9 @@ export const revealUniforms = {
   uRevealThickness: { value: 1.3 },
   uRevealColor: { value: new THREE.Color("#ffd27f") },
   uRevealIntensity: { value: 2.6 },
+  // Tiempo global para el vaivén del viento en copas y frondas
+  // (RevealController lo avanza cada frame)
+  uMundoTime: { value: 0 },
 };
 
 // Radio que cubre el diorama (60x90) desde el spawn; al terminar salta a ∞.

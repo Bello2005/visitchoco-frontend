@@ -13,15 +13,42 @@ import { revealUniforms } from "./revealUniforms";
 // se ven planos como un PNG — con esto el suelo tiene "textura" sin texturas.
 export function applyReveal(
   material: THREE.Material,
-  opts?: { groundDetail?: boolean }
+  opts?: { groundDetail?: boolean; sway?: boolean }
 ): void {
   const groundDetail = opts?.groundDetail === true;
+  const sway = opts?.sway === true;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
     shader.uniforms.uRevealRadius = revealUniforms.uRevealRadius;
     shader.uniforms.uRevealThickness = revealUniforms.uRevealThickness;
     shader.uniforms.uRevealColor = revealUniforms.uRevealColor;
     shader.uniforms.uRevealIntensity = revealUniforms.uRevealIntensity;
+    shader.uniforms.uMundoTime = revealUniforms.uMundoTime;
+
+    if (sway) {
+      // Vaivén de viento (como las hojas de folio-2025): desplaza los
+      // vértices ALTOS de la geometría (las copas; el pie no se mueve), con
+      // fase distinta por instancia para que el bosque no baile en bloque.
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          "#include <common>\nuniform float uMundoTime;"
+        )
+        .replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+	{
+		#ifdef USE_INSTANCING
+			vec3 swayPhase = vec3(instanceMatrix[3]);
+		#else
+			vec3 swayPhase = vec3(0.0);
+		#endif
+		float swayF = clamp(transformed.y * 0.45, 0.0, 1.0);
+		transformed.x += sin(uMundoTime * 1.6 + swayPhase.x * 0.9 + swayPhase.z * 0.7) * 0.055 * swayF;
+		transformed.z += cos(uMundoTime * 1.25 + swayPhase.x * 0.6 + swayPhase.z * 1.1) * 0.045 * swayF;
+	}`
+        );
+    }
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -106,5 +133,5 @@ float mundoNoise(vec2 p) {
   // Sin esto Three reutiliza programas cacheados de materiales con los mismos
   // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
   material.customProgramCacheKey = () =>
-    groundDetail ? "reveal-detail" : "reveal";
+    `reveal${groundDetail ? "-detail" : ""}${sway ? "-sway" : ""}`;
 }
