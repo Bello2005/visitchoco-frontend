@@ -43,7 +43,10 @@ export default function RevealController({
   const { scene } = useThree();
   const tmpColor = useMemo(() => new THREE.Color(), []);
 
-  useFrame(() => {
+  useFrame(({ clock }) => {
+    // Viento global (vaivén de copas y frondas via applyReveal{sway})
+    revealUniforms.uMundoTime.value = clock.elapsedTime;
+
     if (reducedMotion && revealState.phase !== "done") {
       revealUniforms.uRevealRadius.value = 99999;
       revealState.phase = "done";

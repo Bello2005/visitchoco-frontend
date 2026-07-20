@@ -104,11 +104,13 @@ export function terrainHeight(x: number, y: number): number {
   const carve = Math.exp(-dRiver * dRiver) * nsMask;
   h = h * (1 - carve) + -0.45 * carve;
 
-  // Carretera al Atrato: franja paralela al río por el banco este, aplanada a
-  // cota fija — misma malla, cero geometría extra. worldGround la comparte,
-  // así que se CONDUCE de verdad sobre ella.
-  const rm = roadMaskAt(nx, ny, riverX);
-  h = h * (1 - rm * 0.88) + ROAD_LEVEL * rm * 0.88;
+  // La VÍA DEL CHOCÓ: recorre el departamento de punta a punta (ver
+  // roadCenterNx), aplanada a cota fija sobre la misma malla — cero geometría
+  // extra, y worldGround la comparte: se CONDUCE de verdad sobre ella. 0.96:
+  // calzada casi lisa (la suavidad ES la sensación premium al conducir). En
+  // los tramos de sierra el aplanado TALLA el paso entre paredes verdes.
+  const rm = roadMaskAt(nx, ny);
+  h = h * (1 - rm * 0.96) + ROAD_LEVEL * rm * 0.96;
 
   return h;
 }
@@ -120,24 +122,79 @@ function riverCenterNx(y: number): number {
 
 // Cota de la carretera (sobre el agua, bajo la selva del valle)
 const ROAD_LEVEL = 0.34;
-// Desplazamiento de la carretera al ESTE del centro del río (normalizado)
-const ROAD_OFFSET_NX = 0.17;
-const ROAD_SIGMA_NX = 0.028;
+// σ 0.042 → calzada ancha (~2.5u de núcleo) tipo la road de folio-2025,
+// cómoda para conducir y protagonista en pantalla
+const ROAD_SIGMA_NX = 0.042;
 
-function roadMaskAt(nx: number, ny: number, riverX: number): number {
-  const d = (nx - (riverX + ROAD_OFFSET_NX)) / ROAD_SIGMA_NX;
-  return Math.exp(-d * d) * smoothstep(-0.55, -0.15, ny);
+// Trazado de la VÍA DEL CHOCÓ: el ESPINAZO REAL del polígono, calculado
+// offline (centro del segmento interior más ancho por fila de latitud,
+// suavizado; verificado 0/190 puntos fuera del departamento). La vía nace en
+// la punta sur del San Juan, recorre el valle del Atrato y remata en el
+// Darién. Interpolación Catmull-Rom para curvas de carretera de verdad.
+const ROAD_SPINE: [number, number][] = [
+  [-0.97, 0.222], [-0.89, 0.027], [-0.81, 0.041], [-0.73, 0.126],
+  [-0.65, 0.174], [-0.57, 0.224], [-0.49, 0.191], [-0.4, 0.178],
+  [-0.32, 0.216], [-0.24, 0.268], [-0.16, 0.241], [-0.08, 0.04],
+  [0.0, -0.145], [0.08, -0.163], [0.16, -0.283], [0.24, -0.332],
+  [0.32, -0.227], [0.4, -0.293], [0.49, -0.31], [0.57, -0.289],
+  [0.65, -0.261], [0.73, -0.153], [0.81, -0.208], [0.89, -0.338],
+  [0.97, -0.438],
+];
+
+function roadCenterNx(ny: number): number {
+  const s = ROAD_SPINE;
+  if (ny <= s[0][0]) return s[0][1];
+  if (ny >= s[s.length - 1][0]) return s[s.length - 1][1];
+  let i = 0;
+  while (i < s.length - 2 && ny > s[i + 1][0]) i++;
+  const p0 = s[Math.max(0, i - 1)][1];
+  const p1 = s[i][1];
+  const p2 = s[i + 1][1];
+  const p3 = s[Math.min(s.length - 1, i + 2)][1];
+  const t = (ny - s[i][0]) / (s[i + 1][0] - s[i][0]);
+  // Catmull-Rom: curva suave que pasa por los puntos de control
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return (
+    0.5 *
+    (2 * p1 +
+      (-p0 + p2) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
+  );
+}
+
+// La vía existe de punta a punta; solo se desvanece en los últimos metros
+function roadNsMask(ny: number): number {
+  return smoothstep(-0.985, -0.93, ny) * (1 - smoothstep(0.93, 0.985, ny));
+}
+
+function roadMaskAt(nx: number, ny: number): number {
+  const d = (nx - roadCenterNx(ny)) / ROAD_SIGMA_NX;
+  return Math.exp(-d * d) * roadNsMask(ny);
 }
 
 /** Máscara de carretera en coords LOCALES del plano (x, y=-worldZ), 0..1 */
 export function roadMask(x: number, y: number): number {
-  return roadMaskAt(x / (WIDTH / 2), y / (HEIGHT / 2), riverCenterNx(y));
+  return roadMaskAt(x / (WIDTH / 2), y / (HEIGHT / 2));
 }
 
 /** Centro (x de MUNDO) de la carretera a la altura worldZ dada */
 export function roadCenterWorldX(z: number): number {
-  const yLocal = -z;
-  return (riverCenterNx(yLocal) + ROAD_OFFSET_NX) * (WIDTH / 2);
+  return roadCenterNx(-z / (HEIGHT / 2)) * (WIDTH / 2);
+}
+
+/** Centro (x de MUNDO) del cauce del Atrato a la altura worldZ dada
+ *  (solo existe donde el valle: úsese con filtro de worldGround) */
+export function riverCenterWorldX(z: number): number {
+  return riverCenterNx(-z) * (WIDTH / 2);
+}
+
+/** Ruido de "matas" para la vegetación (coords locales): la selva crece en
+ *  parches con CLAROS entre ellos — colocación con intención, no uniforme.
+ *  ~0..1; sembrar solo donde supera un umbral. */
+export function patchNoise(x: number, y: number): number {
+  return fbm(x * 0.14 + 5.2, y * 0.14 + 9.7);
 }
 
 // ---------- distance transform (chamfer 3-4, dos pasadas) ----------
@@ -239,19 +296,32 @@ const C_VALLE = new THREE.Color("#2f9b4e"); // selva baja (esmeralda vivo)
 const C_LADERA = new THREE.Color("#1c6e39"); // ladera (verde selva profundo)
 const C_ALTO = new THREE.Color("#245c3c"); // selva de altura (verde oscuro)
 const C_BRUMA = new THREE.Color("#5f7a63"); // crestas del Baudó (verde-gris bruma)
-const C_VIA = new THREE.Color("#a3835a"); // carretera destapada (tierra chocoana)
+const C_VIA = new THREE.Color("#8a7050"); // calzada (tierra compactada oscura)
+const C_SARDINEL_A = new THREE.Color("#c0492f"); // sardinel rojo teja
+const C_SARDINEL_B = new THREE.Color("#efe6d2"); // sardinel crema
 
-// sd = distancia con signo a la costa (unidades de mundo; + tierra, - mar).
-// rd = máscara de carretera 0..1 (pinta la vía sobre lo que toque).
-function heightColor(h: number, sd: number, rd: number, out: THREE.Color): void {
+// sd = distancia con signo a la costa; rd = máscara de carretera 0..1;
+// yLocal = coordenada N-S (para alternar las rayas del sardinel a lo largo).
+function heightColor(
+  h: number,
+  sd: number,
+  rd: number,
+  yLocal: number,
+  out: THREE.Color
+): void {
   baseHeightColor(h, sd, out);
-  if (rd > 0.18) {
-    // Vía con BORDE definido (como la road de folio-2025, no un degradado):
-    // núcleo sólido + berma ligeramente oscurecida a los lados
-    out.lerp(C_VIA, smoothstep(0.42, 0.6, rd));
-    const berma =
-      smoothstep(0.18, 0.34, rd) * (1 - smoothstep(0.48, 0.64, rd));
-    out.multiplyScalar(1 - 0.14 * berma);
+  if (rd > 0.2) {
+    // Calzada sólida de borde definido + SARDINELES A RAYAS a los lados
+    // (el detalle-firma de la road de folio-2025, en colores VisitChocó).
+    // Banda angosta y umbral alto: las rayas viven SOLO en el filo de la
+    // calzada, sin sangrar al pasto en las curvas.
+    out.lerp(C_VIA, smoothstep(0.5, 0.66, rd));
+    const sardinel =
+      smoothstep(0.3, 0.42, rd) * (1 - smoothstep(0.46, 0.56, rd));
+    if (sardinel > 0.55) {
+      const stripe = Math.floor(yLocal / 2.4) % 2 === 0;
+      out.lerp(stripe ? C_SARDINEL_A : C_SARDINEL_B, sardinel);
+    }
   }
 }
 
@@ -352,7 +422,13 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
           heights[i] = h;
           pos.setZ(i, h);
 
-          heightColor(h, sd, roadMask(pos.getX(i), pos.getY(i)), tmpColor);
+          heightColor(
+            h,
+            sd,
+            roadMask(pos.getX(i), pos.getY(i)),
+            pos.getY(i),
+            tmpColor
+          );
           colors[i * 3] = tmpColor.r;
           colors[i * 3 + 1] = tmpColor.g;
           colors[i * 3 + 2] = tmpColor.b;
