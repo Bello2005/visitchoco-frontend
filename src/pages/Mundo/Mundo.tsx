@@ -8,6 +8,7 @@ import { Physics } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
 import RoadRibbon from "./components/RoadRibbon";
+import TerritoryGateway from "./components/TerritoryGateway";
 import OceanFloor from "./components/OceanFloor";
 import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
@@ -179,7 +180,14 @@ export default function Mundo() {
         <Canvas shadows>
           <color attach="background" args={["#a5ddf2"]} />
           <fog attach="fog" args={["#a5ddf2", 34, 135]} />
-          <PerspectiveCamera makeDefault fov={45} position={[0, 18, 26]} />
+          {/* Arranca YA detrás del carro (en el portal): con la posición fija
+              vieja quedaba a ~23u de su destino y el lerp 0.06 tardaba una
+              eternidad en llegar, con el portal visto de frente y desde el norte. */}
+          <PerspectiveCamera
+            makeDefault
+            fov={45}
+            position={[SPAWN_POS.x, 12, SPAWN_POS.z + 16]}
+          />
           {/* <OrbitControls enablePan={false} minDistance={12} maxDistance={45} maxPolarAngle={Math.PI / 2.2} enableDamping /> debug cam */}
           {/* Día estilo folio-2025: sol salmón #ffd2c2 con sombras reales.
               Amanecer tenue inicial; RevealController sube con el progreso
@@ -211,6 +219,10 @@ export default function Mundo() {
                   se vuelve PUENTE con colliders de deck propios; el carro pasa
                   por encima y la panga navega por debajo del canal abierto. */}
               <RoadRibbon />
+              {/* EL PORTAL DEL CHOCÓ: plaza + arco de bienvenida en la punta
+                  sur, donde nace la vía y spawnea el carro. Dentro de Physics
+                  porque la plaza tiene collider (el carro cae sobre ella). */}
+              <TerritoryGateway />
             </Physics>
           </Suspense>
           {/* Vegetación en su PROPIO Suspense: la carga de los GLB de árboles
