@@ -117,11 +117,15 @@ export function terrainHeight(x: number, y: number): number {
   const fill = rm * 0.96 * landness;
   h = h * (1 - fill) + ROAD_LEVEL * fill;
 
-  // EXPLANADA DEL PORTAL: claro plano a cota de vía alrededor de la plaza
-  // VisitChocó (local y = -worldZ), para que el monumento no quede enterrado.
+  // EXPLANADAS de las plazas: claro plano a cota de vía alrededor de cada
+  // monumento (local y = -worldZ), para que no queden enterrados por la selva.
   const gd = Math.hypot(x - GATEWAY_X, y + GATEWAY_Z);
   const gm = 1 - smoothstep(PLAZA_CLEAR_R, PLAZA_CLEAR_R + PLAZA_CLEAR_FADE, gd);
   if (gm > 0) h = h * (1 - gm * 0.96) + ROAD_LEVEL * gm * 0.96;
+
+  const nd = Math.hypot(x - NORTH_X, y + NORTH_Z);
+  const nm = 1 - smoothstep(NORTH_CLEAR_R, NORTH_CLEAR_R + PLAZA_CLEAR_FADE, nd);
+  if (nm > 0) h = h * (1 - nm * 0.96) + ROAD_LEVEL * nm * 0.96;
 
   return h;
 }
@@ -145,6 +149,14 @@ export const GATEWAY_Z = 40;
 // carro en cualquier dirección.
 const PLAZA_CLEAR_R = 5.5;
 const PLAZA_CLEAR_FADE = 3.2;
+// PLAZA DE LA CHIRIMÍA: el remate NORTE de la vía (Darién). Es el DESTINO del
+// viaje, así que es bastante más grande que el portal de entrada.
+// z=-22: sondeado como TIERRA FIRME (g≈0.34). Más al norte la costa se
+// fragmenta en agua/islotes (agua en -32..-30.5 y en -41..-44), así que una
+// plaza allá flotaba sobre el mar — la explanada no puede crear tierra donde
+// la lógica de costa manda SEA_FLOOR.
+export const NORTH_Z = -22;
+const NORTH_CLEAR_R = 6.8;
 // σ 0.042 → calzada ancha (~2.5u de núcleo) tipo la road de folio-2025,
 // cómoda para conducir y protagonista en pantalla
 const ROAD_SIGMA_NX = 0.042;
@@ -217,6 +229,8 @@ export function roadCenterWorldX(z: number): number {
 /** x de MUNDO del PORTAL (centro de la vía en la punta sur). Declarado aquí
  *  —y no junto a GATEWAY_Z— porque necesita ROAD_SPINE ya inicializado. */
 export const GATEWAY_X = roadCenterWorldX(GATEWAY_Z);
+/** x de MUNDO de la PLAZA DE LA MARIMBA (remate norte). Misma razón. */
+export const NORTH_X = roadCenterWorldX(NORTH_Z);
 
 /** Centro (x de MUNDO) del cauce del Atrato a la altura worldZ dada
  *  (solo existe donde el valle: úsese con filtro de worldGround) */

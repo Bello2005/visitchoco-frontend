@@ -42,8 +42,14 @@ export default function FollowCamera({ target }: FollowCameraProps) {
     }
     targetEased.current.lerp(chassisPos.current, EASING);
 
+    // RESPONSIVE: en vertical (móvil) el encuadre horizontal se estrecha
+    // muchísimo y el carro se comía la pantalla. Alejamos la cámara según el
+    // aspecto para que siempre se vea el mismo "ancho de mundo".
+    const aspect = (camera as THREE.PerspectiveCamera).aspect || 1;
+    const dist = DISTANCE * (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1);
+
     // Posición = punto de mira + ángulo FIJO × distancia. Nada de yaw.
-    camera.position.copy(targetEased.current).addScaledVector(ANGLE, DISTANCE);
+    camera.position.copy(targetEased.current).addScaledVector(ANGLE, dist);
     if (camera.position.y < 1.5) camera.position.y = 1.5;
     camera.lookAt(targetEased.current);
   });
