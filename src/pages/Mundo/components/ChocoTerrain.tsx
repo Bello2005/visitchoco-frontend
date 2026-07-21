@@ -119,13 +119,16 @@ export function terrainHeight(x: number, y: number): number {
 
   // EXPLANADAS de las plazas: claro plano a cota de vía alrededor de cada
   // monumento (local y = -worldZ), para que no queden enterrados por la selva.
+  // Aplanado TOTAL (factor 1, no 0.96): con 0.96 quedaba el 4% de la altura
+  // original, y una loma de 5-8u dejaba +0.2/+0.3 — por encima del tope de la
+  // plaza (0.52), así que la montaña CORTABA la plataforma.
   const gd = Math.hypot(x - GATEWAY_X, y + GATEWAY_Z);
   const gm = 1 - smoothstep(PLAZA_CLEAR_R, PLAZA_CLEAR_R + PLAZA_CLEAR_FADE, gd);
-  if (gm > 0) h = h * (1 - gm * 0.96) + ROAD_LEVEL * gm * 0.96;
+  if (gm > 0) h = h * (1 - gm) + ROAD_LEVEL * gm;
 
   const nd = Math.hypot(x - NORTH_X, y + NORTH_Z);
   const nm = 1 - smoothstep(NORTH_CLEAR_R, NORTH_CLEAR_R + PLAZA_CLEAR_FADE, nd);
-  if (nm > 0) h = h * (1 - nm * 0.96) + ROAD_LEVEL * nm * 0.96;
+  if (nm > 0) h = h * (1 - nm) + ROAD_LEVEL * nm;
 
   return h;
 }

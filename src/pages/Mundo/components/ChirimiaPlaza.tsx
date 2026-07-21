@@ -16,6 +16,8 @@ import { applyReveal } from "../utils/applyReveal";
 // el mundo.
 
 const PLAZA_R = 6.0; // bastante mayor que el portal (4.6)
+/** Radio de la plaza: ChirimiaAudio lo usa para saber cuándo suena la música */
+export const CHIRIMIA_PLAZA_R = PLAZA_R;
 const PLAZA_TOP = 0.52; // misma cota que el portal → se conduce parejo
 const DAIS_R = 2.7; // tarima
 const DAIS_TOP = PLAZA_TOP + 0.42;

@@ -11,6 +11,7 @@ import RoadRibbon from "./components/RoadRibbon";
 import TerritoryGateway from "./components/TerritoryGateway";
 import ChirimiaPlaza from "./components/ChirimiaPlaza";
 import MundoTouchControls from "./components/MundoTouchControls";
+import ChirimiaAudio from "./components/ChirimiaAudio";
 import OceanFloor from "./components/OceanFloor";
 import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
@@ -254,6 +255,8 @@ export default function Mundo() {
       </KeyboardControls>
       <MundoMiniMap />
       <MundoAudio />
+      {/* La chirimía arranca sola al pisar la plaza del norte */}
+      <ChirimiaAudio />
       <MundoTouchControls />
       {loaderVisible && <MundoLoader fading={loaderFading} />}
       {hintVisible && (

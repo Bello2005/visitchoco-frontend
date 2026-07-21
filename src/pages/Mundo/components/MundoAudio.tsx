@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { audioState } from "../utils/audioState";
 
 // Ambiente sonoro del territorio: música (Baguira, CC0 — folio-2025) +
 // viento de selva en loop (MIT). Arranca con el "despertar" (el clic del
@@ -48,7 +49,23 @@ export default function MundoAudio() {
   useEffect(() => {
     if (musicRef.current) musicRef.current.muted = muted;
     if (windRef.current) windRef.current.muted = muted;
+    // El botón manda sobre TODO el audio, también sobre la chirimía sintética
+    audioState.muted = muted;
   }, [muted]);
+
+  // DUCKING: cuando suena la chirimía de la plaza, el ambiente se agacha para
+  // dejarla pasar (200ms basta; no hace falta gastar un rAF en esto).
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const music = musicRef.current;
+      const wind = windRef.current;
+      if (!music || !wind) return;
+      const duck = audioState.chirimiaActive;
+      music.volume = duck ? 0.08 : 0.3;
+      wind.volume = duck ? 0.14 : 0.35;
+    }, 200);
+    return () => clearInterval(id);
+  }, []);
 
   if (!started) return null;
 
