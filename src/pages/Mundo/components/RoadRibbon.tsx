@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
-import { loadChocoGeo, HEIGHT } from "../utils/geo";
+import { loadChocoGeo } from "../utils/geo";
 import {
   roadCenterWorldX,
   worldGround,
   WATER_LEVEL,
   GATEWAY_Z,
+  NORTH_Z,
 } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 
@@ -21,7 +22,6 @@ const STEP = 0.6; // muestreo del espinazo (curvas suaves)
 const HALF_W = 1.15; // media calzada (~2.3u de ancho)
 const LIFT = 0.05; // drapeado sobre el terreno (sin z-fighting)
 const MARK_LIFT = 0.02; // las líneas pintadas van sobre el asfalto
-const TAPER = 7; // muestras de afilado en las puntas
 
 // Líneas de carril (pintura sobre el asfalto negro)
 const EDGE_INSET = 0.16; // qué tan adentro del filo va la línea de borde
@@ -110,7 +110,7 @@ function buildRoad(): RoadGeos {
   const zs: number[] = [];
   // El extremo SUR nace en el PORTAL (plaza VisitChocó) — la vía ya no se
   // afila en un pico feo sobre la punta; la plaza tapa su extremo romo.
-  for (let z = GATEWAY_Z + 0.5; z >= -HEIGHT / 2 + 2; z -= STEP) {
+  for (let z = GATEWAY_Z + 0.5; z >= NORTH_Z - 0.5; z -= STEP) {
     const x = roadCenterWorldX(z);
     zs.push(z);
     pts.push(new THREE.Vector3(x, 0, z)); // y se fija tras calcular el perfil
@@ -150,10 +150,10 @@ function buildRoad(): RoadGeos {
   const widths: number[] = [];
   for (let i = 0; i < n; i++) {
     pts[i].y = deck[i];
-    // Solo se afila el extremo NORTE (Darién); el SUR nace romo dentro de la
-    // plaza del portal, que lo tapa (nada de pico feo sobre la punta sur).
-    const tip = n - 1 - i;
-    widths.push(tip >= TAPER ? 1 : tip / TAPER);
+    // Ancho constante: la vía ya no se afila en ningún extremo — nace y muere
+    // ROMA dentro de las plazas (portal al sur, marimba al norte), que tapan
+    // sus puntas. Los picos feos se acabaron.
+    widths.push(1);
   }
 
   // ---- calzada: cinta indexada L-R por muestra (superficie plana) ----

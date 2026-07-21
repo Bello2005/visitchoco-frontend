@@ -123,9 +123,11 @@ export default function MundoMiniMap() {
 
   return (
     <div
-      className="pointer-events-none absolute right-4 top-4 z-10 hidden select-none
+      // Responsive: en móvil el minimapa ya no desaparece — se encoge (62%) y
+      // se arrima a la esquina, para no chocar con los controles táctiles.
+      className="pointer-events-none absolute right-2 top-2 z-10 origin-top-right scale-[0.62] select-none
                  overflow-hidden rounded-2xl border border-white/15 shadow-[0_8px_32px_rgba(2,13,26,0.45)]
-                 backdrop-blur-md md:block"
+                 backdrop-blur-md md:right-4 md:top-4 md:scale-100"
       style={{ background: "rgba(2, 13, 26, 0.55)" }}
     >
       <div className="relative" style={{ width: MAP_W, height: MAP_H }}>

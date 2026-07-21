@@ -9,6 +9,8 @@ import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
 import RoadRibbon from "./components/RoadRibbon";
 import TerritoryGateway from "./components/TerritoryGateway";
+import ChirimiaPlaza from "./components/ChirimiaPlaza";
+import MundoTouchControls from "./components/MundoTouchControls";
 import OceanFloor from "./components/OceanFloor";
 import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
@@ -223,6 +225,8 @@ export default function Mundo() {
                   sur, donde nace la vía y spawnea el carro. Dentro de Physics
                   porque la plaza tiene collider (el carro cae sobre ella). */}
               <TerritoryGateway />
+              {/* El DESTINO: plaza de la chirimía en el remate norte */}
+              <ChirimiaPlaza />
             </Physics>
           </Suspense>
           {/* Vegetación en su PROPIO Suspense: la carga de los GLB de árboles
@@ -250,6 +254,7 @@ export default function Mundo() {
       </KeyboardControls>
       <MundoMiniMap />
       <MundoAudio />
+      <MundoTouchControls />
       {loaderVisible && <MundoLoader fading={loaderFading} />}
       {hintVisible && (
         <div
