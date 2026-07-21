@@ -11,10 +11,10 @@ import type { RapierRigidBody, RapierContext } from "@react-three/rapier";
 import { useKeyboardControls } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import {
-  terrainHeight,
   worldGround,
   roadCenterWorldX,
   WATER_LEVEL,
+  GATEWAY_Z,
 } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 import { vehicleState } from "../utils/vehicleState";
@@ -24,14 +24,13 @@ type VehicleController = ReturnType<
 >;
 type Mode = "car" | "boat";
 
-// Spawn SOBRE LA CARRETERA del banco este del Atrato (cota plana ~0.34,
-// tierra firme), mirando al norte a lo largo de la vía — el jugador nace en
-// un camino que invita a conducir, con el río a un costado para la panga.
-const SPAWN_Z = 14;
+// Spawn EN EL PORTAL DEL CHOCÓ (plaza VisitChocó de la punta sur): el carro
+// nace sobre la plaza (cae sobre su collider, tope ~0.44) mirando al NORTE, a
+// lo largo de la vía — atraviesa el arco de bienvenida y entra al territorio.
 export const SPAWN_POS = {
-  x: roadCenterWorldX(SPAWN_Z),
-  y: terrainHeight(roadCenterWorldX(SPAWN_Z), -SPAWN_Z) + 1.2,
-  z: SPAWN_Z,
+  x: roadCenterWorldX(GATEWAY_Z),
+  y: 1.6,
+  z: GATEWAY_Z,
 };
 // 180° en Y: mirando al NORTE (-Z mundo), a lo largo de la carretera
 const SPAWN_ROT = { x: 0, y: 1, z: 0, w: 0 };

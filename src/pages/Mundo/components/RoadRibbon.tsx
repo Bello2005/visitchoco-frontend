@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { loadChocoGeo, HEIGHT } from "../utils/geo";
-import { roadCenterWorldX, worldGround, WATER_LEVEL } from "./ChocoTerrain";
+import {
+  roadCenterWorldX,
+  worldGround,
+  WATER_LEVEL,
+  GATEWAY_Z,
+} from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 
 // La calzada como GEOMETRÍA PROPIA (el secreto de la road de folio-2025:
@@ -62,7 +67,9 @@ function buildRoad(): RoadGeos {
   const pts: THREE.Vector3[] = [];
   const sides: THREE.Vector3[] = [];
   const zs: number[] = [];
-  for (let z = HEIGHT / 2 - 2; z >= -HEIGHT / 2 + 2; z -= STEP) {
+  // El extremo SUR nace en el PORTAL (plaza VisitChocó) — la vía ya no se
+  // afila en un pico feo sobre la punta; la plaza tapa su extremo romo.
+  for (let z = GATEWAY_Z + 0.5; z >= -HEIGHT / 2 + 2; z -= STEP) {
     const x = roadCenterWorldX(z);
     zs.push(z);
     pts.push(new THREE.Vector3(x, 0, z)); // y se fija tras calcular el perfil
@@ -102,7 +109,9 @@ function buildRoad(): RoadGeos {
   const widths: number[] = [];
   for (let i = 0; i < n; i++) {
     pts[i].y = deck[i];
-    const tip = Math.min(i, n - 1 - i);
+    // Solo se afila el extremo NORTE (Darién); el SUR nace romo dentro de la
+    // plaza del portal, que lo tapa (nada de pico feo sobre la punta sur).
+    const tip = n - 1 - i;
     widths.push(tip >= TAPER ? 1 : tip / TAPER);
   }
 

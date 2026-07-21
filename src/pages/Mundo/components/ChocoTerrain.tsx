@@ -117,6 +117,12 @@ export function terrainHeight(x: number, y: number): number {
   const fill = rm * 0.96 * landness;
   h = h * (1 - fill) + ROAD_LEVEL * fill;
 
+  // EXPLANADA DEL PORTAL: claro plano a cota de vía alrededor de la plaza
+  // VisitChocó (local y = -worldZ), para que el monumento no quede enterrado.
+  const gd = Math.hypot(x - GATEWAY_X, y + GATEWAY_Z);
+  const gm = 1 - smoothstep(PLAZA_CLEAR_R, PLAZA_CLEAR_R + PLAZA_CLEAR_FADE, gd);
+  if (gm > 0) h = h * (1 - gm * 0.96) + ROAD_LEVEL * gm * 0.96;
+
   return h;
 }
 
@@ -127,6 +133,18 @@ function riverCenterNx(y: number): number {
 
 // Cota de la carretera (sobre el agua, bajo la selva del valle)
 const ROAD_LEVEL = 0.34;
+// PORTAL DEL CHOCÓ: la vía nace en la punta sur sobre tierra firme y plana
+// (~ROAD_LEVEL). Aquí se planta la plaza-portal "VisitChocó" y el carro spawnea.
+// (perfil del sur sondeado: tierra plana ~0.36 de z≈42 hacia el norte.)
+export const GATEWAY_Z = 40;
+// GATEWAY_X se declara MÁS ABAJO, tras ROAD_SPINE: calcularlo aquí caía en la
+// zona muerta temporal del const (roadCenterNx lee ROAD_SPINE) → ReferenceError.
+// Radio de la EXPLANADA del portal: el aplanado de la vía es una franja
+// angosta (σ 0.042 ≈ ±1.3u), así que fuera de ella la selva sube y ENTIERRA la
+// plaza. Este claro asienta el monumento en terreno plano y deja salir el
+// carro en cualquier dirección.
+const PLAZA_CLEAR_R = 5.5;
+const PLAZA_CLEAR_FADE = 3.2;
 // σ 0.042 → calzada ancha (~2.5u de núcleo) tipo la road de folio-2025,
 // cómoda para conducir y protagonista en pantalla
 const ROAD_SIGMA_NX = 0.042;
@@ -188,6 +206,10 @@ export function roadMask(x: number, y: number): number {
 export function roadCenterWorldX(z: number): number {
   return roadCenterNx(-z / (HEIGHT / 2)) * (WIDTH / 2);
 }
+
+/** x de MUNDO del PORTAL (centro de la vía en la punta sur). Declarado aquí
+ *  —y no junto a GATEWAY_Z— porque necesita ROAD_SPINE ya inicializado. */
+export const GATEWAY_X = roadCenterWorldX(GATEWAY_Z);
 
 /** Centro (x de MUNDO) del cauce del Atrato a la altura worldZ dada
  *  (solo existe donde el valle: úsese con filtro de worldGround) */
