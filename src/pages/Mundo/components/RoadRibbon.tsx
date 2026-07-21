@@ -39,6 +39,14 @@ const BLUR_PASSES = 8; // suavizado del perfil → rampas de acceso al puente
 // PUENTE DE GUADUA (el bambú del Chocó): toda la estructura son cañas. Cada
 // caña es una instancia de un cilindro UNITARIO (r=1,h=1) escalada por su
 // matriz → un solo draw call para todo el puente.
+// El puente es MÁS ANCHO que la carretera: el carro se ve holgado y bonito
+// cruzando, y el tablero de tablones tapa el asfalto que pasa por debajo.
+const BRIDGE_HALF_W = 1.8;
+const BRIDGE_LIFT = 0.09; // el tablero va sobre el asfalto (lo oculta)
+const PORTAL_EVERY = 7; // cada cuántas muestras un pórtico de guadua
+const PORTAL_H = 2.45; // alto libre del pórtico (el carro pasa por debajo)
+const PLANK_A = new THREE.Color("#9c7a44"); // tablón de madera
+const PLANK_B = new THREE.Color("#8a6a3a"); // tablón alterno (veta)
 const PILING_EVERY = 5; // cada cuántas muestras una cepa de pilotes
 const PILING_R = 0.1; // radio de la caña del pilote
 const PILING_SPREAD = 0.19; // separación de las 2 cañas de cada cepa
@@ -60,10 +68,13 @@ interface Plank {
   z: number;
   yaw: number;
   hl: number;
+  hw: number;
 }
 interface RoadGeos {
   asphalt: THREE.BufferGeometry;
   marks: THREE.BufferGeometry;
+  /** Tablero de madera del puente (más ancho que el asfalto, y encima) */
+  bridgeDeck: THREE.BufferGeometry;
   planks: Plank[];
   /** Una matriz por CAÑA de guadua (cilindro unitario escalado y orientado) */
   guadua: THREE.Matrix4[];
@@ -205,10 +216,14 @@ function buildRoad(): RoadGeos {
   marks.setAttribute("color", new THREE.BufferAttribute(mCol, 3));
   marks.computeVertexNormals();
 
-  // ---- PUENTE: colliders del deck + estructura de GUADUA ----
+  // ---- PUENTE DE GUADUA: tablero de tablones + estructura + colliders ----
   const planks: Plank[] = [];
   const guadua: THREE.Matrix4[] = [];
   const isBridge: boolean[] = new Array(n).fill(false);
+  // El tablero del puente: superficie propia (madera), MÁS ANCHA que el
+  // asfalto y por encima de él → en el puente la vía "cambia de material".
+  const dPos: number[] = [];
+  const dCol: number[] = [];
 
   for (let i = 1; i < n; i++) {
     const midDeck = (deck[i] + deck[i - 1]) * 0.5;
@@ -220,19 +235,40 @@ function buildRoad(): RoadGeos {
     const segLen = Math.hypot(dx, dz);
     planks.push({
       x: (pts[i].x + pts[i - 1].x) * 0.5,
-      y: midDeck - DECK_HT, // tope del collider ≈ superficie del deck
+      y: midDeck + BRIDGE_LIFT - DECK_HT, // tope del collider = tablero
       z: (pts[i].z + pts[i - 1].z) * 0.5,
       yaw: Math.atan2(dx, dz),
       hl: segLen * 0.5 + 0.06, // solape leve entre planchas
+      hw: BRIDGE_HALF_W, // el puente es más ancho que la carretera
     });
+
+    // Tablón transversal: un quad por segmento, alternando veta (winding CCW)
+    const c = i % 2 === 0 ? PLANK_A : PLANK_B;
+    const corner = (j: number, dir: number) =>
+      new THREE.Vector3(
+        pts[j].x + sides[j].x * dir * BRIDGE_HALF_W,
+        deck[j] + BRIDGE_LIFT,
+        pts[j].z + sides[j].z * dir * BRIDGE_HALF_W
+      );
+    const L0 = corner(i - 1, -1);
+    const R0 = corner(i - 1, 1);
+    const L1 = corner(i, -1);
+    const R1 = corner(i, 1);
+    for (const v of [L0, L1, R0, R0, L1, R1]) dPos.push(v.x, v.y, v.z);
+    for (let k = 0; k < 6; k++) dCol.push(c.r, c.g, c.b);
   }
 
-  // Punto del borde de la calzada (dir=-1 izq, +1 der) a una altura dada
+  const bridgeDeck = new THREE.BufferGeometry();
+  bridgeDeck.setAttribute("position", new THREE.Float32BufferAttribute(dPos, 3));
+  bridgeDeck.setAttribute("color", new THREE.Float32BufferAttribute(dCol, 3));
+  bridgeDeck.computeVertexNormals();
+
+  // Punto del borde del TABLERO (dir=-1 izq, +1 der) a una altura dada
   const edge = (i: number, dir: number, out: number, dy: number) =>
     new THREE.Vector3(
-      pts[i].x + sides[i].x * dir * (HALF_W + out),
-      deck[i] + dy,
-      pts[i].z + sides[i].z * dir * (HALF_W + out)
+      pts[i].x + sides[i].x * dir * (BRIDGE_HALF_W + out),
+      deck[i] + BRIDGE_LIFT + dy,
+      pts[i].z + sides[i].z * dir * (BRIDGE_HALF_W + out)
     );
 
   for (let i = 1; i < n; i++) {
@@ -246,11 +282,32 @@ function buildRoad(): RoadGeos {
         cane(edge(i - 1, dir, RAIL_OUT, -DECK_HT), edge(i, dir, RAIL_OUT, -DECK_HT), BEAM_R, guadua);
         cane(edge(i - 1, dir, RAIL_OUT, RAIL_TOP), edge(i, dir, RAIL_OUT, RAIL_TOP), RAIL_R, guadua);
         cane(edge(i - 1, dir, RAIL_OUT, RAIL_MID), edge(i, dir, RAIL_OUT, RAIL_MID), RAIL_R, guadua);
+        // LARGUEROS bajo el tablero (se ven de costado y desde la panga)
+        cane(edge(i - 1, dir, -0.35, -0.22), edge(i, dir, -0.35, -0.22), BEAM_R, guadua);
       }
       // Balaustre vertical de la baranda
       if (i % POST_EVERY === 0) {
         cane(edge(i, dir, RAIL_OUT, -DECK_HT), edge(i, dir, RAIL_OUT, RAIL_TOP), POST_R, guadua);
       }
+    }
+
+    // PÓRTICO de guadua: dos parales y un dintel por el que PASA el carro.
+    // Es la firma visual del puente — enmarca al vehículo al cruzar.
+    if (i % PORTAL_EVERY === 0) {
+      const lBase = edge(i, -1, RAIL_OUT, -DECK_HT);
+      const rBase = edge(i, 1, RAIL_OUT, -DECK_HT);
+      const lTop = edge(i, -1, RAIL_OUT, PORTAL_H);
+      const rTop = edge(i, 1, RAIL_OUT, PORTAL_H);
+      cane(lBase, lTop, POST_R * 1.6, guadua); // paral izq
+      cane(rBase, rTop, POST_R * 1.6, guadua); // paral der
+      cane(lTop, rTop, BEAM_R, guadua); // dintel
+      // cartelas diagonales que rigidizan las esquinas
+      const lKnee = edge(i, -1, RAIL_OUT, PORTAL_H - 0.65);
+      const rKnee = edge(i, 1, RAIL_OUT, PORTAL_H - 0.65);
+      const lIn = lTop.clone().lerp(rTop, 0.28);
+      const rIn = rTop.clone().lerp(lTop, 0.28);
+      cane(lKnee, lIn, RAIL_R, guadua);
+      cane(rKnee, rIn, RAIL_R, guadua);
     }
 
     // CEPA de pilotes: dos cañas por costado clavadas en el lecho, viga
@@ -259,7 +316,7 @@ function buildRoad(): RoadGeos {
       const bed = groundC[i] - 0.35;
       const legs: THREE.Vector3[] = [];
       for (const dir of [-1, 1]) {
-        const top = edge(i, dir, -0.25, -DECK_HT);
+        const top = edge(i, dir, -0.3, -DECK_HT);
         legs.push(top.clone());
         // dos cañas ligeramente separadas a lo largo de la vía = cepa
         for (const s of [-1, 1]) {
@@ -281,7 +338,7 @@ function buildRoad(): RoadGeos {
     }
   }
 
-  return { asphalt, marks, planks, guadua };
+  return { asphalt, marks, bridgeDeck, planks, guadua };
 }
 
 export default function RoadRibbon() {
@@ -315,6 +372,7 @@ export default function RoadRibbon() {
     return () => {
       geos?.asphalt.dispose();
       geos?.marks.dispose();
+      geos?.bridgeDeck.dispose();
     };
   }, [geos]);
 
@@ -366,10 +424,23 @@ export default function RoadRibbon() {
           }}
         />
       </mesh>
-      {/* PUENTE DE GUADUA: pilotes en cepa, barandas con pasamanos y
-          balaustres, vigas de borde y crucetas en X. Todo visual (sin
-          collider) — así la panga pasa limpio entre los pilotes y el carro
-          nunca se engancha en una baranda. */}
+      {/* TABLERO DEL PUENTE: tablones de madera, más ancho que el asfalto y
+          por encima → en el puente la vía cambia de material, como pediste. */}
+      <mesh geometry={geos.bridgeDeck} receiveShadow castShadow>
+        <meshStandardMaterial
+          vertexColors
+          flatShading
+          roughness={0.9}
+          side={THREE.DoubleSide}
+          ref={(m) => {
+            if (m) applyReveal(m, { groundDetail: true });
+          }}
+        />
+      </mesh>
+      {/* PUENTE DE GUADUA: pilotes en cepa, pórticos por los que pasa el
+          carro, barandas con pasamanos y balaustres, largueros y crucetas en
+          X. Todo visual (sin collider) — así la panga pasa limpio entre los
+          pilotes y el carro nunca se engancha en una baranda. */}
       <instancedMesh
         ref={guaduaRef}
         args={[caneGeo, guaduaMat, geos.guadua.length]}
@@ -382,7 +453,7 @@ export default function RoadRibbon() {
         {geos.planks.map((p, i) => (
           <CuboidCollider
             key={i}
-            args={[HALF_W, DECK_HT, p.hl]}
+            args={[p.hw, DECK_HT, p.hl]}
             position={[p.x, p.y, p.z]}
             rotation={[0, p.yaw, 0]}
           />

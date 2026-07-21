@@ -148,6 +148,9 @@ const PLAZA_CLEAR_FADE = 3.2;
 // σ 0.042 → calzada ancha (~2.5u de núcleo) tipo la road de folio-2025,
 // cómoda para conducir y protagonista en pantalla
 const ROAD_SIGMA_NX = 0.042;
+// Media-meseta PLANA de la calzada (≈1.26u, algo más que el semiancho de la
+// cinta): dentro de esto el terreno queda a cota fija → nada de zanja.
+const ROAD_FLAT_NX = 0.042;
 
 // Trazado de la VÍA DEL CHOCÓ: el ESPINAZO REAL del polígono, calculado
 // offline (centro del segmento interior más ancho por fila de latitud,
@@ -192,8 +195,12 @@ function roadNsMask(ny: number): number {
   return smoothstep(-0.985, -0.93, ny) * (1 - smoothstep(0.93, 0.985, ny));
 }
 
+// Perfil de MESETA: la calzada queda PLANA de verdad en todo su ancho y solo
+// después cae en talud. Con la gaussiana pura el terreno ya subía DENTRO del
+// ancho de la vía, así que el asfalto se veía HUNDIDO en una zanja.
 function roadMaskAt(nx: number, ny: number): number {
-  const d = (nx - roadCenterNx(ny)) / ROAD_SIGMA_NX;
+  const dn = Math.abs(nx - roadCenterNx(ny));
+  const d = Math.max(0, dn - ROAD_FLAT_NX) / ROAD_SIGMA_NX;
   return Math.exp(-d * d) * roadNsMask(ny);
 }
 

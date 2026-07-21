@@ -224,9 +224,18 @@ export default function TerritoryGateway() {
           ref={(m) => m && applyReveal(m)}
         />
       </mesh>
-      {/* wordmark del letrero, mirando al SUR (+z) hacia el jugador */}
+      {/* wordmark del letrero por las DOS caras: al SUR (+z) para quien está
+          en la plaza, y al NORTE (-z, girado π) para quien vuelve del
+          territorio — antes esa cara era un tablón negro. */}
       <mesh
         position={[AX, POST_TOP - 0.62, ARCH_Z + 0.1]}
+        material={signMat}
+      >
+        <planeGeometry args={[POST_OUT * 2 - 0.1, 1.02]} />
+      </mesh>
+      <mesh
+        position={[AX, POST_TOP - 0.62, ARCH_Z - 0.1]}
+        rotation={[0, Math.PI, 0]}
         material={signMat}
       >
         <planeGeometry args={[POST_OUT * 2 - 0.1, 1.02]} />
