@@ -43,6 +43,7 @@ const BLUR_PASSES = 8; // suavizado del perfil → rampas de acceso al puente
 // cruzando, y el tablero de tablones tapa el asfalto que pasa por debajo.
 const BRIDGE_HALF_W = 1.8;
 const BRIDGE_LIFT = 0.09; // el tablero va sobre el asfalto (lo oculta)
+const MOUTH_FADE = 4; // muestras de embudo en cada boca del puente
 const PORTAL_EVERY = 7; // cada cuántas muestras un pórtico de guadua
 const PORTAL_H = 2.45; // alto libre del pórtico (el carro pasa por debajo)
 const PLANK_A = new THREE.Color("#9c7a44"); // tablón de madera
@@ -225,30 +226,52 @@ function buildRoad(): RoadGeos {
   const dPos: number[] = [];
   const dCol: number[] = [];
 
+  // Pasada 1: ¿qué segmentos son puente?
   for (let i = 1; i < n; i++) {
     const midDeck = (deck[i] + deck[i - 1]) * 0.5;
     const midGround = (groundC[i] + groundC[i - 1]) * 0.5;
-    if (midDeck - midGround < BRIDGE_THRESH) continue; // en tierra: lo lleva el terreno
-    isBridge[i] = true;
+    if (midDeck - midGround >= BRIDGE_THRESH) isBridge[i] = true;
+  }
+
+  // Pasada 2: BOCA EMBUDO. En los extremos de cada tramo el tablero nace AL
+  // RAS y AL ANCHO de la carretera, y solo hacia adentro sube y se ensancha.
+  // Sin esto la boca era un labio vertical + paredes laterales sobresaliendo:
+  // si no entrabas perfectamente alineado, chocabas en vez de colarte.
+  const mouth: number[] = new Array(n).fill(0);
+  for (let i = 1; i < n; i++) {
+    if (!isBridge[i]) continue;
+    let a = i;
+    while (a > 1 && isBridge[a - 1]) a--;
+    let b = i;
+    while (b < n - 1 && isBridge[b + 1]) b++;
+    mouth[i] = Math.min(1, Math.min(i - a, b - i) / MOUTH_FADE);
+  }
+  const liftAt = (j: number) => BRIDGE_LIFT * mouth[j];
+  const hwAt = (j: number) => HALF_W + (BRIDGE_HALF_W - HALF_W) * mouth[j];
+
+  // Pasada 3: tablero de tablones + colliders
+  for (let i = 1; i < n; i++) {
+    if (!isBridge[i]) continue;
+    const midDeck = (deck[i] + deck[i - 1]) * 0.5;
     const dx = pts[i].x - pts[i - 1].x;
     const dz = pts[i].z - pts[i - 1].z;
     const segLen = Math.hypot(dx, dz);
     planks.push({
       x: (pts[i].x + pts[i - 1].x) * 0.5,
-      y: midDeck + BRIDGE_LIFT - DECK_HT, // tope del collider = tablero
+      y: midDeck + (liftAt(i) + liftAt(i - 1)) * 0.5 - DECK_HT,
       z: (pts[i].z + pts[i - 1].z) * 0.5,
       yaw: Math.atan2(dx, dz),
       hl: segLen * 0.5 + 0.06, // solape leve entre planchas
-      hw: BRIDGE_HALF_W, // el puente es más ancho que la carretera
+      hw: (hwAt(i) + hwAt(i - 1)) * 0.5,
     });
 
     // Tablón transversal: un quad por segmento, alternando veta (winding CCW)
     const c = i % 2 === 0 ? PLANK_A : PLANK_B;
     const corner = (j: number, dir: number) =>
       new THREE.Vector3(
-        pts[j].x + sides[j].x * dir * BRIDGE_HALF_W,
-        deck[j] + BRIDGE_LIFT,
-        pts[j].z + sides[j].z * dir * BRIDGE_HALF_W
+        pts[j].x + sides[j].x * dir * hwAt(j),
+        deck[j] + liftAt(j),
+        pts[j].z + sides[j].z * dir * hwAt(j)
       );
     const L0 = corner(i - 1, -1);
     const R0 = corner(i - 1, 1);
@@ -266,9 +289,9 @@ function buildRoad(): RoadGeos {
   // Punto del borde del TABLERO (dir=-1 izq, +1 der) a una altura dada
   const edge = (i: number, dir: number, out: number, dy: number) =>
     new THREE.Vector3(
-      pts[i].x + sides[i].x * dir * (BRIDGE_HALF_W + out),
-      deck[i] + BRIDGE_LIFT + dy,
-      pts[i].z + sides[i].z * dir * (BRIDGE_HALF_W + out)
+      pts[i].x + sides[i].x * dir * (hwAt(i) + out),
+      deck[i] + liftAt(i) + dy,
+      pts[i].z + sides[i].z * dir * (hwAt(i) + out)
     );
 
   for (let i = 1; i < n; i++) {
@@ -293,7 +316,9 @@ function buildRoad(): RoadGeos {
 
     // PÓRTICO de guadua: dos parales y un dintel por el que PASA el carro.
     // Es la firma visual del puente — enmarca al vehículo al cruzar.
-    if (i % PORTAL_EVERY === 0) {
+    // (nunca en la boca: un pórtico ahí sería justo el obstáculo que estorba
+    //  al entrar; solo dentro del puente, donde ya vas encarrilado)
+    if (i % PORTAL_EVERY === 0 && mouth[i] > 0.95) {
       const lBase = edge(i, -1, RAIL_OUT, -DECK_HT);
       const rBase = edge(i, 1, RAIL_OUT, -DECK_HT);
       const lTop = edge(i, -1, RAIL_OUT, PORTAL_H);
