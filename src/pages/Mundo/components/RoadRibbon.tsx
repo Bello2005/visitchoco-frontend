@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { loadChocoGeo, HEIGHT } from "../utils/geo";
@@ -35,12 +35,24 @@ const BRIDGE_CLEAR = 1.15; // cota del deck sobre el nivel del agua (holgura pan
 const DECK_HT = 0.12; // semigrosor del collider del deck
 const BRIDGE_THRESH = 0.12; // deck sobre suelo para contar como puente (emite física)
 const BLUR_PASSES = 8; // suavizado del perfil → rampas de acceso al puente
-const PILLAR_EVERY = 5; // cada cuántas muestras un par de pilotes
-const PILLAR_HW = 0.14; // semiancho del pilote
+
+// PUENTE DE GUADUA (el bambú del Chocó): toda la estructura son cañas. Cada
+// caña es una instancia de un cilindro UNITARIO (r=1,h=1) escalada por su
+// matriz → un solo draw call para todo el puente.
+const PILING_EVERY = 5; // cada cuántas muestras una cepa de pilotes
+const PILING_R = 0.1; // radio de la caña del pilote
+const PILING_SPREAD = 0.19; // separación de las 2 cañas de cada cepa
+const POST_EVERY = 3; // cada cuántas muestras un balaustre de baranda
+const POST_R = 0.055;
+const RAIL_R = 0.05;
+const RAIL_TOP = 0.86; // pasamanos sobre el deck
+const RAIL_MID = 0.42; // travesaño intermedio
+const RAIL_OUT = 0.09; // baranda por FUERA de la calzada (no le roba ancho)
+const BEAM_R = 0.075; // viga de borde longitudinal
 
 const ASPHALT = "#232228"; // asfalto negro-carbón (tipo pavimento/pista)
 const MARK = new THREE.Color("#e9dfc6"); // pintura crema cálida (VisitChocó)
-const PILLAR_COLOR = "#2b2830"; // hormigón oscuro del pilote
+const GUADUA = "#c0a55d"; // guadua seca (bambú cálido)
 
 interface Plank {
   x: number;
@@ -49,17 +61,34 @@ interface Plank {
   yaw: number;
   hl: number;
 }
-interface Pillar {
-  x: number;
-  y: number;
-  z: number;
-  h: number;
-}
 interface RoadGeos {
   asphalt: THREE.BufferGeometry;
   marks: THREE.BufferGeometry;
   planks: Plank[];
-  pillars: Pillar[];
+  /** Una matriz por CAÑA de guadua (cilindro unitario escalado y orientado) */
+  guadua: THREE.Matrix4[];
+}
+
+// Tiende una caña entre dos puntos: la orienta y la escala a su largo. Sirve
+// igual para pilotes verticales, pasamanos, crucetas y vigas.
+const _dir = new THREE.Vector3();
+const _mid = new THREE.Vector3();
+const _quat = new THREE.Quaternion();
+const _scl = new THREE.Vector3();
+const _UP = new THREE.Vector3(0, 1, 0);
+function cane(
+  a: THREE.Vector3,
+  b: THREE.Vector3,
+  r: number,
+  out: THREE.Matrix4[]
+): void {
+  _dir.subVectors(b, a);
+  const len = _dir.length();
+  if (len < 1e-4) return;
+  _mid.addVectors(a, b).multiplyScalar(0.5);
+  _quat.setFromUnitVectors(_UP, _dir.divideScalar(len));
+  _scl.set(r, len, r);
+  out.push(new THREE.Matrix4().compose(_mid, _quat, _scl));
 }
 
 function buildRoad(): RoadGeos {
@@ -176,13 +205,16 @@ function buildRoad(): RoadGeos {
   marks.setAttribute("color", new THREE.BufferAttribute(mCol, 3));
   marks.computeVertexNormals();
 
-  // ---- PUENTE: colliders del deck (donde se eleva sobre el suelo) + pilotes --
+  // ---- PUENTE: colliders del deck + estructura de GUADUA ----
   const planks: Plank[] = [];
-  const pillars: Pillar[] = [];
+  const guadua: THREE.Matrix4[] = [];
+  const isBridge: boolean[] = new Array(n).fill(false);
+
   for (let i = 1; i < n; i++) {
     const midDeck = (deck[i] + deck[i - 1]) * 0.5;
     const midGround = (groundC[i] + groundC[i - 1]) * 0.5;
     if (midDeck - midGround < BRIDGE_THRESH) continue; // en tierra: lo lleva el terreno
+    isBridge[i] = true;
     const dx = pts[i].x - pts[i - 1].x;
     const dz = pts[i].z - pts[i - 1].z;
     const segLen = Math.hypot(dx, dz);
@@ -193,31 +225,75 @@ function buildRoad(): RoadGeos {
       yaw: Math.atan2(dx, dz),
       hl: segLen * 0.5 + 0.06, // solape leve entre planchas
     });
-    // Pilotes en pares a los costados, solo sobre agua honda de verdad
-    if (i % PILLAR_EVERY === 0 && groundC[i] < WATER_LEVEL - 0.1) {
-      const top = deck[i] - DECK_HT;
-      const bottom = groundC[i] - 0.3;
-      const h = top - bottom;
-      for (const dir of [-1, 1]) {
-        pillars.push({
-          x: pts[i].x + sides[i].x * dir * (HALF_W * 0.7),
-          y: (top + bottom) * 0.5,
-          z: pts[i].z + sides[i].z * dir * (HALF_W * 0.7),
-          h,
-        });
+  }
+
+  // Punto del borde de la calzada (dir=-1 izq, +1 der) a una altura dada
+  const edge = (i: number, dir: number, out: number, dy: number) =>
+    new THREE.Vector3(
+      pts[i].x + sides[i].x * dir * (HALF_W + out),
+      deck[i] + dy,
+      pts[i].z + sides[i].z * dir * (HALF_W + out)
+    );
+
+  for (let i = 1; i < n; i++) {
+    if (!isBridge[i]) continue;
+    const prevOnBridge = isBridge[i - 1];
+
+    for (const dir of [-1, 1]) {
+      // Viga de borde longitudinal + pasamanos y travesaño (solo si hay tramo
+      // previo, así cada vano se tiende entre muestras contiguas del puente)
+      if (prevOnBridge) {
+        cane(edge(i - 1, dir, RAIL_OUT, -DECK_HT), edge(i, dir, RAIL_OUT, -DECK_HT), BEAM_R, guadua);
+        cane(edge(i - 1, dir, RAIL_OUT, RAIL_TOP), edge(i, dir, RAIL_OUT, RAIL_TOP), RAIL_R, guadua);
+        cane(edge(i - 1, dir, RAIL_OUT, RAIL_MID), edge(i, dir, RAIL_OUT, RAIL_MID), RAIL_R, guadua);
       }
+      // Balaustre vertical de la baranda
+      if (i % POST_EVERY === 0) {
+        cane(edge(i, dir, RAIL_OUT, -DECK_HT), edge(i, dir, RAIL_OUT, RAIL_TOP), POST_R, guadua);
+      }
+    }
+
+    // CEPA de pilotes: dos cañas por costado clavadas en el lecho, viga
+    // transversal bajo el deck y crucetas en X (el truss de guadua).
+    if (i % PILING_EVERY === 0 && groundC[i] < WATER_LEVEL - 0.1) {
+      const bed = groundC[i] - 0.35;
+      const legs: THREE.Vector3[] = [];
+      for (const dir of [-1, 1]) {
+        const top = edge(i, dir, -0.25, -DECK_HT);
+        legs.push(top.clone());
+        // dos cañas ligeramente separadas a lo largo de la vía = cepa
+        for (const s of [-1, 1]) {
+          const t = top.clone().addScaledVector(
+            new THREE.Vector3(sides[i].z, 0, -sides[i].x), // tangente
+            s * PILING_SPREAD
+          );
+          const foot = new THREE.Vector3(t.x, bed, t.z);
+          cane(foot, t, PILING_R, guadua);
+        }
+      }
+      // travesaño bajo el deck que amarra ambas cepas
+      cane(legs[0], legs[1], BEAM_R, guadua);
+      // crucetas en X entre las cepas
+      const lFoot = new THREE.Vector3(legs[0].x, bed, legs[0].z);
+      const rFoot = new THREE.Vector3(legs[1].x, bed, legs[1].z);
+      cane(lFoot, legs[1], RAIL_R, guadua);
+      cane(rFoot, legs[0], RAIL_R, guadua);
     }
   }
 
-  return { asphalt, marks, planks, pillars };
+  return { asphalt, marks, planks, guadua };
 }
 
 export default function RoadRibbon() {
   const [geos, setGeos] = useState<RoadGeos | null>(null);
-  const pillarMat = useMemo(() => {
+  const guaduaRef = useRef<THREE.InstancedMesh>(null);
+  // Cilindro UNITARIO (r=1, h=1): cada caña es este mismo tubo escalado por su
+  // matriz de instancia → todo el puente en un solo draw call.
+  const caneGeo = useMemo(() => new THREE.CylinderGeometry(1, 1, 1, 6), []);
+  const guaduaMat = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({
-      color: PILLAR_COLOR,
-      roughness: 0.95,
+      color: GUADUA,
+      roughness: 0.85,
       flatShading: true,
     });
     applyReveal(m);
@@ -242,7 +318,21 @@ export default function RoadRibbon() {
     };
   }, [geos]);
 
-  useEffect(() => () => pillarMat.dispose(), [pillarMat]);
+  useEffect(() => {
+    return () => {
+      guaduaMat.dispose();
+      caneGeo.dispose();
+    };
+  }, [guaduaMat, caneGeo]);
+
+  // Vuelca las matrices de las cañas en el InstancedMesh
+  useEffect(() => {
+    const im = guaduaRef.current;
+    if (!im || !geos) return;
+    geos.guadua.forEach((m, i) => im.setMatrixAt(i, m));
+    im.instanceMatrix.needsUpdate = true;
+    im.computeBoundingSphere();
+  }, [geos]);
 
   if (!geos) return null;
 
@@ -276,17 +366,16 @@ export default function RoadRibbon() {
           }}
         />
       </mesh>
-      {/* Pilotes del puente (visual; la panga pasa entre ellos por el centro) */}
-      {geos.pillars.map((p, i) => (
-        <mesh
-          key={i}
-          position={[p.x, p.y, p.z]}
-          material={pillarMat}
-          castShadow
-        >
-          <boxGeometry args={[PILLAR_HW * 2, p.h, PILLAR_HW * 2]} />
-        </mesh>
-      ))}
+      {/* PUENTE DE GUADUA: pilotes en cepa, barandas con pasamanos y
+          balaustres, vigas de borde y crucetas en X. Todo visual (sin
+          collider) — así la panga pasa limpio entre los pilotes y el carro
+          nunca se engancha en una baranda. */}
+      <instancedMesh
+        ref={guaduaRef}
+        args={[caneGeo, guaduaMat, geos.guadua.length]}
+        castShadow
+        receiveShadow
+      />
       {/* Física del deck del puente: el carro cruza por encima del canal
           abierto. Cuboides orientados al rumbo, siguiendo el arco del deck. */}
       <RigidBody type="fixed" colliders={false}>
