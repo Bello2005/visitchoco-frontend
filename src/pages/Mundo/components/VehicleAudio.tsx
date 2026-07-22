@@ -2,22 +2,27 @@ import { useEffect } from "react";
 import { vehicleState } from "../utils/vehicleState";
 import { audioState } from "../utils/audioState";
 
-// SONIDO DEL VEHÍCULO — todo SINTETIZADO con Web Audio (cero archivos):
-//   · motor que sube de tono y brillo con la velocidad y el acelerador
-//   · rodadura de llantas (ruido filtrado) que crece con la rapidez
-//   · chirrido al frenar fuerte
-//   · panga: el mismo motor pero grave y gutural (peque-peque) + agua
-//   · chapoteo al entrar/salir del agua
-//   · golpe al chocar, escalado por la fuerza, con un reverb corto sintetizado
+// SONIDO DEL VEHÍCULO — todo SINTETIZADO con Web Audio (cero archivos).
 //
-// Igual que la chirimía: no meto grabaciones (licencia + peso); la síntesis
-// responde en vivo a la física y nunca se repite. Mismo espíritu que el
-// sistema de sonido del folio de Bruno Simon, pero procedural y autocontenido.
-// Respeta el mute global (audioState.muted) y se agacha bajo la chirimía.
+// El MOTOR no es un sawtooth pelado (eso sonaba a zumbido de módem). Es un
+// motor con propiedad, armado como los buenos synth-engines:
+//   · dos sawtooth al UNÍSONO, uno desafinado → grosor y "batido" de cilindros
+//   · WaveShaper (tanh, oversample 4x) → distorsión/growl: los armónicos que
+//     dan sensación de FUERZA, sin el aliasing "digital feo"
+//   · DOS formantes resonantes (bandpass) barridos con las RPM → el timbre
+//     gutural del escape (una vocal, no un pitido plano)
+//   · sub sine una octava abajo → el golpe en el pecho
+//   · ruido de admisión (aire) que entra bajo carga
+//   · "chug" por un LFO que modula la amplitud → latido del motor
+// Todo sube de tono, brillo y cuerpo con la velocidad y el acelerador.
+//
+// Rodadura, chirrido, chapoteo, golpes y reverb: igual que antes. Respeta el
+// mute global (audioState.muted) y se agacha bajo la chirimía.
 
 const CAR_TOP = 16; // ~CAR_TOP_SPEED de Vehicle: normaliza la rapidez a 0..1
 const MASTER = 0.9;
 const IMPACT_COOLDOWN_MS = 130;
+const ENGINE_DRIVE = 2.4; // "garra" del motor: más = más rugido/distorsión
 
 export default function VehicleAudio() {
   useEffect(() => {
@@ -54,7 +59,7 @@ export default function VehicleAudio() {
     reverbReturn.gain.value = 0.5;
     convolver.connect(reverbReturn).connect(master);
 
-    // --- ruido blanco en loop (rodadura, agua, chirrido) ---
+    // --- ruido blanco en loop (rodadura, agua, chirrido, admisión) ---
     const noiseBuf = ctx.createBuffer(
       1,
       Math.floor(ctx.sampleRate * 2),
@@ -91,39 +96,90 @@ export default function VehicleAudio() {
     screechGain.gain.value = 0;
     noise.connect(screechBP).connect(screechGain).connect(master);
 
-    // --- motor: sawtooth + sub sine, lowpass resonante, "chug" por LFO ---
-    const oscMain = ctx.createOscillator();
-    oscMain.type = "sawtooth";
-    oscMain.frequency.value = 46;
-    const engineLP = ctx.createBiquadFilter();
-    engineLP.type = "lowpass";
-    engineLP.frequency.value = 400;
-    engineLP.Q.value = 1.2;
-    // chugGain lleva base 1 y lo modula el LFO (±depth) → latido del motor.
-    // El VOLUMEN lo pone engineGain aparte (no se pelean por el mismo param).
+    // admisión de aire (whoosh bajo carga)
+    const intakeBP = ctx.createBiquadFilter();
+    intakeBP.type = "bandpass";
+    intakeBP.frequency.value = 1400;
+    intakeBP.Q.value = 0.9;
+    const intakeGain = ctx.createGain();
+    intakeGain.gain.value = 0;
+    noise.connect(intakeBP).connect(intakeGain).connect(master);
+
+    // ===================== MOTOR =====================
+    // dos sawtooth al unísono (uno desafinado) → suma → shaper → formantes →
+    // tono (lowpass) → chug (LFO) → engineGain → master
+    const oscMix = ctx.createGain();
+    oscMix.gain.value = 0.5;
+    const osc1 = ctx.createOscillator();
+    osc1.type = "sawtooth";
+    osc1.frequency.value = 42;
+    const osc2 = ctx.createOscillator();
+    osc2.type = "sawtooth";
+    osc2.frequency.value = 42;
+    osc2.detune.value = 9; // batido de cilindros
+    osc1.connect(oscMix);
+    osc2.connect(oscMix);
+
+    // tanh soft-clip → growl con armónicos; oversample mata el aliasing
+    const shaper = ctx.createWaveShaper();
+    {
+      const n = 1024;
+      const curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * 2 - 1;
+        curve[i] = Math.tanh(ENGINE_DRIVE * x);
+      }
+      shaper.curve = curve;
+      shaper.oversample = "4x";
+    }
+    oscMix.connect(shaper);
+
+    // dos formantes resonantes en paralelo → timbre gutural del escape
+    const formantA = ctx.createBiquadFilter();
+    formantA.type = "bandpass";
+    formantA.frequency.value = 180;
+    formantA.Q.value = 6;
+    const formantB = ctx.createBiquadFilter();
+    formantB.type = "bandpass";
+    formantB.frequency.value = 800;
+    formantB.Q.value = 7;
+    const formantBGain = ctx.createGain();
+    formantBGain.gain.value = 0.55;
+    const formantSum = ctx.createGain();
+    shaper.connect(formantA).connect(formantSum);
+    shaper.connect(formantB).connect(formantBGain).connect(formantSum);
+
+    const toneLP = ctx.createBiquadFilter();
+    toneLP.type = "lowpass";
+    toneLP.frequency.value = 600;
+    toneLP.Q.value = 0.7;
+    formantSum.connect(toneLP);
+
+    // chugGain: base 1, lo modula el LFO (±depth) → latido. El VOLUMEN va aparte
     const chugGain = ctx.createGain();
     chugGain.gain.value = 1;
     const engineGain = ctx.createGain();
     engineGain.gain.value = 0;
-    oscMain.connect(engineLP).connect(chugGain).connect(engineGain).connect(master);
+    toneLP.connect(chugGain).connect(engineGain).connect(master);
 
-    const oscSub = ctx.createOscillator();
-    oscSub.type = "sine";
-    oscSub.frequency.value = 23;
+    const sub = ctx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.value = 21;
     const subGain = ctx.createGain();
     subGain.gain.value = 0;
-    oscSub.connect(subGain).connect(master);
+    sub.connect(subGain).connect(master);
 
     const lfo = ctx.createOscillator();
     lfo.type = "sine";
-    lfo.frequency.value = 8;
+    lfo.frequency.value = 12;
     const lfoDepth = ctx.createGain();
-    lfoDepth.gain.value = 0.12;
+    lfoDepth.gain.value = 0.14;
     lfo.connect(lfoDepth).connect(chugGain.gain);
 
     noise.start();
-    oscMain.start();
-    oscSub.start();
+    osc1.start();
+    osc2.start();
+    sub.start();
     lfo.start();
 
     // --- transitorios (nodos de un solo uso) ---
@@ -142,7 +198,6 @@ export default function VehicleAudio() {
       og.connect(convolver);
       o.start(t);
       o.stop(t + 0.34);
-      // "crunch" de ruido (más abierto cuanto más fuerte el golpe)
       const n = ctx.createBufferSource();
       n.buffer = noiseBuf;
       const nf = ctx.createBiquadFilter();
@@ -197,16 +252,13 @@ export default function VehicleAudio() {
       const mode = vehicleState.mode;
       const norm = Math.min(1, vehicleState.speed / CAR_TOP);
       const thr = vehicleState.throttle;
-      // Bajo la chirimía de la plaza, el motor se agacha para dejarla brillar
       const duck = audioState.chirimiaActive ? 0.4 : 1;
 
-      // Chapoteo en la transición de modo
       if (mode !== prevMode) {
         splash(mode === "boat" ? 1 : 0.45);
         prevMode = mode;
       }
 
-      // Golpe al chocar (con cooldown para no ametrallar al raspar)
       if (vehicleState.impact > 0) {
         const nowMs = performance.now();
         if (nowMs - lastImpact > IMPACT_COOLDOWN_MS) {
@@ -217,19 +269,29 @@ export default function VehicleAudio() {
       }
 
       if (mode === "car") {
-        const f = 46 + norm * 74 + (thr > 0 ? 8 : 0);
-        oscMain.frequency.setTargetAtTime(f, now, 0.08);
-        oscSub.frequency.setTargetAtTime(f * 0.5, now, 0.08);
-        engineLP.frequency.setTargetAtTime(
-          360 + norm * 2300 + (thr > 0 ? 500 : 0),
+        // RPM: idle grave (42Hz) → agudo pleno (~205Hz); el gas empuja un pelín
+        const f = 42 + norm * 163 + (thr > 0 ? 12 : 0);
+        osc1.frequency.setTargetAtTime(f, now, 0.06);
+        osc2.frequency.setTargetAtTime(f, now, 0.06);
+        sub.frequency.setTargetAtTime(f * 0.5, now, 0.06);
+        // formantes se abren con las RPM → la vocal del escape sube
+        formantA.frequency.setTargetAtTime(170 + norm * 320, now, 0.08);
+        formantB.frequency.setTargetAtTime(720 + norm * 1500, now, 0.08);
+        toneLP.frequency.setTargetAtTime(
+          560 + norm * 3400 + (thr > 0 ? 600 : 0),
           now,
-          0.08
+          0.07
         );
-        lfo.frequency.setTargetAtTime(7 + norm * 26, now, 0.1);
-        lfoDepth.gain.setTargetAtTime(0.12, now, 0.1);
-        const vol = (0.035 + norm * 0.09 + (thr > 0 ? 0.02 : 0)) * duck;
+        lfo.frequency.setTargetAtTime(11 + norm * 40, now, 0.1);
+        lfoDepth.gain.setTargetAtTime(0.14, now, 0.1);
+        const vol = (0.05 + norm * 0.13 + (thr > 0 ? 0.02 : 0)) * duck;
         engineGain.gain.setTargetAtTime(vol, now, 0.06);
-        subGain.gain.setTargetAtTime(vol * 0.5, now, 0.06);
+        subGain.gain.setTargetAtTime(vol * 0.7, now, 0.06);
+        intakeGain.gain.setTargetAtTime(
+          (0.008 + norm * 0.05 + (thr > 0 ? 0.03 : 0)) * duck,
+          now,
+          0.07
+        );
         tireGain.gain.setTargetAtTime(norm * 0.05 * duck, now, 0.05);
         waterGain.gain.setTargetAtTime(0, now, 0.1);
         const screech =
@@ -240,17 +302,20 @@ export default function VehicleAudio() {
           screech > 0 ? 0.01 : 0.08
         );
       } else {
-        // Panga: motor grave y gutural (peque-peque del Atrato), agua en vez de
-        // llantas, LFO lento y profundo para el "putt-putt".
-        const f = 30 + norm * 40;
-        oscMain.frequency.setTargetAtTime(f, now, 0.1);
-        oscSub.frequency.setTargetAtTime(f * 0.5, now, 0.1);
-        engineLP.frequency.setTargetAtTime(200 + norm * 640, now, 0.1);
+        // Panga: peque-peque del Atrato — grave, gutural, putt-putt lento
+        const f = 28 + norm * 46;
+        osc1.frequency.setTargetAtTime(f, now, 0.1);
+        osc2.frequency.setTargetAtTime(f, now, 0.1);
+        sub.frequency.setTargetAtTime(f * 0.5, now, 0.1);
+        formantA.frequency.setTargetAtTime(120 + norm * 180, now, 0.1);
+        formantB.frequency.setTargetAtTime(400 + norm * 500, now, 0.1);
+        toneLP.frequency.setTargetAtTime(260 + norm * 520, now, 0.1);
         lfo.frequency.setTargetAtTime(3 + norm * 7, now, 0.1);
         lfoDepth.gain.setTargetAtTime(0.34, now, 0.1);
-        const vol = (0.05 + norm * 0.08) * duck;
+        const vol = (0.055 + norm * 0.09) * duck;
         engineGain.gain.setTargetAtTime(vol, now, 0.08);
-        subGain.gain.setTargetAtTime(vol * 0.6, now, 0.08);
+        subGain.gain.setTargetAtTime(vol * 0.7, now, 0.08);
+        intakeGain.gain.setTargetAtTime(0, now, 0.1);
         waterGain.gain.setTargetAtTime((0.01 + norm * 0.05) * duck, now, 0.06);
         tireGain.gain.setTargetAtTime(0, now, 0.08);
         screechGain.gain.setTargetAtTime(0, now, 0.1);
@@ -265,8 +330,9 @@ export default function VehicleAudio() {
       window.removeEventListener("mundo:reveal", unlock);
       try {
         noise.stop();
-        oscMain.stop();
-        oscSub.stop();
+        osc1.stop();
+        osc2.stop();
+        sub.stop();
         lfo.stop();
       } catch {
         /* ya detenidos */
