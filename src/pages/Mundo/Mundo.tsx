@@ -12,6 +12,7 @@ import TerritoryGateway from "./components/TerritoryGateway";
 import ChirimiaPlaza from "./components/ChirimiaPlaza";
 import MundoTouchControls from "./components/MundoTouchControls";
 import ChirimiaAudio from "./components/ChirimiaAudio";
+import VehicleAudio from "./components/VehicleAudio";
 import OceanFloor from "./components/OceanFloor";
 import Water from "./components/Water";
 import Vehicle from "./components/Vehicle";
@@ -258,6 +259,8 @@ export default function Mundo() {
       <MundoAudio />
       {/* La chirimía arranca sola al pisar la plaza del norte */}
       <ChirimiaAudio />
+      {/* Motor, rodadura, chapoteo y golpes — sintetizados en vivo */}
+      <VehicleAudio />
       <MundoTouchControls />
       {loaderVisible && <MundoLoader fading={loaderFading} />}
       {hintVisible && (

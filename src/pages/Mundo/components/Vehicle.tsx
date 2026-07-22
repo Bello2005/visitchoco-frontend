@@ -109,6 +109,14 @@ const BOAT_BEACH_PUSH = 900;
 // La panga es larga: sondeamos el suelo a esta distancia de la proa.
 const BOW_REACH = 1.7;
 
+// CHOQUE (para el audio): una caída de rapidez mayor a esto EN UN SOLO step es
+// un impacto (chocar contra pared/monumento/puente o el muro del mundo). El
+// frenado sangra la velocidad de a poco (<1/step con la masa del chasis), así
+// que el umbral no confunde una frenada con un golpe. Se suprime unos ms tras
+// reset / cambio de modo / desembarco (ahí la velocidad cambia a propósito).
+const IMPACT_DELTA = 4;
+const IMPACT_SUPPRESS_MS = 300;
+
 const _quat = new THREE.Quaternion();
 const _yawQuat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
@@ -156,6 +164,11 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
   const modeRef = useRef<Mode>("car");
   const [modeVisual, setModeVisual] = useState<Mode>("car");
   const lastSwitch = useRef(0);
+  // Señales de audio (VehicleAudio las lee vía vehicleState)
+  const throttleRef = useRef(0);
+  const brakingRef = useRef(false);
+  const prevSpeed = useRef(0);
+  const impactSuppressUntil = useRef(0);
   const splashRef = useRef<THREE.Mesh>(null);
   const splashStart = useRef(-1);
   const [, getKeys] = useKeyboardControls();
@@ -182,6 +195,9 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     lastSwitch.current = now;
     modeRef.current = next;
     setModeVisual(next);
+    // El desembarco/embarque toca la velocidad (cap, damping, flotación): que
+    // no lo lea el detector de choque como un golpe.
+    impactSuppressUntil.current = now + IMPACT_SUPPRESS_MS;
     if (next === "boat") triggerSplash();
     return true;
   };
@@ -227,6 +243,20 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     chassis.resetForces(true);
     chassis.resetTorques(true);
 
+    // DETECCIÓN DE CHOQUE (para VehicleAudio): la rapidez que dejó el step
+    // anterior, comparada con la de este. Una caída brusca = impacto. El
+    // frenado NO cae de golpe, así que no dispara falsos. Se publica en
+    // vehicleState.impact; VehicleAudio lo consume y suena el golpe escalado.
+    const nowMs = performance.now();
+    const curSpeed = Math.hypot(chassis.linvel().x, chassis.linvel().z);
+    if (nowMs > impactSuppressUntil.current) {
+      const drop = prevSpeed.current - curSpeed;
+      if (drop > IMPACT_DELTA) {
+        vehicleState.impact = Math.max(vehicleState.impact, drop);
+      }
+    }
+    prevSpeed.current = curSpeed;
+
     // Física de tierra: deshace lo que el modo panga cambia en el body.
     // Dampings 0.1/0.1 como folio-2025 (suaviza microtemblor del chasis).
     const landPhysics = () => {
@@ -246,6 +276,10 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       modeRef.current = "car";
       setModeVisual("car");
       lastSwitch.current = performance.now();
+      // El teletransporte pone la velocidad en cero de golpe: que no cuente
+      // como choque.
+      impactSuppressUntil.current = nowMs + IMPACT_SUPPRESS_MS;
+      prevSpeed.current = 0;
     }
 
     // LÍMITE DEL MUNDO: muro invisible en el borde del rectángulo navegable
@@ -366,6 +400,10 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       vehicle.setWheelBrake(2, brake);
       vehicle.setWheelBrake(3, brake);
 
+      // Señales para VehicleAudio: gas y frenada FUERTE (chirrido de llantas)
+      throttleRef.current = forward ? 1 : backward ? -1 : 0;
+      brakingRef.current = brake >= REVERSE_BRAKE;
+
       // Steering pierde autoridad con la velocidad (patrón arcade) — a
       // fondo y a máxima velocidad, giro completo volcaba el chasis
       const steerScale = 1 - 0.5 * Math.min(speed / CAR_TOP_SPEED, 1);
@@ -453,6 +491,10 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         true
       );
     }
+
+    // Señales para VehicleAudio: en la panga solo hay gas (no chirrido)
+    throttleRef.current = forward ? 1 : backward ? -1 : 0;
+    brakingRef.current = false;
   });
 
   // Splash: anillo reutilizable, escala 0.5→3 y opacity 0.5→0 en ~0.35s
@@ -481,6 +523,10 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     vehicleState.z = t.z;
     vehicleState.yaw = Math.atan2(_forward.x, _forward.z);
     vehicleState.mode = modeRef.current;
+    const lv = chassis.linvel();
+    vehicleState.speed = Math.hypot(lv.x, lv.z);
+    vehicleState.throttle = throttleRef.current;
+    vehicleState.braking = brakingRef.current;
   });
 
   return (
