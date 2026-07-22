@@ -39,6 +39,7 @@ const controlsMap = [
   { name: "left", keys: ["KeyA", "ArrowLeft"] },
   { name: "right", keys: ["KeyD", "ArrowRight"] },
   { name: "reset", keys: ["KeyR"] },
+  { name: "flip", keys: ["Space"] }, // enderezar el carro si vuelca
 ];
 
 // Dispara el callback en el PRIMER frame renderizado del canvas —

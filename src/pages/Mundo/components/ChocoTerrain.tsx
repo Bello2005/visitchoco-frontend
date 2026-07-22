@@ -16,6 +16,14 @@ export const WATER_LEVEL = 0.0;
 // Fuera del polígono del Chocó el lecho se hunde a esta cota (mar abierto).
 // La malla y la física comparten esta constante — así no hay "tierra fantasma".
 export const SEA_FLOOR = -2;
+// FRONTERA DEL MUNDO: el terreno mide WIDTH×HEIGHT, pero la malla de agua es
+// 200×200 y worldGround devuelve SEA_FLOOR fuera del polígono → sin un tope la
+// panga navegaría infinitamente hacia el vacío. Dejamos un ANILLO de mar
+// abierto para explorar (SEA_MARGIN) y luego un muro invisible (Vehicle clampa
+// la posición al borde). Único origen de verdad del límite.
+const SEA_MARGIN = 12;
+export const WORLD_HALF_X = WIDTH / 2 + SEA_MARGIN; // ±42 en X
+export const WORLD_HALF_Z = HEIGHT / 2 + SEA_MARGIN; // ±57 en Z
 // Ancho (en unidades de mundo) de la rampa de playa a cada lado de la costa.
 // El terreno baja gradual de la tierra al lecho marino en vez de caer en
 // acantilado — así el carro sube a tierra manejando por la arena.
