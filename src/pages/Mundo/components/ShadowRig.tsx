@@ -1,3 +1,5 @@
+// Rig de sombras adaptado de Lighting.js de folio-2025 (Bruno Simon, MIT).
+// Ver src/pages/Mundo/CREDITS.md para la atribución y la licencia.
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import * as THREE from "three";

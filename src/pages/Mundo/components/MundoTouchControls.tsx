@@ -1,3 +1,5 @@
+// Adaptado de World/Controls.js de folio-2019 (Bruno Simon, MIT).
+// Ver src/pages/Mundo/CREDITS.md para la atribución y la licencia.
 import { useEffect, useRef, useState } from "react";
 
 // CONTROLES TÁCTILES estilo folio-2019 de Bruno Simon (MIT): joystick abajo a
