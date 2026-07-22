@@ -15,6 +15,8 @@ import {
   roadCenterWorldX,
   WATER_LEVEL,
   GATEWAY_Z,
+  WORLD_HALF_X,
+  WORLD_HALF_Z,
 } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 import { vehicleState } from "../utils/vehicleState";
@@ -108,7 +110,13 @@ const BOW_REACH = 1.7;
 const _quat = new THREE.Quaternion();
 const _yawQuat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
+const _up = new THREE.Vector3();
 const _WORLD_UP = new THREE.Vector3(0, 1, 0);
+
+// Auto-enderezado del CARRO (barra espaciadora): si vuelca, el "arriba" local
+// cae por debajo de este umbral (~60° de inclinación) y una pulsación lo pone
+// derecho conservando el rumbo — como el flip de GTA / folio de Bruno.
+const FLIP_UP_THRESHOLD = 0.5;
 
 // Casco de panga (canoa de madera del Atrato): parte de una caja y la deforma —
 // puntas afinadas en proa/popa, borde superior elevado (sheer) y quilla curvada
@@ -212,7 +220,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     const chassis = chassisRef.current;
     if (!vehicle || !chassis) return;
 
-    const { forward, backward, left, right, reset } = getKeys();
+    const { forward, backward, left, right, reset, flip } = getKeys();
 
     chassis.resetForces(true);
     chassis.resetTorques(true);
@@ -236,6 +244,52 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       modeRef.current = "car";
       setModeVisual("car");
       lastSwitch.current = performance.now();
+    }
+
+    // LÍMITE DEL MUNDO: muro invisible en el borde del rectángulo navegable
+    // (terreno + anillo de mar). Fuera de él el agua sigue infinita y
+    // worldGround = SEA_FLOOR → la panga navegaría sin fin. Clampa la posición
+    // al borde y mata la velocidad SOLO en el eje que topa. Vale carro y panga.
+    {
+      const p = chassis.translation();
+      let cx = p.x;
+      let cz = p.z;
+      if (p.x > WORLD_HALF_X) cx = WORLD_HALF_X;
+      else if (p.x < -WORLD_HALF_X) cx = -WORLD_HALF_X;
+      if (p.z > WORLD_HALF_Z) cz = WORLD_HALF_Z;
+      else if (p.z < -WORLD_HALF_Z) cz = -WORLD_HALF_Z;
+      if (cx !== p.x || cz !== p.z) {
+        chassis.setTranslation({ x: cx, y: p.y, z: cz }, true);
+        const v = chassis.linvel();
+        chassis.setLinvel(
+          { x: cx !== p.x ? 0 : v.x, y: v.y, z: cz !== p.z ? 0 : v.z },
+          true
+        );
+      }
+    }
+
+    // ENDEREZAR CON ESPACIO: si el carro volcó, una pulsación lo pone derecho
+    // en su sitio conservando el rumbo (no un reset al spawn). Solo en modo
+    // carro y solo si de verdad está tumbado (la panga ya se autonivela).
+    if (flip && modeRef.current === "car") {
+      const r = chassis.rotation();
+      _quat.set(r.x, r.y, r.z, r.w);
+      _up.set(0, 1, 0).applyQuaternion(_quat);
+      if (_up.y < FLIP_UP_THRESHOLD) {
+        _forward.set(0, 0, 1).applyQuaternion(_quat);
+        const yaw = Math.atan2(_forward.x, _forward.z);
+        _yawQuat.setFromAxisAngle(_WORLD_UP, yaw);
+        chassis.setRotation(
+          { x: _yawQuat.x, y: _yawQuat.y, z: _yawQuat.z, w: _yawQuat.w },
+          true
+        );
+        const p = chassis.translation();
+        const restY = worldGround(p.x, p.z) + 1.0; // levanta sobre las ruedas
+        chassis.setTranslation({ x: p.x, y: Math.max(p.y, restY), z: p.z }, true);
+        chassis.setAngvel({ x: 0, y: 0, z: 0 }, true);
+        const lv = chassis.linvel();
+        chassis.setLinvel({ x: lv.x, y: Math.min(lv.y, 0), z: lv.z }, true);
+      }
     }
 
     // Transformación por REGIÓN de suelo (worldGround conoce el polígono):
