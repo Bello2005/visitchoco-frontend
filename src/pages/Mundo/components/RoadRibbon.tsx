@@ -1,3 +1,5 @@
+// Cinta de carretera adaptada de Scenery.js de folio-2025 (Bruno Simon, MIT).
+// Ver src/pages/Mundo/CREDITS.md para la atribución y la licencia.
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";

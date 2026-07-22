@@ -1,3 +1,5 @@
+// Cámara adaptada de Camera.js de folio-2019 (Bruno Simon, MIT).
+// Ver src/pages/Mundo/CREDITS.md para la atribución y la licencia.
 import { useRef } from "react";
 import type { RefObject } from "react";
 import * as THREE from "three";

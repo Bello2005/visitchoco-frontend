@@ -1,3 +1,5 @@
+// Motor del vehículo adaptado de PhysicsVehicle.js de folio-2025
+// (Bruno Simon, MIT). Ver src/pages/Mundo/CREDITS.md para atribución y licencia.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import * as THREE from "three";
