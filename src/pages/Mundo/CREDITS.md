@@ -24,8 +24,10 @@ completa abajo, como exige la licencia.
 
 ## Assets (ya atribuidos por separado)
 
-- Modelos `.glb` de árboles: `public/models/folio/` (ver su `LICENSE.md` y `README.md`).
 - Audio (música Baguira CC0, viento/grillos MIT): `public/sounds/mundo/README.md`.
+- Los `.glb` de árboles de `public/models/folio/` (MIT, ver su `LICENSE.md`)
+  YA NO se usan: la vegetación es 100% procedural (ver `Vegetation.tsx`). Los
+  archivos y su licencia quedan por si se retoman.
 
 ## Licencia MIT (código de Bruno Simon adaptado en /mundo)
 
