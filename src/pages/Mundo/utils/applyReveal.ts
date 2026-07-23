@@ -13,10 +13,17 @@ import { revealUniforms } from "./revealUniforms";
 // se ven planos como un PNG — con esto el suelo tiene "textura" sin texturas.
 export function applyReveal(
   material: THREE.Material,
-  opts?: { groundDetail?: boolean; sway?: boolean; glitter?: boolean }
+  opts?: {
+    groundDetail?: boolean;
+    sway?: boolean;
+    /** amplitud del vaivén (fracción de la altura del vértice). def 0.06 */
+    swayAmp?: number;
+    glitter?: boolean;
+  }
 ): void {
   const groundDetail = opts?.groundDetail === true;
   const sway = opts?.sway === true;
+  const swayAmp = opts?.swayAmp ?? 0.06;
   const glitter = opts?.glitter === true;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
@@ -27,9 +34,12 @@ export function applyReveal(
     shader.uniforms.uMundoTime = revealUniforms.uMundoTime;
 
     if (sway) {
-      // Vaivén de viento (como las hojas de folio-2025): desplaza los
-      // vértices ALTOS de la geometría (las copas; el pie no se mueve), con
-      // fase distinta por instancia para que el bosque no baile en bloque.
+      // BRISA (como las hojas de folio-2025): el vaivén es PROPORCIONAL a la
+      // altura local del vértice → tras la escala de instancia queda
+      // proporcional a la altura REAL en el mundo (visible, no se achica con el
+      // árbol). El pie no se mueve; la copa se mece. Fase por instancia para que
+      // el bosque no baile en bloque, ráfagas lentas que "respiran" y un aleteo
+      // fino de hoja encima.
       shader.vertexShader = shader.vertexShader
         .replace(
           "#include <common>",
@@ -44,9 +54,13 @@ export function applyReveal(
 		#else
 			vec3 swayPhase = vec3(0.0);
 		#endif
-		float swayF = clamp(transformed.y * 0.45, 0.0, 1.0);
-		transformed.x += sin(uMundoTime * 1.6 + swayPhase.x * 0.9 + swayPhase.z * 0.7) * 0.055 * swayF;
-		transformed.z += cos(uMundoTime * 1.25 + swayPhase.x * 0.6 + swayPhase.z * 1.1) * 0.045 * swayF;
+		float swayH = max(transformed.y, 0.0);
+		float swayPh = swayPhase.x * 0.7 + swayPhase.z * 0.9;
+		float swayGust = 0.62 + 0.38 * sin(uMundoTime * 0.35 + swayPh * 0.5);
+		float swayA = ${swayAmp.toFixed(4)} * swayGust;
+		transformed.x += sin(uMundoTime * 1.5 + swayPh) * swayA * swayH;
+		transformed.z += cos(uMundoTime * 1.15 + swayPh * 1.3) * swayA * 0.8 * swayH;
+		transformed.x += sin(uMundoTime * 5.0 + swayH * 3.0 + swayPh) * ${swayAmp.toFixed(4)} * 0.14 * swayH;
 	}`
         );
     }
@@ -155,5 +169,5 @@ float mundoNoise(vec2 p) {
   // Sin esto Three reutiliza programas cacheados de materiales con los mismos
   // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
   material.customProgramCacheKey = () =>
-    `reveal${groundDetail ? "-detail" : ""}${sway ? "-sway" : ""}${glitter ? "-glitter" : ""}`;
+    `reveal${groundDetail ? "-detail" : ""}${sway ? `-sway${swayAmp}` : ""}${glitter ? "-glitter" : ""}`;
 }

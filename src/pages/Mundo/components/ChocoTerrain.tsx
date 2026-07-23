@@ -334,10 +334,25 @@ let heightField: Float32Array | null = null;
 let fieldCols = 0;
 let fieldRows = 0;
 
+// Señal "heightfield publicado": la vegetación DEBE esperar esto antes de
+// dispersar. Si no, worldGround cae al terrainHeight CRUDO (sin la rampa de
+// playa de la malla) y los árboles costeros quedan flotando sobre la playa
+// rebajada. whenHeightFieldReady() resuelve en cuanto la malla publica.
+let heightFieldReadyResolve: (() => void) | null = null;
+let heightFieldReady = false;
+const heightFieldReadyPromise = new Promise<void>((res) => {
+  heightFieldReadyResolve = res;
+});
+export function whenHeightFieldReady(): Promise<void> {
+  return heightFieldReady ? Promise.resolve() : heightFieldReadyPromise;
+}
+
 function publishHeightField(f: Float32Array, cols: number, rows: number): void {
   heightField = f;
   fieldCols = cols;
   fieldRows = rows;
+  heightFieldReady = true;
+  heightFieldReadyResolve?.();
 }
 
 // x,z = coordenadas de MUNDO (world Z = -y local por la rotación del mesh).
