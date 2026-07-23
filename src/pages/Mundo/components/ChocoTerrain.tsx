@@ -138,6 +138,26 @@ export function terrainHeight(x: number, y: number): number {
   const nm = 1 - smoothstep(NORTH_CLEAR_R, NORTH_CLEAR_R + PLAZA_CLEAR_FADE, nd);
   if (nm > 0) h = h * (1 - nm) + ROAD_LEVEL * nm;
 
+  // EL MALECÓN DE QUIBDÓ: a lo largo de una franja en Z (el paseo), abrimos una
+  // BAHÍA (agua) al ESTE de la línea de agua y aplanamos una EXPLANADA (tierra)
+  // al OESTE. Gated a Z≈-9.7..0.7 → jamás toca el puente (Z≥4) ni la vía (X<-4).
+  {
+    const zBand =
+      1 - smoothstep(MALECON_HALF_LEN, MALECON_HALF_LEN + 3, Math.abs(y + MALECON_Z));
+    if (zBand > 0) {
+      const bay =
+        smoothstep(MALECON_FRONT_X - 0.4, MALECON_FRONT_X + 1.2, x) *
+        (1 - smoothstep(MALECON_BAY_EAST - 1.5, MALECON_BAY_EAST + 1.5, x)) *
+        zBand;
+      if (bay > 0) h = h * (1 - bay) + MALECON_BAY_DEPTH * bay;
+      const esp =
+        (1 - smoothstep(MALECON_FRONT_X - 0.8, MALECON_FRONT_X + 0.2, x)) *
+        smoothstep(MALECON_FRONT_X - 4.5, MALECON_FRONT_X - 3.2, x) *
+        zBand;
+      if (esp > 0) h = h * (1 - esp) + MALECON_GROUND * esp;
+    }
+  }
+
   return h;
 }
 
@@ -168,6 +188,16 @@ const PLAZA_CLEAR_FADE = 3.2;
 // la lógica de costa manda SEA_FLOOR.
 export const NORTH_Z = -22;
 const NORTH_CLEAR_R = 6.8;
+// EL MALECÓN DE QUIBDÓ: paseo ribereño a orillas del Atrato. Va al SUR del
+// puente (Z≥4), sobre la orilla — aquí la VÍA queda LEJOS al oeste (X<-4), así
+// que nunca la tocamos. El río se ABRE en una bahía ancha para que el malecón
+// se asome a un Atrato grande. Todo gated a esta franja compacta.
+export const MALECON_Z = -4.5; // centro del paseo (worldZ)
+export const MALECON_FRONT_X = 1.2; // línea de agua = borde ESTE del paseo
+export const MALECON_HALF_LEN = 5.2; // medio-largo del paseo a lo largo de Z
+export const MALECON_GROUND = 0.42; // cota de la explanada del paseo
+const MALECON_BAY_EAST = 9.5; // la bahía del Atrato llega hasta aquí al este
+const MALECON_BAY_DEPTH = -0.4; // fondo de la bahía (bajo el agua)
 // σ 0.042 → calzada ancha (~2.5u de núcleo) tipo la road de folio-2025,
 // cómoda para conducir y protagonista en pantalla
 const ROAD_SIGMA_NX = 0.042;

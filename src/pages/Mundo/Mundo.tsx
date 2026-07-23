@@ -10,6 +10,7 @@ import ChocoTerrain from "./components/ChocoTerrain";
 import RoadRibbon from "./components/RoadRibbon";
 import TerritoryGateway from "./components/TerritoryGateway";
 import ChirimiaPlaza from "./components/ChirimiaPlaza";
+import MaleconQuibdo from "./components/MaleconQuibdo";
 import MundoTouchControls from "./components/MundoTouchControls";
 import ChirimiaAudio from "./components/ChirimiaAudio";
 import VehicleAudio from "./components/VehicleAudio";
@@ -230,6 +231,8 @@ export default function Mundo() {
               <TerritoryGateway />
               {/* El DESTINO: plaza de la chirimía en el remate norte */}
               <ChirimiaPlaza />
+              {/* QUIBDÓ: el Malecón del Atrato, a orillas del río */}
+              <MaleconQuibdo />
             </Physics>
           </Suspense>
           {/* Vegetación en su PROPIO Suspense: la carga de los GLB de árboles
