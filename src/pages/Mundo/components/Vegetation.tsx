@@ -4,7 +4,13 @@ import { useGLTF } from "@react-three/drei";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
 import type { ChocoGeo } from "../utils/geo";
-import { worldGround, roadMask, patchNoise } from "./ChocoTerrain";
+import {
+  worldGround,
+  roadMask,
+  patchNoise,
+  MALECON_FRONT_X,
+  MALECON_Z,
+} from "./ChocoTerrain";
 import { SPAWN_POS, makeCanoeGeometry } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
 
@@ -122,6 +128,9 @@ function scatter(
 
     // Claro de aparición del carro (coords locales: x, y = -z mundo)
     if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 5) continue;
+
+    // Claro del MALECÓN DE QUIBDÓ: el paseo ribereño respira (sin selva encima)
+    if (Math.hypot(x - (MALECON_FRONT_X - 1.5), y + MALECON_Z) < 6.5) continue;
 
     out.push({
       x,

@@ -43,9 +43,12 @@ const BLUR_PASSES = 8; // suavizado del perfil → rampas de acceso al puente
 // matriz → un solo draw call para todo el puente.
 // El puente es MÁS ANCHO que la carretera: el carro se ve holgado y bonito
 // cruzando, y el tablero de tablones tapa el asfalto que pasa por debajo.
-const BRIDGE_HALF_W = 1.8;
+const BRIDGE_HALF_W = 2.9; // tablero ANCHO: el carro cruza holgado y luce
 const BRIDGE_LIFT = 0.09; // el tablero va sobre el asfalto (lo oculta)
-const MOUTH_FADE = 4; // muestras de embudo en cada boca del puente
+// Embudo LARGO en cada boca: el tablero nace al ancho del asfalto y se abre
+// MUY despacio → la transición carretera↔puente deja de verse "pegada" (un
+// labio duro) y pasa a ser una rampa de acceso que ensancha con gracia.
+const MOUTH_FADE = 11;
 const PORTAL_EVERY = 7; // cada cuántas muestras un pórtico de guadua
 const PORTAL_H = 2.45; // alto libre del pórtico (el carro pasa por debajo)
 const PLANK_A = new THREE.Color("#9c7a44"); // tablón de madera
