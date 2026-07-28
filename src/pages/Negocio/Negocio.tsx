@@ -6,6 +6,7 @@ import {
   Globe,
   MessageCircle,
   Phone,
+  Sparkles,
 } from "lucide-react";
 import { MainNav, MAIN_NAV_MOBILE_BOTTOM_CLASS } from "../../components/layout/MainNav";
 import { LandingFooter } from "../../components/layout/LandingFooter";
@@ -97,6 +98,9 @@ function NegocioContent({ negocio }: { negocio: Establecimiento }) {
 
   const horarioEntries = negocio.horario ? Object.entries(negocio.horario) : [];
   const hasCoords = typeof negocio.lat === "number" && typeof negocio.lng === "number";
+  const hasLeftContent = Boolean(
+    negocio.descripcion || negocio.especialidades?.length || horarioEntries.length || hasCoords
+  );
 
   return (
     <>
@@ -150,6 +154,7 @@ function NegocioContent({ negocio }: { negocio: Establecimiento }) {
           )}
         </header>
 
+        {hasLeftContent ? (
         <div className="mt-8 grid gap-8 md:grid-cols-[1fr_280px]">
           <div className="space-y-8 min-w-0">
             {negocio.descripcion && (
@@ -235,6 +240,39 @@ function NegocioContent({ negocio }: { negocio: Establecimiento }) {
             </div>
           </aside>
         </div>
+        ) : (
+          <div className="mt-8 grid gap-8 md:grid-cols-[1fr_280px]">
+            <div
+              className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-6 md:p-8"
+            >
+              <Sparkles size={28} strokeWidth={1.5} style={{ color: cat.accent }} />
+              <p className="mt-4 font-serif text-lg md:text-xl font-bold text-white/85">
+                ¿Eres el dueño de {negocio.nombre}?
+              </p>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/50">
+                Súmale fotos, horario y una descripción a tu perfil — gratis, sin comisión.
+              </p>
+            </div>
+
+            {/* Bloque de contacto — card en desktop */}
+            <aside className="hidden md:block">
+              <div className="sticky top-32 rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5">
+                <h2 className="mb-4 font-serif text-lg font-bold text-white">Contacto</h2>
+                {hasContacto ? (
+                  <div className="space-y-2.5">
+                    {waHref && <BotonWhatsApp href={waHref} />}
+                    {telHref && <BotonContacto href={telHref} Icon={Phone} label="Llamar" />}
+                    {webHref && (
+                      <BotonContacto href={webHref} Icon={Globe} label="Sitio web" external />
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-white/45">Información de contacto próximamente.</p>
+                )}
+              </div>
+            </aside>
+          </div>
+        )}
       </main>
 
       {/* Bloque de contacto — bottom bar fija en móvil, sobre el tab nav (h-14) */}
@@ -320,11 +358,26 @@ function Galeria({ negocio }: { negocio: Establecimiento }) {
   if (!principal) {
     return (
       <div
-        className="flex aspect-[16/9] md:aspect-[21/9] items-center justify-center rounded-2xl"
+        className="relative flex h-[130px] md:h-[170px] items-center overflow-hidden rounded-2xl"
         style={{ background: cat.gradient }}
         aria-hidden
       >
-        <CatIcon size={56} strokeWidth={1.25} style={{ color: `${cat.accent}90` }} />
+        <CatIcon
+          size={200}
+          strokeWidth={1}
+          className="absolute -right-6 -bottom-8 opacity-20"
+          style={{ color: cat.accent }}
+        />
+        <div className="relative z-10 px-6 md:px-8">
+          <p className="font-serif text-xl md:text-2xl font-bold text-white/95">
+            {cat.label}
+          </p>
+          {negocio.municipio_nombre && (
+            <p className="mt-1 text-xs md:text-sm uppercase tracking-[0.15em] text-white/60">
+              {negocio.municipio_nombre}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
