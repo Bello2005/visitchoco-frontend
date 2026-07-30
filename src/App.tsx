@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Landing } from "./pages/Landing/Landing";
+import AtratoPage from "./pages/Atrato/Atrato";
+import { AccentProvider } from "./providers/AccentProvider";
 import { Login } from "./pages/Login/Login";
 import { AdminDashboard } from "./pages/Dashboard/AdminDashboard/AdminDashboard";
 import { UserDashboard } from "./pages/Dashboard/UserDashboard/UserDashboard";
@@ -15,8 +17,13 @@ import Acerca from "./pages/Acerca/Acerca";
 import Fuentes from "./pages/Fuentes/Fuentes";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
+import Directorio from "./pages/Directorio/Directorio";
+import Negocio from "./pages/Negocio/Negocio";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import MundoLoader from "./pages/Mundo/components/MundoLoader";
+
+const Mundo = lazy(() => import("./pages/Mundo/Mundo"));
 
 function AppContent() {
   const location = useLocation();
@@ -87,6 +94,7 @@ function AppContent() {
   }, [location]);
 
   return (
+    <AccentProvider>
     <ErrorBoundary>
       {isLoading && <LoadingSpinner />}
       <div
@@ -108,6 +116,17 @@ function AppContent() {
           <Route path="/fuentes" element={<Fuentes />} />
           <Route path="/fiesta" element={<Festival />} />
           <Route path="/fiestas" element={<Festival />} />
+          <Route path="/atrato" element={<AtratoPage />} />
+          <Route path="/directorio" element={<Directorio />} />
+          <Route path="/negocio/:slug" element={<Negocio />} />
+          <Route
+            path="/mundo"
+            element={
+              <Suspense fallback={<MundoLoader fading={false} />}>
+                <Mundo />
+              </Suspense>
+            }
+          />
           <Route
             path="/admin/dashboard"
             element={
@@ -128,6 +147,7 @@ function AppContent() {
         </Routes>
       </div>
     </ErrorBoundary>
+    </AccentProvider>
   );
 }
 

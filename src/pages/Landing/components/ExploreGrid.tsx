@@ -13,6 +13,16 @@ const CARDS = [
     imageObjectPosition: "center 18%",
   },
   {
+    id: "directorio",
+    category: "Prestadores · RNT",
+    title: "Directorio de negocios",
+    description: "602 prestadores verificados en el RNT. Hoteles, guías, agencias y sabor chocoano.",
+    href: "/directorio",
+    image: "/images/municipios/acandi.jpg",
+    accent: "#0ea5e9",
+    imageObjectPosition: "center 40%",
+  },
+  {
     id: "cultura",
     category: "UNESCO · PCI",
     title: "Cultura viva",
@@ -56,7 +66,7 @@ const CARDS = [
     category: "Calendario",
     title: "Fiestas patronales",
     description: "37 fiestas · San Pacho · Calendario anual",
-    href: "/fiesta",
+    href: "/fiestas",
     image: "/images/municipios/condoto.jpg",
     accent: "#ec4899",
     imageObjectPosition: "center 25%",
@@ -156,7 +166,7 @@ export function ExploreGrid() {
             className="font-serif text-gray-900 leading-tight"
             style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 700 }}
           >
-            Seis entradas.<br />Un solo territorio.
+            Siete entradas.<br />Un solo territorio.
           </h2>
         </div>
 
@@ -169,12 +179,20 @@ export function ExploreGrid() {
             <ExploreCard {...CARDS[0]} className="h-full" />
           </div>
 
+          {/* DIRECTORIO — fila 3, primer tercio */}
+          <div
+            className="col-span-12 md:col-span-4 md:col-start-1 md:row-start-3"
+            style={{ minHeight: 180 }}
+          >
+            <ExploreCard {...CARDS[1]} className="h-full" />
+          </div>
+
           {/* CULTURA — cols 7–12, fila 1 */}
           <div
             className="col-span-12 md:col-span-6 md:col-start-7 md:row-start-1"
             style={{ minHeight: 220 }}
           >
-            <ExploreCard {...CARDS[1]} className="h-full" />
+            <ExploreCard {...CARDS[2]} className="h-full" />
           </div>
 
           {/* FAUNA — cols 7–9, fila 2 */}
@@ -182,7 +200,7 @@ export function ExploreGrid() {
             className="col-span-6 md:col-span-3 md:col-start-7 md:row-start-2"
             style={{ minHeight: 220 }}
           >
-            <ExploreCard {...CARDS[2]} className="h-full" />
+            <ExploreCard {...CARDS[3]} className="h-full" />
           </div>
 
           {/* HISTORIA — cols 10–12, fila 2 */}
@@ -190,22 +208,22 @@ export function ExploreGrid() {
             className="col-span-6 md:col-span-3 md:col-start-10 md:row-start-2"
             style={{ minHeight: 220 }}
           >
-            <ExploreCard {...CARDS[3]} className="h-full" />
-          </div>
-
-          {/* TURISMO + FIESTAS — misma fila, 6+6 cols, misma altura (Fiestas iguala a Turismo) */}
-          <div
-            className="col-span-12 md:col-span-6 md:col-start-1 md:row-start-3"
-            style={{ minHeight: 180 }}
-          >
             <ExploreCard {...CARDS[4]} className="h-full" />
           </div>
 
+          {/* TURISMO + FIESTAS — completan la fila 3 (tres tercios con Directorio) */}
           <div
-            className="col-span-12 md:col-span-6 md:col-start-7 md:row-start-3"
+            className="col-span-12 md:col-span-4 md:col-start-5 md:row-start-3"
             style={{ minHeight: 180 }}
           >
             <ExploreCard {...CARDS[5]} className="h-full" />
+          </div>
+
+          <div
+            className="col-span-12 md:col-span-4 md:col-start-9 md:row-start-3"
+            style={{ minHeight: 180 }}
+          >
+            <ExploreCard {...CARDS[6]} className="h-full" />
           </div>
         </div>
       </div>
