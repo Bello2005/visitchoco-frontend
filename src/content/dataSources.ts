@@ -1,6 +1,6 @@
 /** Resumen mostrado en columna «Proyecto» del footer */
 export const FOOTER_FUENTE_LINEAS = [
-  "Ministerio de Culturas",
+  "Ministerio de las Culturas, las Artes y los Saberes",
   "Cámara de Comercio del Chocó",
   "DANE · IGAC · OpenWeather",
 ] as const;
