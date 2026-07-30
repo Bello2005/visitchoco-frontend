@@ -163,6 +163,7 @@ export function useMapState(): MapState {
         }
       } catch (error) {
         console.error("Error loading map data:", error);
+        dataLoadedRef.current = false;
       } finally {
         setIsLoading(false);
       }
