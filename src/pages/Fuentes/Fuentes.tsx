@@ -47,6 +47,14 @@ export default function Fuentes() {
                 </span>
               </div>
               <p className="text-gray-600 text-sm leading-relaxed">{src.detalle}</p>
+              {src.atribucion && (
+                <p className="mt-4 text-xs text-gray-500 border-l-2 border-emerald-600/40 pl-3">
+                  {src.atribucion}
+                  {src.radicado && (
+                    <span className="block mt-1 text-gray-400">{src.radicado}</span>
+                  )}
+                </p>
+              )}
             </article>
           ))}
         </div>
