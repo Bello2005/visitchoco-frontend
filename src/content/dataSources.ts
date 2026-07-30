@@ -10,6 +10,10 @@ export type DataSourceEntry = {
   name: string;
   uso: string;
   detalle: string;
+  /** Texto de cita literal exigido por la entidad */
+  atribucion?: string;
+  /** Referencia del oficio que impone la atribución */
+  radicado?: string;
 };
 
 /** Fuentes detalladas — página /fuentes */
@@ -37,10 +41,19 @@ export const DATA_SOURCES: DataSourceEntry[] = [
   },
   {
     id: "minculturas",
-    name: "Ministerio de Culturas",
-    uso: "Patrimonio y cultura",
+    name: "Ministerio de las Culturas, las Artes y los Saberes",
+    uso: "Patrimonio cultural inmaterial",
     detalle:
-      "Marco institucional y referencias al patrimonio cultural inmaterial y políticas culturales que enriquecen la narrativa del territorio.",
+      "Planes Especiales de Salvaguardia (PES) de las tres manifestaciones " +
+      "chocoanas inscritas en la Lista Representativa de Patrimonio Cultural " +
+      "Inmaterial del ámbito nacional: Gualíes, alabaos y levantamientos de " +
+      "tumba del Medio San Juan; Saberes asociados a la partería afro del " +
+      "Pacífico; y Fiestas de San Francisco de Asís (San Pacho) en Quibdó. " +
+      "Documentos remitidos por el Grupo de Patrimonio Cultural Inmaterial. " +
+      "Los Bienes de Interés Cultural del ámbito nacional se consultan en el " +
+      "portal público SIPA.",
+    atribucion: "Tomada de [www.mincultura.gov.co](https://www.mincultura.gov.co)",
+    radicado: "Radicado MC44124E2025 · Respuesta del 6 de octubre de 2025",
   },
   {
     id: "camcomercio",
