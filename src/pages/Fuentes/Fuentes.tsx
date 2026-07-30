@@ -49,7 +49,18 @@ export default function Fuentes() {
               <p className="text-gray-600 text-sm leading-relaxed">{src.detalle}</p>
               {src.atribucion && (
                 <p className="mt-4 text-xs text-gray-500 border-l-2 border-emerald-600/40 pl-3">
-                  {src.atribucion}
+                  {src.atribucionUrl ? (
+                    <a
+                      href={src.atribucionUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-emerald-700 hover:underline"
+                    >
+                      {src.atribucion}
+                    </a>
+                  ) : (
+                    src.atribucion
+                  )}
                   {src.radicado && (
                     <span className="block mt-1 text-gray-400">{src.radicado}</span>
                   )}

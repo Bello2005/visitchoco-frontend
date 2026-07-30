@@ -12,6 +12,8 @@ export type DataSourceEntry = {
   detalle: string;
   /** Texto de cita literal exigido por la entidad */
   atribucion?: string;
+  /** URL de la entidad citada en atribucion; si está presente se renderiza como enlace */
+  atribucionUrl?: string;
   /** Referencia del oficio que impone la atribución */
   radicado?: string;
 };
@@ -53,6 +55,7 @@ export const DATA_SOURCES: DataSourceEntry[] = [
       "Los Bienes de Interés Cultural del ámbito nacional se consultan en el " +
       "portal público SIPA.",
     atribucion: "Tomada de www.mincultura.gov.co",
+    atribucionUrl: "https://www.mincultura.gov.co",
     radicado: "Radicado MC44124E2025 · Respuesta del 6 de octubre de 2025",
   },
   {
