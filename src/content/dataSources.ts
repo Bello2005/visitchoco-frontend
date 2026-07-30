@@ -52,7 +52,7 @@ export const DATA_SOURCES: DataSourceEntry[] = [
       "Documentos remitidos por el Grupo de Patrimonio Cultural Inmaterial. " +
       "Los Bienes de Interés Cultural del ámbito nacional se consultan en el " +
       "portal público SIPA.",
-    atribucion: "Tomada de [www.mincultura.gov.co](https://www.mincultura.gov.co)",
+    atribucion: "Tomada de www.mincultura.gov.co",
     radicado: "Radicado MC44124E2025 · Respuesta del 6 de octubre de 2025",
   },
   {
