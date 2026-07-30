@@ -171,15 +171,21 @@ export function DestinosGrid() {
                 </span>
               </div>
 
-              {/* RNT badge — arriba derecha */}
-              <div
+              {/* RNT badge — arriba derecha: entrada contextual al directorio */}
+              <a
+                href={`/directorio?municipio=${d.slug}`}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Ver ${d.rnt} prestadores RNT de ${d.nombre}`}
                 className="absolute top-4 right-4 bg-black/30 backdrop-blur-sm
-                                border border-white/10 rounded-full px-3 py-1"
+                                border border-white/10 rounded-full px-3 py-1
+                                hover:bg-black/50 transition-colors"
               >
-                <span className="text-white/60 text-[10px] font-medium">
-                  {d.rnt} RNT
+                <span className="text-white/60 hover:text-white/90 text-[10px] font-medium transition-colors">
+                  {parseInt(d.colSpan.replace(/\D/g, ""), 10) >= 5
+                    ? `${d.rnt} prestadores →`
+                    : `${d.rnt} RNT`}
                 </span>
-              </div>
+              </a>
 
               {/* Contenido abajo */}
               <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
