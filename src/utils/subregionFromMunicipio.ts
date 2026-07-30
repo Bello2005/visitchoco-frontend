@@ -1,6 +1,7 @@
 export type SubregionKey = "atrato" | "san_juan" | "baudo" | "pacifico_norte" | "darien";
 
 const MUNICIPIO_SUBREGION: Record<string, SubregionKey> = {
+  // Atrato
   Quibdó: "atrato",
   Bagadó: "atrato",
   Istmina: "atrato",
@@ -8,21 +9,34 @@ const MUNICIPIO_SUBREGION: Record<string, SubregionKey> = {
   Cértegui: "atrato",
   "Medio Atrato": "atrato",
   Atrato: "atrato",
+  "El Carmen de Atrato": "atrato",
+  "Nuevo Belén de Bajirá": "atrato",
+  // San Juan
   "San José del Palmar": "san_juan",
   Tadó: "san_juan",
   "Unión Panamericana": "san_juan",
   Lloró: "san_juan",
   Bojayá: "san_juan",
   "Medio San Juan": "san_juan",
+  "Cantón de San Pablo": "san_juan",
+  "El Litoral del San Juan": "san_juan",
+  Nóvita: "san_juan",
+  "Río Iró": "san_juan",
+  Sipí: "san_juan",
+  // Baudó
+  "Bajo Baudó": "baudo",
+  "Alto Baudó": "baudo",
+  "Medio Baudó": "baudo",
+  // Pacífico Norte
   Nuquí: "pacifico_norte",
   "Bahía Solano": "pacifico_norte",
   Juradó: "pacifico_norte",
-  "Río Quito": "pacifico_norte",
+  "Rio Quito": "pacifico_norte",
+  // Darién
   Unguía: "darien",
   Acandí: "darien",
   Riosucio: "darien",
-  "Bajo Baudó": "baudo",
-  Pizarro: "baudo",
+  "Carmen del Darién": "darien",
 };
 
 export function municipioToSubregion(municipio: string | null | undefined): SubregionKey {
