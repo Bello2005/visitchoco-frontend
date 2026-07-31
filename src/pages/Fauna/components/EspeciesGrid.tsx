@@ -65,7 +65,7 @@ export function EspeciesGrid() {
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#010d05]/90 via-[#010d05]/25 to-transparent transition-opacity duration-500 ease-out group-hover:from-[#010d05]/40 group-hover:via-[#010d05]/15 group-hover:to-transparent" />
 
               <div className="absolute inset-x-0 bottom-0 z-10 p-5 md:p-6">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/80 opacity-80 transition-opacity duration-500 group-hover:opacity-100">
+                <p className="font-mono text-xs italic tracking-wide text-emerald-100 opacity-90 drop-shadow-[0_1px_4px_rgba(0,0,0,0.85)] transition-opacity duration-500 group-hover:opacity-100">
                   {esp.nombreCientifico}
                 </p>
                 <h3 className="font-serif mt-1 text-2xl font-bold leading-tight text-white md:text-3xl">
