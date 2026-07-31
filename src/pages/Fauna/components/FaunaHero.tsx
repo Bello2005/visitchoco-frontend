@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Leaf } from "lucide-react";
 
 const HERO_IMG =
-  "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=1920&q=80";
+  "https://images.unsplash.com/photo-1652049145708-e18b91f78e64?w=1920&q=80";
 
 export function FaunaHero() {
   return (
