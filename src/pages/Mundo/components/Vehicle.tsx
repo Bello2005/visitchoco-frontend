@@ -43,6 +43,15 @@ const CHASSIS_HALF: [number, number, number] = [0.9, 0.35, 1.6];
 const WHEEL_RADIUS = 0.32;
 const SUSPENSION_REST = 0.35;
 
+// Proporciones de la carrocería visible (el collider sigue siendo la caja
+// CHASSIS_HALF entera). El cuerpo baja y adelgaza; la cabina se apoya justo
+// encima de su techo para que no queden cajas flotando ni interpenetradas.
+const CAR_BODY_H_RATIO = 0.55;
+const CAR_CABIN_H = CHASSIS_HALF[1] * 2 * 0.45;
+const CAR_BODY_TOP =
+  -CHASSIS_HALF[1] * 0.22 + (CHASSIS_HALF[1] * 2 * CAR_BODY_H_RATIO) / 2;
+const CAR_CABIN_Y = CAR_BODY_TOP + CAR_CABIN_H / 2;
+
 // Puntos de anclaje de las ruedas (esquinas del chasis). Frente = +Z local.
 // Índices 0-1 delanteras (dirección), 2-3 traseras (tracción).
 const WHEELS: [number, number, number][] = [
@@ -542,13 +551,15 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         {/* Todos los materiales del vehículo llevan applyReveal: en la
             oscuridad del intro el carro también está sin materializar y
             aparece con el territorio en la explosión. */}
-        {/* Placeholder visual carro — el modelo real llega en fase posterior */}
+        {/* Silueta de camioneta: cuerpo bajo + cabina sobre el tercio trasero
+            (deja capó adelante) + faros. El collider sigue siendo la caja
+            CHASSIS_HALF completa — esto es solo lo visible. Frente = +Z. */}
         <group visible={modeVisual === "car"}>
-          <mesh castShadow>
+          <mesh castShadow position={[0, -CHASSIS_HALF[1] * 0.22, 0]}>
             <boxGeometry
               args={[
                 CHASSIS_HALF[0] * 2,
-                CHASSIS_HALF[1] * 2,
+                CHASSIS_HALF[1] * 2 * CAR_BODY_H_RATIO,
                 CHASSIS_HALF[2] * 2,
               ]}
             />
@@ -562,6 +573,49 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
               }}
             />
           </mesh>
+          {/* Cabina: más angosta y corta, corrida hacia atrás (-Z) */}
+          <mesh
+            castShadow
+            position={[0, CAR_CABIN_Y, -CHASSIS_HALF[2] * 0.25]}
+          >
+            <boxGeometry
+              args={[
+                CHASSIS_HALF[0] * 2 * 0.7,
+                CAR_CABIN_H,
+                CHASSIS_HALF[2] * 2 * 0.5,
+              ]}
+            />
+            <meshStandardMaterial
+              flatShading
+              color="#b8650a"
+              emissive="#b8650a"
+              emissiveIntensity={0.12}
+              ref={(m) => {
+                if (m) applyReveal(m);
+              }}
+            />
+          </mesh>
+          {/* Faros en las esquinas delanteras del cuerpo */}
+          {[-1, 1].map((side) => (
+            <mesh
+              key={side}
+              position={[
+                side * (CHASSIS_HALF[0] - 0.16),
+                -CHASSIS_HALF[1] * 0.22,
+                CHASSIS_HALF[2] - 0.04,
+              ]}
+            >
+              <boxGeometry args={[0.08, 0.08, 0.08]} />
+              <meshStandardMaterial
+                color="#fff4d6"
+                emissive="#fff4d6"
+                emissiveIntensity={0.9}
+                ref={(m) => {
+                  if (m) applyReveal(m);
+                }}
+              />
+            </mesh>
+          ))}
           {WHEELS.map(([x, , z], i) => (
             <mesh
               key={i}

@@ -326,7 +326,7 @@ function makeGrassTuft(seed: number): THREE.BufferGeometry {
 }
 
 // ================= DISPERSIÓN =================
-interface Instance {
+export interface Instance {
   x: number;
   z: number;
   y: number;
@@ -392,8 +392,10 @@ function scatter(
   return out;
 }
 
-// Hook: espera el heightfield (para no flotar) y luego dispersa
-function useFlora(
+// Hook: espera el heightfield (para no flotar) y luego dispersa.
+// Exportado para que AmbientDetail siembre polvo y mariposas sobre las MISMAS
+// matas de vegetación (patch:"in") en vez de sortear coordenadas propias.
+export function useFlora(
   count: number,
   seedBase: number,
   cfg: ScatterCfg
@@ -654,7 +656,17 @@ function GrassField({ count, seedBase }: { count: number; seedBase: number }) {
   );
 }
 
-function Rocks({ count, seedBase }: { count: number; seedBase: number }) {
+function Rocks({
+  count,
+  seedBase,
+  scaleMin = 0.5,
+  scaleMax = 1.6,
+}: {
+  count: number;
+  seedBase: number;
+  scaleMin?: number;
+  scaleMax?: number;
+}) {
   const geo = useMemo(() => new THREE.DodecahedronGeometry(0.32, 0), []);
   useEffect(() => () => geo.dispose(), [geo]);
   const instances = useFlora(count, seedBase, {
@@ -663,8 +675,8 @@ function Rocks({ count, seedBase }: { count: number; seedBase: number }) {
     patch: "any",
     sink: 0.1,
     tiltAmp: 0.6,
-    scaleMin: 0.5,
-    scaleMax: 1.6,
+    scaleMin,
+    scaleMax,
   });
   if (!instances || instances.length === 0) return null;
   return (
@@ -789,7 +801,11 @@ export default function Vegetation() {
       <PalmField count={110} seedBase={9091} />
       <HeliconiaField count={90} seedBase={4201} />
       <GrassField count={520} seedBase={6301} />
+      {/* Dos pasadas de piedras con rangos de escala distintos: los claros de
+          pasto se veían vacíos y con un solo rango todas quedaban del mismo
+          porte. Cantos grandes dispersos + gravilla menuda alrededor. */}
       <Rocks count={90} seedBase={7717} />
+      <Rocks count={40} seedBase={7919} scaleMin={0.22} scaleMax={0.6} />
       <BeachedCanoes count={10} seedBase={12007} />
     </>
   );
