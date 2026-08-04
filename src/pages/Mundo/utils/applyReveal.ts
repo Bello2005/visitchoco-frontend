@@ -19,12 +19,24 @@ export function applyReveal(
     /** amplitud del vaivén (fracción de la altura del vértice). def 0.06 */
     swayAmp?: number;
     glitter?: boolean;
+    /** reflejo por ángulo de vista (agua). SOLO para materiales con
+     *  iluminación (standard/physical): reusa `vViewPosition` y `normal`,
+     *  que MeshBasicMaterial no declara. */
+    fresnel?: boolean;
+    /** color del realce en el borde rasante. def "#eaffff" */
+    fresnelColor?: string;
+    /** exponente de la curva: más alto = realce más ceñido al borde. def 2.5 */
+    fresnelPower?: number;
   }
 ): void {
   const groundDetail = opts?.groundDetail === true;
   const sway = opts?.sway === true;
   const swayAmp = opts?.swayAmp ?? 0.06;
   const glitter = opts?.glitter === true;
+  const fresnel = opts?.fresnel === true;
+  const fresnelColor = opts?.fresnelColor ?? "#eaffff";
+  const fresnelPower = opts?.fresnelPower ?? 2.5;
+  const fresnelColorValue = new THREE.Color(fresnelColor);
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
     shader.uniforms.uRevealRadius = revealUniforms.uRevealRadius;
@@ -32,6 +44,7 @@ export function applyReveal(
     shader.uniforms.uRevealColor = revealUniforms.uRevealColor;
     shader.uniforms.uRevealIntensity = revealUniforms.uRevealIntensity;
     shader.uniforms.uMundoTime = revealUniforms.uMundoTime;
+    if (fresnel) shader.uniforms.uFresnelColor = { value: fresnelColorValue };
 
     if (sway) {
       // BRISA (como las hojas de folio-2025): el vaivén es PROPORCIONAL a la
@@ -94,14 +107,30 @@ uniform vec3 uRevealCenter;
 uniform float uRevealRadius;
 uniform float uRevealThickness;
 uniform vec3 uRevealColor;
-uniform float uRevealIntensity;`
+uniform float uRevealIntensity;${fresnel ? "\nuniform vec3 uFresnelColor;" : ""}`
       )
       // Al FINAL del pipeline (tras tonemapping/encoding): descartar fuera del
       // radio y pintar el frente de onda. El *intensity (>1) empuja el anillo
       // por encima del threshold 0.9 del Bloom (buffers HalfFloat) → brilla.
       .replace(
         "#include <dithering_fragment>",
-        `#include <dithering_fragment>
+        `#include <dithering_fragment>${
+          fresnel
+            ? `
+	{
+		// Fresnel: rasante = reflejo, de frente = transparente. Reusa
+		// \`vViewPosition\` (fragmento→cámara) y \`normal\`, ambos declarados por
+		// los chunks estándar y vivos en main() hasta acá — redeclararlos
+		// rompería la compilación. Con flatShading la normal sale de las
+		// derivadas de vViewPosition, así que el efecto sigue las facetas.
+		float fresnelTerm = pow(
+			1.0 - clamp(dot(normalize(vViewPosition), normal), 0.0, 1.0),
+			${fresnelPower.toFixed(4)}
+		);
+		gl_FragColor.rgb = mix(gl_FragColor.rgb, uFresnelColor, fresnelTerm * 0.6);
+	}`
+            : ""
+        }
 	{
 		float dReveal = distance(vRevealWorldPos.xz, uRevealCenter.xz);
 		if (dReveal > uRevealRadius) discard;
@@ -169,5 +198,5 @@ float mundoNoise(vec2 p) {
   // Sin esto Three reutiliza programas cacheados de materiales con los mismos
   // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
   material.customProgramCacheKey = () =>
-    `reveal${groundDetail ? "-detail" : ""}${sway ? `-sway${swayAmp}` : ""}${glitter ? "-glitter" : ""}`;
+    `reveal${groundDetail ? "-detail" : ""}${sway ? `-sway${swayAmp}` : ""}${glitter ? "-glitter" : ""}${fresnel ? `-fresnel${fresnelPower}` : ""}`;
 }

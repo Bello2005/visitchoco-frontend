@@ -12,7 +12,9 @@ import { vehicleState } from "../utils/vehicleState";
 // radio de la vista). Aquí igual: la cámara de sombras cubre solo ±SHADOW_R
 // alrededor del carro → ~4× más texels por metro = sombras nítidas SIEMPRE.
 const SHADOW_R = 17;
-const LIGHT_OFFSET = new THREE.Vector3(18, 28, 10);
+// Exportado: SunSource coloca la esfera de los GodRays sobre esta MISMA
+// dirección, así los rayos salen de donde de verdad viene la luz.
+export const LIGHT_OFFSET = new THREE.Vector3(18, 28, 10);
 
 interface ShadowRigProps {
   directionalRef: RefObject<THREE.DirectionalLight | null>;

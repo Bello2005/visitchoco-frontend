@@ -38,7 +38,7 @@ export default function Water() {
           metalness={0.1}
           roughness={0.25}
           ref={(m) => {
-            if (m) applyReveal(m);
+            if (m) applyReveal(m, { fresnel: true });
           }}
         />
       </mesh>

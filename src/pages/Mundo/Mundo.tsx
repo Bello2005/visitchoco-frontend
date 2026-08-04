@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { KeyboardControls, PerspectiveCamera } from "@react-three/drei";
 // import { OrbitControls } from "@react-three/drei"; // debug cam
-import { EffectComposer, Bloom, Vignette, Noise } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, Vignette, Noise, GodRays } from "@react-three/postprocessing";
 import { Physics } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
@@ -24,6 +24,8 @@ import RevealController from "./components/RevealController";
 import IntroBeacon from "./components/IntroBeacon";
 import ShadowRig from "./components/ShadowRig";
 import Fauna from "./components/Fauna";
+import AmbientDetail from "./components/AmbientDetail";
+import SunSource from "./components/SunSource";
 import MundoMiniMap from "./components/MundoMiniMap";
 import MundoAudio from "./components/MundoAudio";
 import MundoLoader from "./components/MundoLoader";
@@ -69,6 +71,15 @@ function detectWebGL(): boolean {
 export default function Mundo() {
   const chassisRef = useRef<RapierRigidBody>(null);
   const directionalRef = useRef<THREE.DirectionalLight>(null);
+  // Origen de los GodRays. El efecto se monta SOLO cuando la mesh ya existe:
+  // GodRaysEffect.update() hace lightSource.parent sin chequear null y
+  // reventaría si alcanza a correr un frame con la ref todavía vacía.
+  const sunRef = useRef<THREE.Mesh | null>(null);
+  const [sunReady, setSunReady] = useState(false);
+  const handleSunReady = useCallback((mesh: THREE.Mesh | null) => {
+    sunRef.current = mesh;
+    setSunReady(!!mesh);
+  }, []);
   const ambientRef = useRef<THREE.AmbientLight>(null);
 
   const [webglOk] = useState(detectWebGL);
@@ -242,6 +253,8 @@ export default function Mundo() {
           </Suspense>
           <MunicipalityLights />
           <Fauna />
+          <AmbientDetail />
+          <SunSource onReady={handleSunReady} />
           {!reducedMotion && <IntroBeacon />}
           <ShadowRig directionalRef={directionalRef} />
           <FollowCamera target={chassisRef} />
@@ -251,10 +264,43 @@ export default function Mundo() {
             reducedMotion={reducedMotion}
           />
           <FirstFrame onFirstFrame={handleFirstFrame} />
+          {/* Los hijos van como ARRAY: el tipo de EffectComposer es
+              Element | Element[], así que un `{cond && <X/>}` (false) o
+              incluso un comentario JSX (undefined) no compilan ahí dentro. */}
           <EffectComposer>
-            <Bloom luminanceThreshold={0.9} intensity={0.7} mipmapBlur />
-            <Vignette darkness={0.4} />
-            <Noise opacity={0.025} />
+            {[
+              <Bloom
+                key="bloom"
+                luminanceThreshold={0.9}
+                intensity={0.7}
+                mipmapBlur
+              />,
+              // Haces de sol atravesando el follaje. Se monta solo cuando la
+              // mesh del sol existe: GodRaysEffect.update() hace
+              // lightSource.parent sin chequear null.
+              // blendFunction se omite a propósito — GodRaysEffect ya usa
+              // SCREEN por defecto y el enum vive en "postprocessing", que
+              // bajo pnpm NO es resoluble desde la app (es dependencia de
+              // @react-three/postprocessing, no nuestra).
+              // Si baja el FPS, el primer dial es `samples`.
+              ...(sunReady && sunRef.current
+                ? [
+                    <GodRays
+                      key="godrays"
+                      sun={sunRef.current}
+                      samples={60}
+                      density={0.8}
+                      decay={0.93}
+                      weight={0.3}
+                      exposure={0.35}
+                      clampMax={1}
+                      blur
+                    />,
+                  ]
+                : []),
+              <Vignette key="vignette" darkness={0.4} />,
+              <Noise key="noise" opacity={0.025} />,
+            ]}
           </EffectComposer>
         </Canvas>
       </KeyboardControls>
