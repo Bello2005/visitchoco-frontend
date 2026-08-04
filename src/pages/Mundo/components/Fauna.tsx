@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -237,7 +237,7 @@ function Bandada() {
   );
 }
 
-export default function Fauna() {
+function Fauna() {
   return (
     <>
       <Garzas count={14} seedBase={40009} />
@@ -245,3 +245,6 @@ export default function Fauna() {
     </>
   );
 }
+
+// memo: sin props — aislado del churn de estado de Mundo.
+export default memo(Fauna);

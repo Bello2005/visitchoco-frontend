@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { useFlora } from "./Vegetation";
 import { applyReveal } from "../utils/applyReveal";
+import { qualityState } from "../utils/qualityState";
 
 // Detalle ambiental: motas de polvo flotando en los haces de luz y mariposas
 // revoloteando sobre las matas. Ambos se siembran con el MISMO useFlora que
@@ -20,7 +21,6 @@ function seeded(n: number): number {
   return (h >>> 0) / 4294967295;
 }
 
-const DUST_COUNT = 80;
 const DUST_FLOOR = 0.4; // altura de arranque sobre el suelo
 const DUST_RISE = 3.8; // recorrido vertical antes de reciclar
 
@@ -28,7 +28,9 @@ function DustMotes() {
   const geo = useMemo(() => new THREE.SphereGeometry(0.03, 4, 3), []);
   useEffect(() => () => geo.dispose(), [geo]);
 
-  const instances = useFlora(DUST_COUNT, 24001, {
+  // Count congelado al montar: dial FRIO (cambiarlo re-dispara el scatter).
+  const count = useRef(qualityState.profile.dust).current;
+  const instances = useFlora(count, 24001, {
     minH: 0.4,
     maxH: 5.2,
     patch: "in",
@@ -191,13 +193,19 @@ function Butterflies({
   );
 }
 
-export default function AmbientDetail() {
+function AmbientDetail() {
+  // Dial FRIO, congelado al montar.
+  const half = useRef(Math.round(qualityState.profile.butterflies / 2)).current;
+  if (half <= 0 && qualityState.profile.dust <= 0) return null;
   return (
     <>
       <DustMotes />
       {/* Azul Morpho + una naranja para que no se vean todas iguales */}
-      <Butterflies count={10} seedBase={31013} color="#4a6fd4" />
-      <Butterflies count={10} seedBase={31051} color="#e8823c" />
+      <Butterflies count={half} seedBase={31013} color="#4a6fd4" />
+      <Butterflies count={half} seedBase={31051} color="#e8823c" />
     </>
   );
 }
+
+// memo: sin props — aislado del churn de estado de Mundo.
+export default memo(AmbientDetail);

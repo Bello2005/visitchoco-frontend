@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { RigidBody } from "@react-three/rapier";
 import { applyReveal } from "../utils/applyReveal";
 
 // El carro no lo atraviesa; el comportamiento "agua" llega en fase posterior.
-export default function OceanFloor() {
+function OceanFloor() {
   return (
     <RigidBody type="fixed" colliders="cuboid">
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.4, 0]}>
@@ -17,3 +18,6 @@ export default function OceanFloor() {
     </RigidBody>
   );
 }
+
+// memo: sin props — aislado del churn de estado de Mundo.
+export default memo(OceanFloor);

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { RefObject } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
+import { lightingProfile } from "../utils/lightingProfile";
 import {
   revealUniforms,
   revealState,
@@ -86,10 +87,17 @@ export default function RevealController({
       scene.fog.far = FOG_NIGHT.far + (FOG_DAY.far - FOG_NIGHT.far) * progress;
     }
 
+    // ÚNICO escritor de intensity en toda la app. Los coeficientes viven en
+    // lightingProfile para que el sistema de calidad los module sin pelearse
+    // por la propiedad.
     const directional = directionalRef.current;
-    if (directional) directional.intensity = 0.55 + 0.8 * progress;
+    if (directional)
+      directional.intensity =
+        lightingProfile.dirBase + lightingProfile.dirGain * progress;
     const ambient = ambientRef.current;
-    if (ambient) ambient.intensity = 0.3 + 0.3 * progress;
+    if (ambient)
+      ambient.intensity =
+        lightingProfile.ambBase + lightingProfile.ambGain * progress;
   });
 
   return null;

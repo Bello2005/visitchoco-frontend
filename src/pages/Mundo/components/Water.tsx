@@ -1,16 +1,23 @@
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { WATER_LEVEL } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
+import { qualityState } from "../utils/qualityState";
 
 // Superficie única mar+río a Y=WATER_LEVEL. El terreno cavado bajo ese
 // nivel (cauce del Atrato, borde del diorama) queda cubierto por ella.
 // TODO: shader GLSL custom en la fase de belleza.
-export default function Water() {
+function Water() {
   const geoRef = useRef<THREE.PlaneGeometry>(null);
+  // Los segmentos se CONGELAN al montar: cambiarlos recrea la geometría, así
+  // que es un dial frío (se aplica al recargar).
+  const segments = useRef(qualityState.profile.waterSegments).current;
 
   useFrame(({ clock }) => {
+    // El oleaje por CPU recorre 2401 vértices con 4802 Math.sin y sube 28 KB
+    // al GPU CADA frame. En gama baja se apaga entero.
+    if (!qualityState.profile.waterAnimated) return;
     const geo = geoRef.current;
     if (!geo) return;
     const t = clock.elapsedTime;
@@ -29,7 +36,7 @@ export default function Water() {
   return (
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_LEVEL, 0]}>
-        <planeGeometry ref={geoRef} args={[200, 200, 48, 48]} />
+        <planeGeometry ref={geoRef} args={[200, 200, segments, segments]} />
         <meshStandardMaterial
           flatShading
           transparent
@@ -58,3 +65,6 @@ export default function Water() {
     </>
   );
 }
+
+// memo: sin props — aislado del churn de estado de Mundo.
+export default memo(Water);

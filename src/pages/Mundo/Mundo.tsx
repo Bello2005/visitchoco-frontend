@@ -3,7 +3,6 @@ import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { KeyboardControls, PerspectiveCamera } from "@react-three/drei";
 // import { OrbitControls } from "@react-three/drei"; // debug cam
-import { EffectComposer, Bloom, Vignette, Noise, GodRays } from "@react-three/postprocessing";
 import { Physics } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
@@ -25,7 +24,11 @@ import IntroBeacon from "./components/IntroBeacon";
 import ShadowRig from "./components/ShadowRig";
 import Fauna from "./components/Fauna";
 import AmbientDetail from "./components/AmbientDetail";
-import SunSource from "./components/SunSource";
+import PostFX from "./components/PostFX";
+import QualityRuntime from "./components/QualityRuntime";
+import { initQuality, probeRenderer, qualityState } from "./utils/qualityState";
+import MundoQuality from "./components/MundoQuality";
+import PerfProbe from "./components/PerfProbe";
 import MundoMiniMap from "./components/MundoMiniMap";
 import MundoAudio from "./components/MundoAudio";
 import MundoLoader from "./components/MundoLoader";
@@ -59,30 +62,39 @@ function FirstFrame({ onFirstFrame }: { onFirstFrame: () => void }) {
   return null;
 }
 
-function detectWebGL(): boolean {
+// Sondea WebGL Y, de paso, el nombre de la GPU, reutilizando el MISMO
+// contexto: los navegadores limitan a ~16 contextos WebGL vivos, así que crear
+// uno aparte sólo para clasificar la máquina sería un desperdicio.
+function probeWebGL(): { ok: boolean; renderer: string | null } {
   try {
     const canvas = document.createElement("canvas");
-    return !!(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    const gl = (canvas.getContext("webgl2") ||
+      canvas.getContext("webgl")) as WebGLRenderingContext | null;
+    if (!gl) return { ok: false, renderer: null };
+    return { ok: true, renderer: probeRenderer(gl) };
   } catch {
-    return false;
+    return { ok: false, renderer: null };
   }
 }
 
 export default function Mundo() {
   const chassisRef = useRef<RapierRigidBody>(null);
   const directionalRef = useRef<THREE.DirectionalLight>(null);
-  // Origen de los GodRays. El efecto se monta SOLO cuando la mesh ya existe:
-  // GodRaysEffect.update() hace lightSource.parent sin chequear null y
-  // reventaría si alcanza a correr un frame con la ref todavía vacía.
-  const sunRef = useRef<THREE.Mesh | null>(null);
-  const [sunReady, setSunReady] = useState(false);
-  const handleSunReady = useCallback((mesh: THREE.Mesh | null) => {
-    sunRef.current = mesh;
-    setSunReady(!!mesh);
-  }, []);
   const ambientRef = useRef<THREE.AmbientLight>(null);
 
-  const [webglOk] = useState(detectWebGL);
+  // Sonda de rendimiento: sólo con #perf en la URL. Se lee una vez al montar.
+  const [perfProbe] = useState(
+    () => typeof location !== "undefined" && location.hash === "#perf"
+  );
+  // Sonda de GPU + nivel de calidad, resueltos UNA vez antes de montar el
+  // Canvas (initQuality respeta lo que el usuario haya guardado).
+  const [probe] = useState(probeWebGL);
+  const [webglOk] = useState(() => probe.ok);
+  const [initialDpr] = useState(() => {
+    initQuality(probe.renderer);
+    const [lo, hi] = qualityState.profile.dpr;
+    return Math.min(hi, Math.max(lo, window.devicePixelRatio || 1));
+  });
   const [reducedMotion] = useState(
     () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
   );
@@ -194,7 +206,23 @@ export default function Mundo() {
       }}
     >
       <KeyboardControls map={controlsMap}>
-        <Canvas shadows>
+        {/* antialias:false a propósito y en TODOS los niveles: el
+            EffectComposer renderiza a su propio target HalfFloat, así que el
+            buffer MSAA del contexto WebGL nunca llega a la imagen final — es
+            ancho de banda tirado. El AA que cuenta es `multisampling` del
+            composer (o SMAA en gama baja). Como ni antialias ni
+            powerPreference son diales, ningún cambio de calidad obliga a
+            recrear el contexto WebGL. */}
+        {/* dpr: valor INICIAL estable, calculado una vez desde el perfil
+            resuelto. NO se puede pasar un literal `[1,1.5]`: sería un array
+            nuevo en cada render de Mundo y R3F re-aplicaría la prop, pisando
+            lo que QualityRuntime haya puesto. A partir del montaje,
+            QualityRuntime es el ÚNICO dueño del dpr. */}
+        <Canvas
+          shadows
+          dpr={initialDpr}
+          gl={{ antialias: false, powerPreference: "high-performance" }}
+        >
           <color attach="background" args={["#a5ddf2"]} />
           <fog attach="fog" args={["#a5ddf2", 34, 135]} />
           {/* Arranca YA detrás del carro (en el portal): con la posición fija
@@ -224,7 +252,11 @@ export default function Mundo() {
           />
           {/* Ambiente lavanda: en sombra solo queda esta luz → sombras
               violetas, el truco del shadowColor #6d3fff de Bruno */}
-          <ambientLight ref={ambientRef} color="#b9c3f5" intensity={0.3} />
+          {/* Frío neutro, ya no lavanda: el violeta de la sombra ahora lo pone
+              el shader (uShadowColor). Con el ambiente lavanda además, teñía
+              dos veces. La intensidad la gobierna RevealController vía
+              lightingProfile — el valor de acá es solo el inicial. */}
+          <ambientLight ref={ambientRef} color="#93a7c4" intensity={0.18} />
           <Suspense fallback={null}>
             <Physics gravity={[0, -9.81, 0]}>
               <ChocoTerrain onReady={handleTerrainReady} />
@@ -254,7 +286,6 @@ export default function Mundo() {
           <MunicipalityLights />
           <Fauna />
           <AmbientDetail />
-          <SunSource onReady={handleSunReady} />
           {!reducedMotion && <IntroBeacon />}
           <ShadowRig directionalRef={directionalRef} />
           <FollowCamera target={chassisRef} />
@@ -264,48 +295,15 @@ export default function Mundo() {
             reducedMotion={reducedMotion}
           />
           <FirstFrame onFirstFrame={handleFirstFrame} />
-          {/* Los hijos van como ARRAY: el tipo de EffectComposer es
-              Element | Element[], así que un `{cond && <X/>}` (false) o
-              incluso un comentario JSX (undefined) no compilan ahí dentro. */}
-          <EffectComposer>
-            {[
-              <Bloom
-                key="bloom"
-                luminanceThreshold={0.9}
-                intensity={0.7}
-                mipmapBlur
-              />,
-              // Haces de sol atravesando el follaje. Se monta solo cuando la
-              // mesh del sol existe: GodRaysEffect.update() hace
-              // lightSource.parent sin chequear null.
-              // blendFunction se omite a propósito — GodRaysEffect ya usa
-              // SCREEN por defecto y el enum vive en "postprocessing", que
-              // bajo pnpm NO es resoluble desde la app (es dependencia de
-              // @react-three/postprocessing, no nuestra).
-              // Si baja el FPS, el primer dial es `samples`.
-              ...(sunReady && sunRef.current
-                ? [
-                    <GodRays
-                      key="godrays"
-                      sun={sunRef.current}
-                      samples={60}
-                      density={0.8}
-                      decay={0.93}
-                      weight={0.3}
-                      exposure={0.35}
-                      clampMax={1}
-                      blur
-                    />,
-                  ]
-                : []),
-              <Vignette key="vignette" darkness={0.4} />,
-              <Noise key="noise" opacity={0.025} />,
-            ]}
-          </EffectComposer>
+          {perfProbe && <PerfProbe />}
+          <QualityRuntime />
+          <PostFX />
         </Canvas>
       </KeyboardControls>
       <MundoMiniMap />
       <MundoAudio />
+      {/* Oculto mientras el loader tapa la escena, igual que el botón de mute */}
+      <MundoQuality visible={!loaderVisible} />
       {/* La chirimía arranca sola al pisar la plaza del norte */}
       <ChirimiaAudio />
       {/* Motor, rodadura, chapoteo y golpes — sintetizados en vivo */}

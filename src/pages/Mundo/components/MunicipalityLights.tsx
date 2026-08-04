@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { loadChocoGeo } from "../utils/geo";
@@ -36,7 +36,7 @@ interface Town {
   phase: number;
 }
 
-export default function MunicipalityLights() {
+function MunicipalityLights() {
   const [towns, setTowns] = useState<Town[] | null>(null);
   const groupRefs = useRef<(THREE.Group | null)[]>([]);
 
@@ -262,3 +262,6 @@ function Caserios({ towns }: { towns: Town[] }) {
     </>
   );
 }
+
+// memo: sin props — aislado del churn de estado de Mundo.
+export default memo(MunicipalityLights);

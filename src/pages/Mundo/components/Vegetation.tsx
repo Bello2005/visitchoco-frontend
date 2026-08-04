@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
@@ -14,6 +14,7 @@ import {
 } from "./ChocoTerrain";
 import { SPAWN_POS, makeCanoeGeometry } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
+import { qualityState, scaleCount } from "../utils/qualityState";
 
 // VEGETACIÓN DEL CHOCÓ — selva húmeda del Pacífico, PROCEDURAL y premium.
 //
@@ -716,97 +717,118 @@ function BeachedCanoes({ count, seedBase }: { count: number; seedBase: number })
   );
 }
 
+// Configuraciones de árbol a nivel de MÓDULO, no literales inline.
+// `TreeField` hace useMemo(() => makeTreeGeo(geoCfg), [geoCfg]); con un objeto
+// literal en el JSX la identidad cambia en CADA render de Vegetation —, y como
+// Vegetation se re-renderiza con cada setState de Mundo (7 durante el arranque),
+// se reconstruían las 4 geometrías (merge + bakeGradient) y se recreaban los
+// InstancedMesh una y otra vez. Congeladas acá, se construyen UNA vez.
+const CANOPY_TALL_CFG = {
+  height: 2.4,
+  trunkR: 0.13,
+  crownR: 0.95,
+  colBot: "#14612f",
+  colTop: "#34a457",
+  seed: 11,
+  layers: 3,
+};
+const CANOPY_MID_CFG = {
+  height: 1.8,
+  trunkR: 0.1,
+  crownR: 0.8,
+  colBot: "#1a6b39",
+  colTop: "#48b86a",
+  seed: 29,
+  layers: 2,
+};
+const SHRUB_CFG = {
+  height: 0.7,
+  trunkR: 0.06,
+  crownR: 0.42,
+  colBot: "#1f7040",
+  colTop: "#59c079",
+  seed: 47,
+  layers: 2,
+};
+const CLOUD_FOREST_CFG = {
+  height: 1.25,
+  trunkR: 0.09,
+  crownR: 0.62,
+  colBot: "#2f5a46",
+  colTop: "#567f66",
+  seed: 83,
+  layers: 2,
+};
+
 // CALIDAD sobre cantidad (folio-2025): matas por patchNoise con claros, césped
 // llenando el espacio negativo, y la carretera despejada.
-export default function Vegetation() {
+function Vegetation() {
+  // Counts escalados por calidad. Se CONGELAN al montar (useRef): cambiarlos
+  // re-dispara los scatters, que hacen hasta 132.300 tests de punto-en-polígono
+  // en el hilo principal. Es un dial frío — se aplica al recargar.
+  const q = useRef(qualityState.profile).current;
+  const v = (n: number) => scaleCount(n, q.vegetation);
+  const g = (n: number) => scaleCount(n, q.grass);
   return (
     <>
       {/* Dosel alto — selva baja del valle */}
       <TreeField
-        count={200}
+        count={v(200)}
         seedBase={101}
         trunkColor="#4a3524"
         minH={0.42}
         maxH={2.3}
-        geoCfg={{
-          height: 2.4,
-          trunkR: 0.13,
-          crownR: 0.95,
-          colBot: "#14612f",
-          colTop: "#34a457",
-          seed: 11,
-          layers: 3,
-        }}
+        geoCfg={CANOPY_TALL_CFG}
         scaleMin={0.85}
         scaleMax={1.55}
       />
       {/* Dosel medio — otra silueta, verde más vivo */}
       <TreeField
-        count={150}
+        count={v(150)}
         seedBase={877}
         trunkColor="#4a3524"
         minH={0.42}
         maxH={2.3}
-        geoCfg={{
-          height: 1.8,
-          trunkR: 0.1,
-          crownR: 0.8,
-          colBot: "#1a6b39",
-          colTop: "#48b86a",
-          seed: 29,
-          layers: 2,
-        }}
+        geoCfg={CANOPY_MID_CFG}
         scaleMin={0.8}
         scaleMax={1.4}
       />
       {/* Arbustos — pegados al piso, llenan bajo el dosel */}
       <TreeField
-        count={140}
+        count={v(140)}
         seedBase={3301}
         trunkColor="#3a2d1e"
         minH={0.42}
         maxH={2.3}
         swayAmp={0.1}
-        geoCfg={{
-          height: 0.7,
-          trunkR: 0.06,
-          crownR: 0.42,
-          colBot: "#1f7040",
-          colTop: "#59c079",
-          seed: 47,
-          layers: 2,
-        }}
+        geoCfg={SHRUB_CFG}
         scaleMin={0.7}
         scaleMax={1.3}
       />
       {/* Bosque de niebla de la Serranía del Baudó — bajo, verde-bruma */}
       <TreeField
-        count={120}
+        count={v(120)}
         seedBase={5507}
         trunkColor="#3a3226"
         minH={2.2}
         maxH={4.6}
-        geoCfg={{
-          height: 1.25,
-          trunkR: 0.09,
-          crownR: 0.62,
-          colBot: "#2f5a46",
-          colTop: "#567f66",
-          seed: 83,
-          layers: 2,
-        }}
+        geoCfg={CLOUD_FOREST_CFG}
         scaleMin={0.75}
         scaleMax={1.35}
       />
-      <PalmField count={110} seedBase={9091} />
-      <HeliconiaField count={90} seedBase={4201} />
-      <GrassField count={520} seedBase={6301} />
+      <PalmField count={v(110)} seedBase={9091} />
+      <HeliconiaField count={v(90)} seedBase={4201} />
+      <GrassField count={g(520)} seedBase={6301} />
       {/* Dos pasadas de piedras con rangos de escala distintos: los claros de
           pasto se veían vacíos y con un solo rango todas quedaban del mismo
           porte. Cantos grandes dispersos + gravilla menuda alrededor. */}
-      <Rocks count={90} seedBase={7717} />
-      <Rocks count={40} seedBase={7919} scaleMin={0.22} scaleMax={0.6} />
-      <BeachedCanoes count={10} seedBase={12007} />
+      <Rocks count={v(90)} seedBase={7717} />
+      <Rocks count={v(40)} seedBase={7919} scaleMin={0.22} scaleMax={0.6} />
+      <BeachedCanoes count={v(10)} seedBase={12007} />
     </>
   );
 }
+
+// memo: no recibe props, así que nada de lo que pasa en Mundo debería
+// re-renderizar la vegetación. Sin esto, cada setState de Mundo bajaba hasta acá.
+export default memo(Vegetation);
