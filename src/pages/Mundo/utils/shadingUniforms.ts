@@ -22,8 +22,12 @@ import * as THREE from "three";
 // escrituras a .value y surte efecto en el frame siguiente.
 
 export const shadingUniforms = {
-  /** Tinte de la sombra. Día en folio-2025: #6d3fff */
-  uShadowColor: { value: new THREE.Color("#6d3fff") },
+  /** Tinte de la sombra.
+   *  Bruno usa #6d3fff, un violeta MUY saturado. Sobre su paleta funciona,
+   *  pero acá hay superficies casi blancas (los arcos del malecón, el
+   *  wordmark) y multiplicarlas por ese violeta las volvía MORADAS. Este
+   *  violeta-azul apagado tiñe la sombra sin gritar. */
+  uShadowColor: { value: new THREE.Color("#6a6fae") },
   /** Bordes del terminador de dos tonos (Bruno: low -0.25, high 1.0) */
   uCoreLow: { value: -0.25 },
   uCoreHigh: { value: 1.0 },
@@ -33,7 +37,7 @@ export const shadingUniforms = {
    *  pero su paleta base es más apagada. Con los verdes saturados de esta
    *  vegetación, por encima de ~0.6 los árboles pierden el verde y leen
    *  AZULES. 0.5 tiñe la sombra sin comerse la dirección de arte. */
-  uShadowMix: { value: 0.5 },
+  uShadowMix: { value: 0.38 },
   /** Mezcla de la sombra proyectada del shadow map. En 0 se salta la lectura PCF entera. */
   uDropShadowMix: { value: 1.0 },
   /** Color del rebote del suelo (verde selva del Chocó) */
@@ -41,4 +45,12 @@ export const shadingUniforms = {
   uBounceStrength: { value: 0.12 },
   /** Altura sobre el suelo a la que el rebote ya no llega */
   uBounceDistance: { value: 2.2 },
+
+  // ---- línea de flotación (folio-2025, MeshDefaultMaterial.js) ----
+  // Toda malla cuyo Y de mundo caiga dentro de esta banda alrededor del nivel
+  // del agua se pinta de blanco. Bruno usa ±0.013 sobre un mundo de escala
+  // distinta; acá la banda es algo más ancha para que se vea a nuestra cámara.
+  // Es, con diferencia, lo que más vende el efecto de "cosa metida en agua".
+  uWaterlineWidth: { value: 0.035 },
+  uWaterlineColor: { value: new THREE.Color("#eaf7ff") },
 };

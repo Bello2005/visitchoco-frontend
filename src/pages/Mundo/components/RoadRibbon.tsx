@@ -12,6 +12,7 @@ import {
   NORTH_Z,
 } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
+import { cane } from "../utils/cane";
 
 // La calzada como GEOMETRÍA PROPIA (el secreto de la road de folio-2025:
 // Scenery.js usa un mesh dedicado con asfalto oscuro + glitter, no pintura
@@ -86,27 +87,7 @@ interface RoadGeos {
   guadua: THREE.Matrix4[];
 }
 
-// Tiende una caña entre dos puntos: la orienta y la escala a su largo. Sirve
-// igual para pilotes verticales, pasamanos, crucetas y vigas.
-const _dir = new THREE.Vector3();
-const _mid = new THREE.Vector3();
-const _quat = new THREE.Quaternion();
-const _scl = new THREE.Vector3();
-const _UP = new THREE.Vector3(0, 1, 0);
-function cane(
-  a: THREE.Vector3,
-  b: THREE.Vector3,
-  r: number,
-  out: THREE.Matrix4[]
-): void {
-  _dir.subVectors(b, a);
-  const len = _dir.length();
-  if (len < 1e-4) return;
-  _mid.addVectors(a, b).multiplyScalar(0.5);
-  _quat.setFromUnitVectors(_UP, _dir.divideScalar(len));
-  _scl.set(r, len, r);
-  out.push(new THREE.Matrix4().compose(_mid, _quat, _scl));
-}
+// `cane` vive ahora en utils/cane.ts: la comparten puentes y muelles.
 
 function buildRoad(): RoadGeos {
   const up = new THREE.Vector3(0, 1, 0);
