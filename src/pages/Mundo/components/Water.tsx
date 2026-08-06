@@ -1,68 +1,60 @@
-import { memo, useRef } from "react";
-import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { memo, useEffect, useRef } from "react";
 import { WATER_LEVEL } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
+import { bakeTerrainDepthTexture } from "../utils/terrainDepthTexture";
 import { qualityState } from "../utils/qualityState";
 
-// Superficie única mar+río a Y=WATER_LEVEL. El terreno cavado bajo ese
-// nivel (cauce del Atrato, borde del diorama) queda cubierto por ella.
-// TODO: shader GLSL custom en la fase de belleza.
+// Superficie única mar+río a Y=WATER_LEVEL, con el agua estilizada de
+// folio-2025 (ver utils/waterUniforms.ts para la receta completa).
+//
+// ANTES: el oleaje se calculaba en CPU recorriendo 2401 vértices con 4802
+// Math.sin y subiendo 28 KB al GPU CADA frame… para producir olas de 0.07 u
+// sobre un plano de 200 u. Inclinación máxima de la superficie: 1.26°, o sea
+// iluminación matemáticamente constante. Por eso parecía un PNG: no era que
+// las olas fueran pequeñas, era que estábamos simulando lo que no había que
+// simular.
+//
+// AHORA: el color sale de una LUT indexada por la profundidad del terreno, la
+// espuma es un umbral sobre esa misma profundidad, y las "olas" son
+// isocontornos del campo de profundidad que ruedan hacia la orilla. Todo en el
+// fragment, cero coste de CPU. El desplazamiento vertical es analítico en el
+// vertex y solo existe para que la panga tenga con qué cabecear.
 function Water() {
-  const geoRef = useRef<THREE.PlaneGeometry>(null);
-  // Los segmentos se CONGELAN al montar: cambiarlos recrea la geometría, así
-  // que es un dial frío (se aplica al recargar).
-  const segments = useRef(qualityState.profile.waterSegments).current;
+  // Los segmentos ya NO gobiernan el look (el color viene del campo de
+  // profundidad, no de la teselación); solo dan resolución al desplazamiento.
+  const segments = useRef(
+    Math.max(8, qualityState.profile.waterSegments)
+  ).current;
 
-  useFrame(({ clock }) => {
-    // El oleaje por CPU recorre 2401 vértices con 4802 Math.sin y sube 28 KB
-    // al GPU CADA frame. En gama baja se apaga entero.
-    if (!qualityState.profile.waterAnimated) return;
-    const geo = geoRef.current;
-    if (!geo) return;
-    const t = clock.elapsedTime;
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i); // y local = -Z mundo
-      pos.setZ(
-        i,
-        Math.sin(x * 0.4 + t * 0.8) * 0.04 + Math.sin(-y * 0.5 + t * 0.6) * 0.03
-      );
-    }
-    pos.needsUpdate = true;
-  });
+  // La textura de profundidad se hornea una vez, cuando el terreno publica su
+  // heightfield. Hasta entonces el shader lee null → three la sustituye por una
+  // textura blanca (profundidad 1 = todo mar abierto), que es un degradado
+  // aceptable durante los primeros frames del intro.
+  useEffect(() => {
+    void bakeTerrainDepthTexture();
+  }, []);
 
   return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_LEVEL, 0]}>
-        <planeGeometry ref={geoRef} args={[200, 200, segments, segments]} />
-        <meshStandardMaterial
-          flatShading
-          transparent
-          opacity={0.75}
-          color="#2ea8c4"
-          metalness={0.1}
-          roughness={0.25}
-          ref={(m) => {
-            if (m) applyReveal(m, { fresnel: true });
-          }}
-        />
-      </mesh>
-      {/* Falso resplandor cian de fondo bajo la superficie — sin collider.
-          Aclara los bajos como el agua pastel de folio-2025 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER_LEVEL - 0.15, 0]}>
-        <planeGeometry args={[200, 200]} />
-        <meshBasicMaterial
-          color="#7fd8e8"
-          transparent
-          opacity={0.05}
-          ref={(m) => {
-            if (m) applyReveal(m);
-          }}
-        />
-      </mesh>
-    </>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, WATER_LEVEL, 0]}
+      receiveShadow
+    >
+      <planeGeometry args={[200, 200, segments, segments]} />
+      <meshStandardMaterial
+        transparent
+        // El alpha lo decide el shader por profundidad (bajos translúcidos,
+        // hondo casi opaco); esto es solo el punto de partida.
+        opacity={1}
+        color="#ffffff"
+        roughness={1}
+        metalness={0}
+        depthWrite={false}
+        ref={(m) => {
+          if (m) applyReveal(m, { water: true });
+        }}
+      />
+    </mesh>
   );
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { shadingUniforms } from "../utils/shadingUniforms";
 import { lightingProfile } from "../utils/lightingProfile";
+import { waterUniforms } from "../utils/waterUniforms";
 
 // Sonda de rendimiento, apagada salvo que la URL lleve #perf.
 //
@@ -30,10 +31,12 @@ export default function PerfProbe() {
     const w = window as unknown as Record<string, unknown>;
     w.__mundoShading = shadingUniforms;
     w.__mundoLighting = lightingProfile;
+    w.__mundoWater = waterUniforms;
     return () => {
       gl.info.autoReset = prev;
       delete w.__mundoShading;
       delete w.__mundoLighting;
+      delete w.__mundoWater;
     };
   }, [gl]);
 

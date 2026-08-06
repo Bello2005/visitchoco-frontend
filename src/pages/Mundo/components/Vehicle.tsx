@@ -22,6 +22,8 @@ import {
 } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 import { vehicleState } from "../utils/vehicleState";
+import { waveHeight } from "../utils/waterUniforms";
+import { revealUniforms } from "../utils/revealUniforms";
 
 type VehicleController = ReturnType<
   RapierContext["world"]["createVehicleController"]
@@ -473,8 +475,14 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
       tb.z + _forward.z * BOW_REACH
     );
     const underHull = Math.max(worldGround(tb.x, tb.z), bowGround);
+    // CABECEO: se evalúa la MISMA ola analítica que dibuja el shader del agua
+    // (2 Math.sin, no los 4802 del bucle viejo), así el casco sube y baja
+    // exactamente con la superficie que se ve. Antes la panga estaba clavada a
+    // WATER_LEVEL - FLOAT_DEPTH y no se movía nada, lo que contribuía a que el
+    // agua se leyera como una calcomanía.
+    const wave = waveHeight(tb.x, tb.z, revealUniforms.uMundoTime.value);
     const targetY = Math.max(
-      WATER_LEVEL - FLOAT_DEPTH,
+      WATER_LEVEL - FLOAT_DEPTH + wave,
       underHull + HULL_CLEARANCE
     );
     chassis.setTranslation(

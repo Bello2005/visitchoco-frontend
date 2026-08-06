@@ -347,6 +347,18 @@ export function whenHeightFieldReady(): Promise<void> {
   return heightFieldReady ? Promise.resolve() : heightFieldReadyPromise;
 }
 
+// Acceso de SOLO LECTURA al campo de alturas ya calculado. Lo usa el agua para
+// hornear una textura de profundidad y poder samplearla en el fragment shader
+// (la receta de folio-2025 cuelga entera de tener esa señal en la GPU).
+// Devuelve null antes de que la malla publique — esperar whenHeightFieldReady().
+export function getHeightField(): {
+  data: Float32Array;
+  cols: number;
+  rows: number;
+} | null {
+  return heightField ? { data: heightField, cols: fieldCols, rows: fieldRows } : null;
+}
+
 function publishHeightField(f: Float32Array, cols: number, rows: number): void {
   heightField = f;
   fieldCols = cols;
@@ -554,6 +566,13 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
           flatShading
           vertexColors
           ref={(m) => {
+            // SIN waterline a propósito. La banda blanca de la línea de
+            // flotación funciona en superficies VERTICALES (un pilote, un
+            // casco, un tronco) porque ahí ±0.035 en Y son ±0.035 en pantalla.
+            // Sobre el lecho marino, que es casi HORIZONTAL junto a la costa,
+            // esa misma banda cubre metros enteros y pinta el mar de blanco.
+            // Bruno hace el mismo opt-out: en folio-2025 el suelo y el pasto
+            // llevan hasWater:false.
             if (m) applyReveal(m, { groundDetail: true });
           }}
         />

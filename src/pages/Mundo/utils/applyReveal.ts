@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { revealUniforms } from "./revealUniforms";
 import { shadingUniforms } from "./shadingUniforms";
+import { waterUniforms, WAVE_GLSL } from "./waterUniforms";
 
 // Materialización estilo folio-2025 (Bruno Simon, MIT — ver
 // public/models/folio/LICENSE.md): más allá del radio de revelado el fragmento
@@ -65,6 +66,14 @@ export function applyReveal(
      *  Pasar `false` en materiales emisivos: el mix hacia el color de sombra
      *  se comería la emisión en la cara opuesta al sol. */
     stylize?: boolean;
+    /** Agua estilizada folio-2025: color por LUT de profundidad, espuma de
+     *  costa, ondas de isocontorno y desplazamiento analítico. Reemplaza por
+     *  completo el sombreado del material, así que va con `stylize:false`. */
+    water?: boolean;
+    /** Línea de flotación: banda blanca donde la malla cruza el nivel del agua.
+     *  Es lo que más vende el efecto en folio-2025, y NO va en el agua sino en
+     *  todo lo demás (terreno, vegetación, muelles, vehículo). */
+    waterline?: boolean;
   }
 ): void {
   const groundDetail = opts?.groundDetail === true;
@@ -75,7 +84,11 @@ export function applyReveal(
   const fresnelColor = opts?.fresnelColor ?? "#eaffff";
   const fresnelPower = opts?.fresnelPower ?? 2.5;
   const fresnelColorValue = new THREE.Color(fresnelColor);
-  const stylize = opts?.stylize ?? shouldStylize(material);
+  const water = opts?.water === true;
+  // El agua reemplaza su sombreado entero; el estilizado sobraría y pelearía
+  // por el mismo punto de inyección.
+  const stylize = water ? false : (opts?.stylize ?? shouldStylize(material));
+  const waterline = opts?.waterline === true;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRevealCenter = revealUniforms.uRevealCenter;
     shader.uniforms.uRevealRadius = revealUniforms.uRevealRadius;
@@ -93,6 +106,24 @@ export function applyReveal(
       shader.uniforms.uBounceColor = shadingUniforms.uBounceColor;
       shader.uniforms.uBounceStrength = shadingUniforms.uBounceStrength;
       shader.uniforms.uBounceDistance = shadingUniforms.uBounceDistance;
+    }
+    if (water) {
+      shader.uniforms.uTerrainDepth = waterUniforms.uTerrainDepth;
+      shader.uniforms.uTerrainSize = waterUniforms.uTerrainSize;
+      shader.uniforms.uShallowColor = waterUniforms.uShallowColor;
+      shader.uniforms.uMidColor = waterUniforms.uMidColor;
+      shader.uniforms.uDeepColor = waterUniforms.uDeepColor;
+      shader.uniforms.uShoreEdge = waterUniforms.uShoreEdge;
+      shader.uniforms.uShoreSoft = waterUniforms.uShoreSoft;
+      shader.uniforms.uRippleBands = waterUniforms.uRippleBands;
+      shader.uniforms.uRippleSpeed = waterUniforms.uRippleSpeed;
+      shader.uniforms.uRippleStrength = waterUniforms.uRippleStrength;
+      shader.uniforms.uWaveAmp = waterUniforms.uWaveAmp;
+    }
+    if (waterline) {
+      shader.uniforms.uWaterLevel = waterUniforms.uWaterLevel;
+      shader.uniforms.uWaterlineWidth = shadingUniforms.uWaterlineWidth;
+      shader.uniforms.uWaterlineColor = shadingUniforms.uWaterlineColor;
     }
 
     if (sway) {
@@ -124,6 +155,29 @@ export function applyReveal(
 		transformed.z += cos(uMundoTime * 1.15 + swayPh * 1.3) * swayA * 0.8 * swayH;
 		transformed.x += sin(uMundoTime * 5.0 + swayH * 3.0 + swayPh) * ${swayAmp.toFixed(4)} * 0.14 * swayH;
 	}`
+        );
+    }
+
+    if (water) {
+      // Oleaje analítico en la GPU. Sustituye el bucle de CPU que recorría 2401
+      // vértices con 4802 Math.sin y subía 28 KB al GPU CADA frame.
+      //
+      // OJO: asume que la malla del agua está en el origen, sin escala y con la
+      // rotación -90° en X de un PlaneGeometry tumbado. Con eso, local (x,y,0)
+      // → mundo (x, 0, -y), y desplazar `transformed.z` sube el agua en Y.
+      // La opción `water` solo la usa Water.tsx, que cumple esas condiciones.
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+uniform float uMundoTime;
+uniform float uWaveAmp;
+${WAVE_GLSL}`
+        )
+        .replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+	transformed.z += mundoWaveHeight(vec2(transformed.x, -transformed.y), uMundoTime);`
         );
     }
 
@@ -168,6 +222,27 @@ uniform vec3 uBounceColor;
 uniform float uBounceStrength;
 uniform float uBounceDistance;`
             : ""
+        }${
+          water
+            ? `
+uniform sampler2D uTerrainDepth;
+uniform vec2 uTerrainSize;
+uniform vec3 uShallowColor;
+uniform vec3 uMidColor;
+uniform vec3 uDeepColor;
+uniform float uShoreEdge;
+uniform float uShoreSoft;
+uniform float uRippleBands;
+uniform float uRippleSpeed;
+uniform float uRippleStrength;`
+            : ""
+        }${
+          waterline
+            ? `
+uniform float uWaterLevel;
+uniform float uWaterlineWidth;
+uniform vec3 uWaterlineColor;`
+            : ""
         }`
       )
       // Al FINAL del pipeline (tras tonemapping/encoding): descartar fuera del
@@ -181,6 +256,77 @@ uniform float uBounceDistance;`
       .replace(
         "#include <opaque_fragment>",
         `${
+          water
+            ? `
+	{
+		// AGUA (folio-2025). El color NO sale de la iluminación: sale de una LUT
+		// indexada por la PROFUNDIDAD del terreno, y la espuma y las ondas son
+		// máscaras blancas encima. Reemplaza outgoingLight por completo.
+		vec2 wXZ = vRevealWorldPos.xz;
+
+		// mundo → UV del terreno. Mismo mapeo que worldGround: la grilla cubre
+		// WIDTH×HEIGHT centrada en el origen, y world Z = -y local.
+		vec2 wUV = vec2( wXZ.x / uTerrainSize.x + 0.5, 0.5 + wXZ.y / uTerrainSize.y );
+		// Fuera del terreno el plano de agua sigue (200×200 vs 60×90): ahí es
+		// mar abierto, o sea profundidad máxima.
+		float wInside = step( 0.0, wUV.x ) * step( wUV.x, 1.0 ) * step( 0.0, wUV.y ) * step( wUV.y, 1.0 );
+		float wDepth = texture2D( uTerrainDepth, clamp( wUV, 0.0, 1.0 ) ).r;
+		wDepth = mix( 1.0, wDepth, wInside );
+
+		// 1) COLOR POR PROFUNDIDAD — el ancla azul que le faltaba a la paleta.
+		vec3 wCol = mix( uShallowColor, uMidColor, smoothstep( 0.08, 0.42, wDepth ) );
+		wCol = mix( wCol, uDeepColor, smoothstep( 0.42, 0.95, wDepth ) );
+
+		// 2) SOMBRA RECIBIDA. Sin esto toda sombra del mundo se corta en la
+		// orilla, que es uno de los delatores más fuertes de "esto es una calca".
+		float wShadow = 1.0;
+		#if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+			if ( receiveShadow ) {
+				DirectionalLightShadow wSh = directionalLightShadows[ 0 ];
+				wShadow = getShadow(
+					directionalShadowMap[ 0 ],
+					wSh.shadowMapSize, wSh.shadowIntensity,
+					wSh.shadowBias, wSh.shadowRadius,
+					vDirectionalShadowCoord[ 0 ]
+				);
+			}
+		#endif
+		wCol *= mix( 0.66, 1.0, wShadow );
+
+		// 3) ONDAS DE ISOCONTORNO — el truco central de Bruno. Un diente de
+		// sierra sobre el campo de profundidad da bandas PARALELAS A LA COSTA
+		// gratis; al avanzar el tiempo ruedan hacia la orilla. Cero simulación.
+		float wDn = wDepth + mundoNoise( wXZ * 0.55 ) * 0.03;
+		float wBand = fract( ( wDn + uMundoTime * uRippleSpeed ) * uRippleBands );
+		// Gruesas en lo somero, inexistentes en lo hondo.
+		float wThick = mix( 0.5, 0.02, smoothstep( 0.04, 0.62, wDepth ) );
+		float wRipple = smoothstep( wThick, 0.0, wBand ) * uRippleStrength;
+		wRipple *= 1.0 - smoothstep( 0.5, 0.9, wDepth );
+
+		// 4) ROMPIENTE. Bruno usa un umbral FIJO sobre la profundidad, que da una
+		// banda quieta. Acá el borde RESPIRA: avanza y retrocede como la ola que
+		// rompe, y el ruido de baja frecuencia le da una fase distinta en cada
+		// tramo de costa, así no late todo el litoral a la vez.
+		float wSurf = sin( uMundoTime * 0.5 + mundoNoise( wXZ * 0.09 ) * 6.283 ) * 0.5 + 0.5;
+		float wEdge = uShoreEdge * ( 0.45 + 1.15 * wSurf );
+		// Lengua principal de espuma, con el borde ya roto por el ruido de wDn.
+		float wFoam = 1.0 - smoothstep( wEdge, wEdge + uShoreSoft, wDn );
+		// Resaca: un rastro más tenue que queda por dentro cuando la ola se
+		// retira, para que no sea una sola línea dura.
+		float wWash = ( 1.0 - smoothstep( uShoreEdge * 1.9, uShoreEdge * 3.2, wDn ) ) * 0.35;
+		wFoam = max( wFoam, wWash );
+
+		float wWhite = clamp( max( wFoam, wRipple ), 0.0, 1.0 );
+		outgoingLight = mix( wCol, vec3( 1.0 ), wWhite );
+
+		// Transparente en los bajos (se ve la arena) y opaca en lo profundo.
+		// La espuma siempre tapa.
+		float wAlpha = mix( 0.5, 0.94, smoothstep( 0.04, 0.5, wDepth ) );
+		diffuseColor.a = max( wAlpha, wWhite );
+	}
+`
+            : ""
+        }${
           stylize
             ? `#if NUM_DIR_LIGHTS > 0
 	{
@@ -243,6 +389,20 @@ uniform float uBounceDistance;`
 #endif
 `
             : ""
+        }${
+          waterline
+            ? `
+	{
+		// LÍNEA DE FLOTACIÓN. Lo que más vende el efecto en folio-2025, y no va
+		// en el agua: va en TODO LO DEMÁS. Cualquier malla que cruce el nivel
+		// del agua recibe una banda blanca justo ahí, y de golpe el objeto
+		// parece METIDO en el agua en vez de atravesándola como una calcomanía.
+		float wlD = abs( vRevealWorldPos.y - uWaterLevel );
+		float wlBand = 1.0 - smoothstep( uWaterlineWidth * 0.6, uWaterlineWidth, wlD );
+		outgoingLight = mix( outgoingLight, uWaterlineColor, wlBand );
+	}
+`
+            : ""
         }#include <opaque_fragment>`
       )
       .replace(
@@ -272,8 +432,10 @@ uniform float uBounceDistance;`
 	}`
       );
 
-    if (groundDetail || glitter) {
-      // Helpers de ruido compartidos por moteado y glitter
+    if (groundDetail || glitter || water) {
+      // Helpers de ruido compartidos por moteado, glitter y las ondas del agua.
+      // Se insertan justo tras el varying, o sea ANTES de main() → utilizables
+      // desde cualquier bloque inyectado más abajo.
       shader.fragmentShader = shader.fragmentShader.replace(
         "varying vec3 vRevealWorldPos;",
         `varying vec3 vRevealWorldPos;
@@ -331,5 +493,5 @@ float mundoNoise(vec2 p) {
   // Sin esto Three reutiliza programas cacheados de materiales con los mismos
   // defines pero SIN la inyección (p.ej. casco de la panga vs agua).
   material.customProgramCacheKey = () =>
-    `reveal${groundDetail ? "-detail" : ""}${sway ? `-sway${swayAmp}` : ""}${glitter ? "-glitter" : ""}${fresnel ? `-fresnel${fresnelPower}` : ""}${stylize ? "-stz" : ""}`;
+    `reveal${groundDetail ? "-detail" : ""}${sway ? `-sway${swayAmp}` : ""}${glitter ? "-glitter" : ""}${fresnel ? `-fresnel${fresnelPower}` : ""}${stylize ? "-stz" : ""}${water ? "-water" : ""}${waterline ? "-wl" : ""}`;
 }
