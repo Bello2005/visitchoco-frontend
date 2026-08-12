@@ -11,6 +11,10 @@ import {
   whenHeightFieldReady,
   MALECON_FRONT_X,
   MALECON_Z,
+  SLIPWAY_U0,
+  SLIPWAY_U1,
+  SLIPWAY_HALF_W,
+  slipwayPoint,
 } from "./ChocoTerrain";
 import { SPAWN_POS, makeCanoeGeometry } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
@@ -336,6 +340,17 @@ export interface Instance {
   tiltZ: number;
   scale: number;
 }
+/** ¿Cae el punto en la calzada del varadero (o en su borde)? El eje del
+ *  varadero va girado, así que se mide contra puntos del propio eje. */
+function isOnSlipway(x: number, z: number): boolean {
+  const half = SLIPWAY_HALF_W + 1.4;
+  for (let u = SLIPWAY_U0 - 2; u <= SLIPWAY_U1 + 2; u += 1.2) {
+    const [ax, az] = slipwayPoint(u, 0);
+    if (Math.hypot(x - ax, z - az) < half) return true;
+  }
+  return false;
+}
+
 interface ScatterCfg {
   minH: number;
   maxH: number;
@@ -378,7 +393,13 @@ function scatter(
     if (patch === "in" && pn < 0.55) continue; // matas
     if (patch === "out" && pn > 0.5) continue; // claros
     if (roadMask(x, y) > road) continue;
-    if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 5) continue;
+    // Claro del portal: tiene que ir por delante del radio de la plaza-muelle
+    // (6.2) o la selva crece ENCIMA de la plataforma.
+    if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 7.6) continue;
+    // Claro del varadero: ninguna palma puede plantarse en la calzada por la
+    // que se bota la panga. El eje va girado (SLIPWAY_YAW), así que la prueba
+    // se hace contra puntos del propio eje, no contra una franja en Z.
+    if (isOnSlipway(x, -y)) continue;
     if (Math.hypot(x - (MALECON_FRONT_X - 1.5), y + MALECON_Z) < 6.5) continue;
     out.push({
       x,

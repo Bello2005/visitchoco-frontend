@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { RigidBody, CylinderCollider } from "@react-three/rapier";
 import { NORTH_X, NORTH_Z } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
+import { makePlaqueTexture } from "../utils/brandTexture";
 
 // LA PLAZA DE LA CHIRIMÍA — el remate norte de la Vía del Chocó, el DESTINO
 // del viaje. Más grande y más celebratoria que el portal de entrada.
@@ -37,33 +38,15 @@ const BRONCE = "#d9a441"; // platillos
 const EMERALD = "#37b26a";
 const AMBER = "#ffb347";
 
-// Wordmark del piso (canvas → textura, sin depender de fuentes remotas)
+// Wordmark del piso (canvas → textura, en la Fraunces de la marca)
 function makeWordmark(): THREE.CanvasTexture {
-  const w = 1024;
-  const h = 320;
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, w, h);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.strokeStyle = EMERALD;
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.32, 56);
-  ctx.lineTo(w * 0.68, 56);
-  ctx.stroke();
-  ctx.fillStyle = "#f6ecd6";
-  ctx.font = '600 152px Georgia, "Times New Roman", serif';
-  ctx.fillText("Chocó", w / 2, h / 2 + 14);
-  ctx.fillStyle = "#b9d9c4";
-  ctx.font = '500 32px Georgia, serif';
-  ctx.fillText("T I E R R A   D E   C H I R I M Í A", w / 2, h - 38);
-  const tex = new THREE.CanvasTexture(c);
-  tex.anisotropy = 8;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return makePlaqueTexture({
+    title: "Chocó",
+    subtitle: "TIERRA DE CHIRIMÍA",
+    accent: EMERALD,
+    titleSize: 152,
+    subtitleSize: 32,
+  });
 }
 
 /** Un tambor de chirimía: casco de madera + dos parches de cuero */

@@ -171,14 +171,21 @@ const ROAD_LEVEL = 0.34;
 // PORTAL DEL CHOCÓ: la vía nace en la punta sur sobre tierra firme y plana
 // (~ROAD_LEVEL). Aquí se planta la plaza-portal "VisitChocó" y el carro spawnea.
 // (perfil del sur sondeado: tierra plana ~0.36 de z≈42 hacia el norte.)
-export const GATEWAY_Z = 40;
+// 37 y no 40: la malla del terreno solo llega a worldZ=45 (HEIGHT/2), y con el
+// portal en 40 la plaza (R 6.2) y sobre todo el varadero caían FUERA de la
+// malla — sin geometría y sin collider. worldGround clampa los índices al
+// borde, así que devolvía alturas plausibles para un suelo que no existía y el
+// carro caía al vacío. Aquí caben plaza y rampa enteras.
+export const GATEWAY_Z = 37;
 // GATEWAY_X se declara MÁS ABAJO, tras ROAD_SPINE: calcularlo aquí caía en la
 // zona muerta temporal del const (roadCenterNx lee ROAD_SPINE) → ReferenceError.
 // Radio de la EXPLANADA del portal: el aplanado de la vía es una franja
 // angosta (σ 0.042 ≈ ±1.3u), así que fuera de ella la selva sube y ENTIERRA la
 // plaza. Este claro asienta el monumento en terreno plano y deja salir el
 // carro en cualquier dirección.
-const PLAZA_CLEAR_R = 5.5;
+// 7.6: la plaza-muelle creció a R=6.2 (antes 4.6). Este claro tiene que
+// cubrirla con holgura o la ladera vuelve a cortar la plataforma por el borde.
+const PLAZA_CLEAR_R = 7.6;
 const PLAZA_CLEAR_FADE = 3.2;
 // PLAZA DE LA CHIRIMÍA: el remate NORTE de la vía (Darién). Es el DESTINO del
 // viaje, así que es bastante más grande que el portal de entrada.
@@ -272,6 +279,151 @@ export function roadCenterWorldX(z: number): number {
 export const GATEWAY_X = roadCenterWorldX(GATEWAY_Z);
 /** x de MUNDO de la PLAZA DE LA MARIMBA (remate norte). Misma razón. */
 export const NORTH_X = roadCenterWorldX(NORTH_Z);
+
+// ---------- EL VARADERO (rampa de botadura del portal) ----------
+// La transformación carro↔panga ya existía y se decide por la PROFUNDIDAD de
+// agua bajo el chasis (Vehicle: worldGround vs WATER_LEVEL). El problema era que
+// nadie lo descubría: había que salirse de la plaza y meterse al mar de canto.
+//
+// La rampa se TALLA EN EL TERRENO, no se apoya encima. Así el heightfield, el
+// collider trimesh, el color de arena y el umbral de transformación ven todos la
+// MISMA pendiente — cero lógica nueva en Vehicle, cero desincronización entre lo
+// que se ve y lo que se pisa. La tarima de madera de Slipway es pura decoración
+// asentada sobre esta cota.
+// Medidas de la plaza-muelle. Viven AQUÍ y no en TerritoryGateway porque el
+// terreno tiene que saber dónde acaba la plataforma para arrancar la rampa justo
+// ahí; al revés sería una importación circular (TerritoryGateway ya importa
+// GATEWAY_X/Z de este módulo).
+export const GATEWAY_PLAZA_R = 6.2; // circunradio del hexágono
+export const GATEWAY_PLAZA_TOP = 0.52; // cota de la cara que se pisa
+/** Apotema: distancia del centro a una CARA (no a un vértice). El hexágono va
+ *  girado para presentar una cara plana al sur — esa cara es la boca del agua. */
+export const GATEWAY_PLAZA_APOTHEM = GATEWAY_PLAZA_R * Math.cos(Math.PI / 6);
+
+/**
+ * RUMBO del varadero, medido desde el sur hacia el este.
+ *
+ * -1.1 rad ≈ 63° al OESTE del sur. No es composición: es la única dirección
+ * donde HAY agua. Mapa medido del terreno real alrededor del portal
+ * (W=navegable, ~=somero, .=orilla, +=tierra, #=loma):
+ *
+ *   z=44  WWWW.WWWWWW.++.W~.+WW
+ *   z=42  WWW+#WWWWW~+++++++++W
+ *   z=40  WWW###+~..+++++++++WW
+ *   z=38  WWWWW++#++++++++++.WW
+ *         x=-24        x=0     x=+16
+ *
+ * Al SUR no hay mar: hay tierra hasta el borde del mundo (z=45). La bahía
+ * navegable está al oeste-suroeste, en z≈42 / x=-6..-14. Antes la rampa
+ * apuntaba al sur recto, o sea a un sitio sin agua Y sin malla.
+ */
+export const SLIPWAY_YAW = -1.1;
+const SW_SIN = Math.sin(SLIPWAY_YAW);
+const SW_COS = Math.cos(SLIPWAY_YAW);
+
+/** Distancia a lo LARGO del eje del varadero desde el centro de la plaza. */
+function slipwayU(x: number, z: number): number {
+  return (x - GATEWAY_X) * SW_SIN + (z - GATEWAY_Z) * SW_COS;
+}
+/** Distancia a lo ANCHO (0 = eje). */
+function slipwayV(x: number, z: number): number {
+  return (x - GATEWAY_X) * SW_COS - (z - GATEWAY_Z) * SW_SIN;
+}
+/** Punto de mundo a (u,v) del varadero — lo usa la obra vista. */
+export function slipwayPoint(u: number, v: number): [number, number] {
+  return [
+    GATEWAY_X + u * SW_SIN + v * SW_COS,
+    GATEWAY_Z + u * SW_COS - v * SW_SIN,
+  ];
+}
+
+/** Cabecera: el canto de la cara de la boca. Empalma a la MISMA cota que la
+ *  tarima (no a la del terreno bajo ella) o el carro cae por un escalón. */
+export const SLIPWAY_U0 = GATEWAY_PLAZA_APOTHEM;
+const SLIPWAY_H0 = GATEWAY_PLAZA_TOP;
+/**
+ * Línea de agua: hasta aquí la rampa baja MANSA (0.2/u) porque es el tramo que
+ * se conduce en seco. A partir de aquí se DESPEÑA.
+ *
+ * El quiebre no es estético, es la corrección de un bug real: con una pendiente
+ * única de 0.226/u había 1.4u entre la línea de agua y el umbral de
+ * transformación (-0.32), o sea metro y medio conduciendo SUMERGIDO antes de
+ * volverse panga — se veía como si el carro se ahogara, y parado ahí se quedaba
+ * bajo el agua.
+ *
+ * La pendiente mojada es 0.45/u a propósito: es LA MISMA de la rampa de playa
+ * natural (BEACH), la única que está probada como subible por el carro con
+ * tracción. Con 0.76/u (37°) el umbral quedaba precioso —0.4u— pero el carro no
+ * podía volver a salir y la orilla entraba en parpadeo de modo.
+ */
+// 1.6 de tramo seco: la orilla real queda a un paso de la boca en este rumbo,
+// así que un delantal largo tendría que inventar tierra donde ya hay agua.
+export const SLIPWAY_UW = SLIPWAY_U0 + 1.6;
+export const SLIPWAY_U1 = SLIPWAY_UW + 4.2; // pie, casi en el lecho marino
+const SLIPWAY_H1 = -1.9;
+export const SLIPWAY_HALF_W = 2.2; // semiancho de la calzada mojada
+// Caída lateral. 3.2 y no 1.6: con la falda corta el terreno pasaba de -0.47 en
+// el eje a -2.00 (lecho marino) en 3.7u, o sea la rampa era una TABLA con
+// acantilado a los lados — se leía flotando sobre el agua y la falda de la losa
+// quedaba colgando en el aire. Con la falda larga la lengua muere como un banco
+// de arena y la obra vista se apoya en tierra en todo su ancho.
+const SLIPWAY_EDGE = 3.2;
+// El corredor toma el mando DENTRO de la plaza, sobre tierra firme donde la
+// explanada ya vale ROAD_LEVEL: ahí las dos fuentes coinciden y el empalme es
+// invisible. Si el relevo se hiciera encima de la costa, la mezcla caería hacia
+// SEA_FLOOR y abriría un socavón a media rampa.
+const SLIPWAY_GRIP0 = -1.5; // aquí empieza a mandar el varadero
+const SLIPWAY_GRIP1 = 0.5; // desde aquí manda por completo (peso 1)
+
+/**
+ * Cota de la rampa a un worldZ dado.
+ *
+ * Antes de la cabecera el corredor NO se queda a cota de tarima: sube desde la
+ * cota de vía y solo ALCANZA la tarima justo en el canto. Si se queda plano a
+ * PLAZA_TOP, el terreno queda COPLANAR con la losa de la plaza y aparece un
+ * z-fighting con dithering (se ve el pasto atravesando el monumento). Este
+ * tramo va escondido bajo el voladizo, así que la subida no se ve.
+ */
+export function slipwayHeightAt(u: number): number {
+  if (u < SLIPWAY_U0) {
+    const up = smoothstep(SLIPWAY_U0 - 1.6, SLIPWAY_U0, u);
+    return ROAD_LEVEL + (SLIPWAY_H0 - ROAD_LEVEL) * up;
+  }
+  // Tramo SECO: manso, es el que se conduce.
+  if (u < SLIPWAY_UW) {
+    const t = (u - SLIPWAY_U0) / (SLIPWAY_UW - SLIPWAY_U0);
+    return SLIPWAY_H0 + (WATER_LEVEL - SLIPWAY_H0) * t;
+  }
+  // Tramo MOJADO: se despeña, para que la transformación ocurra en la orilla y
+  // no tras metro y medio de carro sumergido.
+  const t = Math.min(1, (u - SLIPWAY_UW) / (SLIPWAY_U1 - SLIPWAY_UW));
+  return WATER_LEVEL + (SLIPWAY_H1 - WATER_LEVEL) * t;
+}
+
+/**
+ * Peso 0..1 del varadero en un punto (coords LOCALES del plano: y = -worldZ).
+ * 0 = manda el terreno natural, 1 = manda la rampa.
+ */
+function slipwayWeight(x: number, y: number): number {
+  const z = -y;
+  // GUARDA DE MALLA. La malla del terreno solo existe en |x|<=WIDTH/2 y
+  // |z|<=HEIGHT/2; fuera de eso no hay ni vértices ni collider, y worldGround
+  // CLAMPA los índices al borde, devolviendo alturas plausibles de un suelo
+  // inexistente. Tallar ahí fue exactamente el bug que hacía que el carro
+  // atravesara la rampa y cayera al lecho: la cota decía 0.50 y no había nada.
+  // Si esta guarda recorta el varadero, el varadero está mal colocado.
+  if (Math.abs(x) > WIDTH / 2 || Math.abs(z) > HEIGHT / 2) return 0;
+  const u = slipwayU(x, z);
+  if (u < SLIPWAY_GRIP0 || u > SLIPWAY_U1 + 1.5) return 0;
+  // a lo ancho: meseta plana + caída suave a los lados
+  const across =
+    1 - smoothstep(SLIPWAY_HALF_W, SLIPWAY_HALF_W + SLIPWAY_EDGE, Math.abs(slipwayV(x, z)));
+  if (across <= 0) return 0;
+  // a lo largo: toma el mando sobre tierra firme y muere en el fondo de la bahía
+  const head = smoothstep(SLIPWAY_GRIP0, SLIPWAY_GRIP1, u);
+  const toe = 1 - smoothstep(SLIPWAY_U1, SLIPWAY_U1 + 1.5, u);
+  return across * head * toe;
+}
 
 /** Centro (x de MUNDO) del cauce del Atrato a la altura worldZ dada
  *  (solo existe donde el valle: úsese con filtro de worldGround) */
@@ -390,13 +542,18 @@ export function worldGround(x: number, z: number): number {
     return a + (b - a) * ty;
   }
 
-  // Fallback antes de que la malla publique el campo (polígono + terrainHeight)
+  // Fallback antes de que la malla publique el campo (polígono + terrainHeight).
+  // Mismo orden que la pasada 2: costa primero, varadero encima.
+  let h: number;
   const geo = getChocoGeoSync();
   if (geo) {
     const { lon, lat } = localToLonLat(geo, x, yLocal);
-    if (!geo.isInside(lon, lat)) return SEA_FLOOR;
+    h = geo.isInside(lon, lat) ? terrainHeight(x, yLocal) : SEA_FLOOR;
+  } else {
+    h = terrainHeight(x, yLocal);
   }
-  return terrainHeight(x, yLocal);
+  const sw = slipwayWeight(x, yLocal);
+  return sw > 0 ? h * (1 - sw) + slipwayHeightAt(slipwayU(x, z)) * sw : h;
 }
 
 // ---------- paleta por altura del Chocó (vertex colors) ----------
@@ -522,6 +679,15 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
             // Rampa suave de SEA_FLOOR (mar) a la tierra sobre 2·BEACH
             const t = smoothstep(-BEACH, BEACH, sd);
             h = SEA_FLOOR + (landH[i] - SEA_FLOOR) * t;
+          }
+
+          // EL VARADERO va DESPUÉS del blend de costa: es una lengua de tierra
+          // que entra al mar a propósito, así que tiene que poder ganarle al
+          // SEA_FLOOR que la lógica de costa impone fuera del polígono.
+          const sw = slipwayWeight(pos.getX(i), pos.getY(i));
+          if (sw > 0) {
+            const u = slipwayU(pos.getX(i), -pos.getY(i));
+            h = h * (1 - sw) + slipwayHeightAt(u) * sw;
           }
 
           heights[i] = h;
