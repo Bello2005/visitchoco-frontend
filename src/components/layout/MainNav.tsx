@@ -3,7 +3,7 @@ import { motion, useScroll, useMotionValueEvent, useReducedMotion } from "framer
 import { useLocation, Link } from "react-router-dom";
 import {
   MapPinned, PawPrint, PartyPopper, MountainSnow, Landmark, BookOpen,
-  Search, Command, Store, Home as HomeIcon, type LucideIcon,
+  Search, Command, Store, Home as HomeIcon, AlertTriangle, type LucideIcon,
 } from "lucide-react";
 import { Logo } from "../brand/Logo";
 import { cn } from "../../lib/cn";
@@ -45,6 +45,38 @@ const MOBILE_NAV_LINKS: NavLink[] = [
     (id) => NAV_LINKS.find((l) => l.id === id)!,
   ),
 ];
+
+/**
+ * /sismo es alcanzable por Cmd+K y por el footer, pero NO entra en la barra:
+ * NAV_LINKS y MOBILE_NAV_LINKS ya van al límite de ancho con 7 y 6 ítems, y
+ * una pestaña permanente de emergencia junto a "Fiestas" sería una cicatriz
+ * en un nav de turismo mucho después de que la emergencia pase.
+ */
+const SEARCH_LINKS: NavLink[] = [
+  ...NAV_LINKS,
+  {
+    id: "sismo",
+    label: "Sismo del 10 de agosto",
+    href: "/sismo",
+    Icon: AlertTriangle,
+    description: "Mw 7,4 · San José del Palmar · cómo ayudar",
+  },
+];
+
+/**
+ * Rutas que NO montan MainNav (el mapa, la escena 3D, auth y dashboards).
+ * Vive aquí, junto al propio nav, para que quien añada una página nueva
+ * encuentre las dos listas en el mismo archivo.
+ */
+const RUTAS_SIN_NAV = ["/mapa", "/mundo", "/login", "/register", "/admin", "/user"];
+
+/**
+ * ¿Esta ruta pinta la barra de navegación? Lo necesita `EmergencyBanner`
+ * para saber si debe dejarle hueco arriba o pegarse al borde.
+ */
+export function hasMainNav(pathname: string): boolean {
+  return !RUTAS_SIN_NAV.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
 
 function getActiveId(pathname: string): string {
   if (pathname === "/")                    return "inicio";
@@ -257,7 +289,7 @@ export function MainNav({ initialQuery = "" }: MainNavProps) {
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         initialQuery={initialQuery}
-        navLinks={NAV_LINKS}
+        navLinks={SEARCH_LINKS}
       />
     </>
   );

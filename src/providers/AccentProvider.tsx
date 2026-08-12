@@ -10,6 +10,7 @@ const ROUTE_ACCENT: Record<string, string> = {
   "/fiesta":    "fiestas",
   "/fiestas":   "fiestas",
   "/animales":  "fauna",
+  "/sismo":     "sismo",
 };
 
 export function AccentProvider({ children }: { children: React.ReactNode }) {

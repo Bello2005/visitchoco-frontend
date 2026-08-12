@@ -19,6 +19,8 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import { NotFound } from "./pages/NotFound/NotFound";
 import Directorio from "./pages/Directorio/Directorio";
 import Negocio from "./pages/Negocio/Negocio";
+import Sismo from "./pages/Sismo/Sismo";
+import { EmergencyBanner } from "./components/layout/EmergencyBanner";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import MundoLoader from "./pages/Mundo/components/MundoLoader";
@@ -70,6 +72,16 @@ function AppContent() {
       }
     };
 
+    // La página de emergencia no pasa por el gate: espera a que carguen
+    // todas las imágenes y, en el peor caso, deja la pantalla en blanco
+    // durante 3 s con el mensaje "Cargando la magia de Chocó". Es el peor
+    // primer contacto posible para quien viene del banner buscando un
+    // teléfono.
+    if (location.pathname.startsWith("/sismo")) {
+      setIsLoading(false);
+      return;
+    }
+
     const initializeLoading = async () => {
       setIsLoading(true);
       await handleContentLoad();
@@ -103,6 +115,7 @@ function AppContent() {
         }`}
         aria-hidden={isLoading}
       >
+        <EmergencyBanner />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -119,6 +132,7 @@ function AppContent() {
           <Route path="/atrato" element={<AtratoPage />} />
           <Route path="/directorio" element={<Directorio />} />
           <Route path="/negocio/:slug" element={<Negocio />} />
+          <Route path="/sismo" element={<Sismo />} />
           <Route
             path="/mundo"
             element={
