@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   Home,
   MapPinned,
   Store,
@@ -20,6 +21,7 @@ export interface QuickLink {
 }
 
 export const QUICK_LINKS: QuickLink[] = [
+  { id: "sismo",    label: "Sismo",    path: "/sismo",    icon: AlertTriangle, accent: "#c43d23", desc: "10 ago 2026 · Mw 7,4 · cómo ayudar"  },
   { id: "inicio",   label: "Inicio",   path: "/",         icon: Home,         accent: "#1a5c45", desc: "Landing · presentación del Chocó"     },
   { id: "mapa",     label: "Mapa",     path: "/mapa",     icon: MapPinned,    accent: "#0D9488", desc: "31 municipios · reservas indígenas"    },
   { id: "directorio", label: "Directorio", path: "/directorio", icon: Store,     accent: "#0EA5E9", desc: "602 prestadores RNT · hoteles · guías · viche" },

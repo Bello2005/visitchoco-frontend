@@ -72,6 +72,10 @@
 [data-accent="fiestas"]  { --accent-fg: var(--condoto-500); --accent-bg: color-mix(in oklab, var(--condoto-500) 10%, transparent); --accent-line: color-mix(in oklab, var(--condoto-500) 35%, transparent); }
 [data-accent="fauna"]    { --accent-fg: var(--atrato-400); --accent-bg: color-mix(in oklab, var(--atrato-400) 10%, transparent); --accent-line: color-mix(in oklab, var(--atrato-400) 35%, transparent); }
 [data-accent="mapa"]     { --accent-fg: var(--atrato-500); --accent-bg: color-mix(in oklab, var(--atrato-500) 10%, transparent); --accent-line: color-mix(in oklab, var(--atrato-500) 35%, transparent); }
+/* Emergencia: chirimia-400 (más claro que el 500 de /historia) para llegar a
+   ~7:1 sobre carbon-950. El rojo es señal, no campo: los fondos van bajos a
+   propósito para que no lea como alarma de navegador. */
+[data-accent="sismo"]    { --accent-fg: var(--chirimia-400); --accent-bg: color-mix(in oklab, var(--chirimia-500) 7%, transparent); --accent-line: color-mix(in oklab, var(--chirimia-500) 28%, transparent); }
 
 /* ── Grain texture (sutil, editorial) ─────────────────── */
 .grain {

@@ -1,4 +1,6 @@
 const EXPLORE_LINKS: [string, string][] = [
+  // Puerta de entrada duradera: sobrevive al banner, que se apaga solo.
+  ["Sismo del 10 de agosto", "/sismo"   ],
   ["Mapa interactivo",       "/mapa"    ],
   ["Fauna y biodiversidad",  "/animales"],
   ["Cultura y patrimonio",   "/cultura" ],
