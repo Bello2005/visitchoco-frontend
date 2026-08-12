@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { RigidBody, CuboidCollider } from "@react-three/rapier";
 import { MALECON_FRONT_X, MALECON_Z, MALECON_GROUND } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
+import { makePlaqueTexture } from "../utils/brandTexture";
 
 // EL MALECÓN DE QUIBDÓ — el paseo ribereño del Atrato, el hito de la capital.
 // Réplica ESTILIZADA (mismo lenguaje low-poly del diorama, todo procedural y con
@@ -38,34 +39,16 @@ const PALM_LEAF = "#3f9b52";
 const AMBER = "#ffb347";
 const EMERALD = "#37b26a";
 
-// Letrero "MALECÓN DE QUIBDÓ" → textura de canvas (sin fuentes remotas)
+// Letrero "MALECÓN DE QUIBDÓ" → textura de canvas, en la Fraunces de la marca
 function makeSign(): THREE.CanvasTexture {
-  const w = 1024;
-  const h = 320;
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext("2d")!;
-  ctx.clearRect(0, 0, w, h);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  // línea decorativa teal
-  ctx.strokeStyle = TEAL;
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.28, 74);
-  ctx.lineTo(w * 0.72, 74);
-  ctx.stroke();
-  ctx.fillStyle = "#f6ecd6";
-  ctx.font = '600 148px Georgia, "Times New Roman", serif';
-  ctx.fillText("MALECÓN", w / 2, h / 2 + 8);
-  ctx.fillStyle = "#bfe3d6";
-  ctx.font = "500 44px Georgia, serif";
-  ctx.fillText("D E   Q U I B D Ó", w / 2, h - 46);
-  const tex = new THREE.CanvasTexture(c);
-  tex.anisotropy = 8;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
+  return makePlaqueTexture({
+    title: "MALECÓN",
+    subtitle: "DE QUIBDÓ",
+    accent: TEAL,
+    subtitleColor: "#bfe3d6",
+    titleSize: 148,
+    subtitleSize: 44,
+  });
 }
 
 /** Una palma estilizada: tronco inclinado + fronda de hojas caídas */

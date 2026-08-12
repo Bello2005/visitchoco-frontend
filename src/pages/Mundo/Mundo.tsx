@@ -8,6 +8,9 @@ import type { RapierRigidBody } from "@react-three/rapier";
 import ChocoTerrain from "./components/ChocoTerrain";
 import RoadRibbon from "./components/RoadRibbon";
 import TerritoryGateway from "./components/TerritoryGateway";
+import Slipway from "./components/Slipway";
+import MundoHelp from "./components/MundoHelp";
+import MundoModeBadge from "./components/MundoModeBadge";
 import ChirimiaPlaza from "./components/ChirimiaPlaza";
 import MaleconQuibdo from "./components/MaleconQuibdo";
 import MundoTouchControls from "./components/MundoTouchControls";
@@ -272,6 +275,10 @@ export default function Mundo() {
                   sur, donde nace la vía y spawnea el carro. Dentro de Physics
                   porque la plaza tiene collider (el carro cae sobre ella). */}
               <TerritoryGateway />
+              {/* EL VARADERO: la rampa por la que se baja al agua y el carro se
+                  vuelve panga. Solo obra vista — la pendiente que se conduce ya
+                  está tallada en el terreno, así que no necesita colliders. */}
+              <Slipway />
               {/* El DESTINO: plaza de la chirimía en el remate norte */}
               <ChirimiaPlaza />
               {/* QUIBDÓ: el Malecón del Atrato, a orillas del río */}
@@ -304,6 +311,10 @@ export default function Mundo() {
       <MundoAudio />
       {/* Oculto mientras el loader tapa la escena, igual que el botón de mute */}
       <MundoQuality visible={!loaderVisible} />
+      {/* Leyenda de teclas + explicación de la transformación carro↔panga */}
+      <MundoHelp visible={!loaderVisible} />
+      {/* Indicador de modo y la pista contextual del varadero */}
+      <MundoModeBadge visible={!loaderVisible} />
       {/* La chirimía arranca sola al pisar la plaza del norte */}
       <ChirimiaAudio />
       {/* Motor, rodadura, chapoteo y golpes — sintetizados en vivo */}

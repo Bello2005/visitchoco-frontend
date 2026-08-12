@@ -181,20 +181,28 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
   const prevSpeed = useRef(0);
   const impactSuppressUntil = useRef(0);
   const splashRef = useRef<THREE.Mesh>(null);
+  const splash2Ref = useRef<THREE.Mesh>(null);
   const splashStart = useRef(-1);
+  // Momento del último cambio de modo: alimenta el fundido carro↔panga.
+  const morphStart = useRef(-1);
+  const carGroupRef = useRef<THREE.Group>(null);
+  const boatGroupRef = useRef<THREE.Group>(null);
   const [, getKeys] = useKeyboardControls();
 
   const canoeGeo = useMemo(makeCanoeGeometry, []);
   useEffect(() => () => canoeGeo.dispose(), [canoeGeo]);
 
   const triggerSplash = () => {
-    const splash = splashRef.current;
     const chassis = chassisRef.current;
-    if (!splash || !chassis) return;
+    if (!chassis) return;
     const t = chassis.translation();
-    splash.position.set(t.x, WATER_LEVEL + 0.05, t.z);
-    splash.scale.setScalar(0.5);
-    splash.visible = true;
+    for (const ref of [splashRef, splash2Ref]) {
+      const splash = ref.current;
+      if (!splash) continue;
+      splash.position.set(t.x, WATER_LEVEL + 0.05, t.z);
+      splash.scale.setScalar(0.5);
+      splash.visible = true;
+    }
     splashStart.current = performance.now();
   };
 
@@ -209,7 +217,10 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     // El desembarco/embarque toca la velocidad (cap, damping, flotación): que
     // no lo lea el detector de choque como un golpe.
     impactSuppressUntil.current = now + IMPACT_SUPPRESS_MS;
-    if (next === "boat") triggerSplash();
+    morphStart.current = now;
+    // Antes solo salpicaba al ENTRAR. Salir del agua mueve el mismo volumen de
+    // agua que entrar, y sin espuma el desembarco se sentía mudo.
+    triggerSplash();
     return true;
   };
 
@@ -514,18 +525,69 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     brakingRef.current = false;
   });
 
-  // Splash: anillo reutilizable, escala 0.5→3 y opacity 0.5→0 en ~0.35s
+  // Espuma: dos anillos reutilizables. El segundo va desfasado y más lento, así
+  // el chapoteo no se lee como un aro sino como agua desplazándose.
   useFrame(() => {
-    const splash = splashRef.current;
-    if (!splash || splashStart.current < 0) return;
-    const e = (performance.now() - splashStart.current) / 350;
-    if (e >= 1) {
-      splash.visible = false;
-      splashStart.current = -1;
+    if (splashStart.current < 0) return;
+    const age = performance.now() - splashStart.current;
+    const a = splashRef.current;
+    const b = splash2Ref.current;
+
+    if (a) {
+      const e = age / 350;
+      if (e >= 1) a.visible = false;
+      else {
+        a.scale.setScalar(0.5 + e * 2.5);
+        (a.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - e);
+      }
+    }
+    if (b) {
+      const e = (age - 90) / 520; // arranca después y se abre más despacio
+      if (e < 0) b.scale.setScalar(0.5);
+      else if (e >= 1) b.visible = false;
+      else {
+        b.scale.setScalar(0.5 + e * 3.6);
+        (b.material as THREE.MeshBasicMaterial).opacity = 0.32 * (1 - e);
+      }
+    }
+    if (age > 620) splashStart.current = -1;
+  });
+
+  // FUNDIDO carro↔panga. Antes era un corte seco de `visible`: el carro
+  // desaparecía y la panga aparecía en el mismo frame, y la mecánica más bonita
+  // del mundo pasaba inadvertida. Ahora el saliente se encoge y el entrante
+  // crece — se hace por ESCALA y no por opacidad para no meter materiales
+  // transparentes (y su ordenación) en el vehículo.
+  useFrame(() => {
+    const car = carGroupRef.current;
+    const boat = boatGroupRef.current;
+    if (!car || !boat) return;
+
+    const isBoat = modeVisual === "boat";
+    const incoming = isBoat ? boat : car;
+    const outgoing = isBoat ? car : boat;
+
+    if (morphStart.current < 0) {
+      incoming.scale.setScalar(1);
+      outgoing.scale.setScalar(1);
       return;
     }
-    splash.scale.setScalar(0.5 + e * 2.5);
-    (splash.material as THREE.MeshBasicMaterial).opacity = 0.5 * (1 - e);
+
+    const e = (performance.now() - morphStart.current) / 190;
+    if (e >= 1) {
+      morphStart.current = -1;
+      incoming.visible = true;
+      outgoing.visible = false;
+      incoming.scale.setScalar(1);
+      outgoing.scale.setScalar(1);
+      return;
+    }
+    // Los dos visibles solo durante el fundido; fuera de él manda `visible`.
+    incoming.visible = true;
+    outgoing.visible = true;
+    const k = e * e * (3 - 2 * e); // smoothstep
+    incoming.scale.setScalar(0.001 + k);
+    outgoing.scale.setScalar(Math.max(0.001, 1 - k));
   });
 
   // Estado vivo para la UI HTML (minimapa): posición, rumbo y modo
@@ -562,7 +624,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         {/* Silueta de camioneta: cuerpo bajo + cabina sobre el tercio trasero
             (deja capó adelante) + faros. El collider sigue siendo la caja
             CHASSIS_HALF completa — esto es solo lo visible. Frente = +Z. */}
-        <group visible={modeVisual === "car"}>
+        <group ref={carGroupRef} visible={modeVisual === "car"}>
           <mesh castShadow position={[0, -CHASSIS_HALF[1] * 0.22, 0]}>
             <boxGeometry
               args={[
@@ -643,7 +705,7 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
           ))}
         </group>
         {/* Panga: canoa de madera del Atrato (casco afinado en las puntas) */}
-        <group visible={modeVisual === "boat"} position={[0, -0.12, 0]}>
+        <group ref={boatGroupRef} visible={modeVisual === "boat"} position={[0, -0.12, 0]}>
           <mesh castShadow geometry={canoeGeo}>
             <meshStandardMaterial
               flatShading
@@ -691,13 +753,25 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
           </mesh>
         </group>
       </RigidBody>
-      {/* Splash de entrada al agua (un solo anillo, se reposiciona) */}
+      {/* Espuma del cambio de modo: DOS anillos desfasados. Con uno solo el
+          chapoteo se leía como un aro geométrico; el segundo, más lento y más
+          tenue, le da cuerpo de agua. Se dispara al ENTRAR y al SALIR. */}
       <mesh ref={splashRef} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.6, 0.85, 24]} />
         <meshBasicMaterial
           transparent
           opacity={0.5}
           color="#dbeef2"
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh ref={splash2Ref} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.45, 0.62, 24]} />
+        <meshBasicMaterial
+          transparent
+          opacity={0.32}
+          color="#eaf7ff"
           side={THREE.DoubleSide}
           depthWrite={false}
         />
