@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Foto } from "../../../components/common/Foto";
 
 export function DirectorioHero() {
   return (
@@ -8,13 +9,20 @@ export function DirectorioHero() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "url('/images/municipios/bahia-solano.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center 35%",
             transform: "scale(1.06)",
             filter: "brightness(0.35)",
           }}
-        />
+        >
+          <Foto
+            src="/images/municipios/bahia-solano.jpg"
+            alt=""
+            aria-hidden
+            sizes="100vw"
+            prioridad
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: "center 35%" }}
+          />
+        </div>
         <div
           className="absolute inset-0"
           style={{

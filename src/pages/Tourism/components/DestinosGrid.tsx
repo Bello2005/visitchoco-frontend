@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Foto } from "../../../components/common/Foto";
 
 const DESTINOS = [
   {
@@ -140,7 +141,8 @@ export function DestinosGrid() {
               className={`group relative block overflow-hidden rounded-2xl cursor-pointer ${d.colSpan} ${d.height}`}
             >
               {/* Imagen */}
-              <img
+              <Foto
+                sizes="(min-width: 1280px) 747px, (min-width: 768px) 58vw, 100vw"
                 src={d.imagen}
                 alt={d.nombre}
                 className="absolute inset-0 w-full h-full object-cover

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Shield } from "lucide-react";
+import { Foto } from "../../../components/common/Foto";
 
 export function CimarronajeSection() {
   return (
@@ -100,7 +101,8 @@ export function CimarronajeSection() {
             className="relative overflow-hidden rounded-2xl"
             style={{ minHeight: 400 }}
           >
-            <img
+            <Foto
+              sizes="(min-width: 768px) 50vw, 100vw"
               src="/images/municipios/bojaya.jpg"
               alt="Territorio de resistencia — Chocó"
               className="absolute inset-0 w-full h-full object-cover"

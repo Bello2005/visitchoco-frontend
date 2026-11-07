@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowDown, Anchor } from "lucide-react";
+import { Foto } from "../../../components/common/Foto";
 
 const HEADLINES: { text: string; delay: number; color: string }[] = [
   { text: "Un océano.", delay: 0.4, color: "text-white" },
@@ -42,13 +43,20 @@ export function TurismoHero() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "url('/images/municipios/nuqui.jpg')",
-            backgroundSize: "cover",
-            backgroundPosition: "center 40%",
             transform: "scale(1.08)",
             filter: "brightness(0.45)",
           }}
-        />
+        >
+          <Foto
+            src="/images/municipios/nuqui.jpg"
+            alt=""
+            aria-hidden
+            sizes="100vw"
+            prioridad
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: "center 40%" }}
+          />
+        </div>
         <div
           className="absolute inset-0"
           style={{

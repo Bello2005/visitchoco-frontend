@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { MapPin } from "lucide-react";
+import { Foto } from "../../../components/common/Foto";
 
 const DATOS_BALLENA = [
   { valor: "40", unidad: "toneladas", label: "Peso promedio" },
@@ -57,7 +58,8 @@ export function BallenasFeature() {
             className="relative overflow-hidden md:rounded-r-none rounded-2xl md:rounded-l-2xl md:ml-16"
             style={{ minHeight: 460 }}
           >
-            <img
+            <Foto
+              sizes="(min-width: 768px) 50vw, 100vw"
               src="/images/municipios/bahia-solano.jpg"
               alt="Ballenas jorobadas en Bahía Solano"
               className="w-full h-full object-cover"

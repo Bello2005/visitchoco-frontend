@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { Foto } from "../../../components/common/Foto";
 
 const FEATURED = [
   { name: "Quibdó",       zone: "Zona Urbana del Atrato", rnt: 128, slug: "quibdo",       img: "/images/municipios/quibdo.jpg"       },
@@ -49,7 +50,8 @@ export function MunicipiosCarousel() {
             style={{ width: 260, height: 360 }}
           >
             {/* Imagen */}
-            <img
+            <Foto
+              sizes="260px"
               src={img}
               alt={name}
               className="absolute inset-0 w-full h-full object-cover transition-all duration-500

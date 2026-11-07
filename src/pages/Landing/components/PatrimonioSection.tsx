@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { Foto } from "../../../components/common/Foto";
 
 const PATRIMONIO = [
   {
@@ -61,7 +62,8 @@ export function PatrimonioSection() {
               className="relative overflow-hidden rounded-2xl group block"
               style={{ height: "360px" }}
             >
-              <img
+              <Foto
+                sizes="(min-width: 1280px) 427px, (min-width: 768px) 33vw, 100vw"
                 src={imagen}
                 alt={titulo}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"

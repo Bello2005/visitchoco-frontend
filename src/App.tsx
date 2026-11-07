@@ -1,121 +1,58 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Landing } from "./pages/Landing/Landing";
-import AtratoPage from "./pages/Atrato/Atrato";
 import { AccentProvider } from "./providers/AccentProvider";
-import { Login } from "./pages/Login/Login";
-import { AdminDashboard } from "./pages/Dashboard/AdminDashboard/AdminDashboard";
-import { UserDashboard } from "./pages/Dashboard/UserDashboard/UserDashboard";
-import Register from "./pages/Register/Register";
-import Map from "./pages/Map/Map";
-import Fauna from "./pages/Fauna/Fauna";
-import Tourism from "./pages/Tourism/Tourism";
-import Festival from "./pages/Festival/Festival";
-import Cultura from "./pages/Cultura/Cultura";
-import Historia from "./pages/Historia/Historia";
-import Acerca from "./pages/Acerca/Acerca";
-import Fuentes from "./pages/Fuentes/Fuentes";
 import LoadingSpinner from "./components/LoadingSpinner";
-import { NotFound } from "./pages/NotFound/NotFound";
-import Directorio from "./pages/Directorio/Directorio";
-import Negocio from "./pages/Negocio/Negocio";
-import Sismo from "./pages/Sismo/Sismo";
 import { EmergencyBanner } from "./components/layout/EmergencyBanner";
 import { PrivateRoute } from "./components/common/PrivateRoute";
 import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import MundoLoader from "./pages/Mundo/components/MundoLoader";
 
+// El inicio viene en el paquete principal; cada otra página se baja solo cuando alguien entra a ella.
+// Antes todas iban juntas: quien abría el inicio descargaba también los paneles, el mapa con Leaflet
+// y la animación Lottie del 404.
+const Login = lazy(() => import("./pages/Login/Login").then((m) => ({ default: m.Login })));
+const Register = lazy(() => import("./pages/Register/Register"));
+const Map = lazy(() => import("./pages/Map/Map"));
+const Fauna = lazy(() => import("./pages/Fauna/Fauna"));
+const Tourism = lazy(() => import("./pages/Tourism/Tourism"));
+const Festival = lazy(() => import("./pages/Festival/Festival"));
+const Cultura = lazy(() => import("./pages/Cultura/Cultura"));
+const Historia = lazy(() => import("./pages/Historia/Historia"));
+const Acerca = lazy(() => import("./pages/Acerca/Acerca"));
+const Fuentes = lazy(() => import("./pages/Fuentes/Fuentes"));
+const AtratoPage = lazy(() => import("./pages/Atrato/Atrato"));
+const Directorio = lazy(() => import("./pages/Directorio/Directorio"));
+const Negocio = lazy(() => import("./pages/Negocio/Negocio"));
+const Sismo = lazy(() => import("./pages/Sismo/Sismo"));
+const NotFound = lazy(() => import("./pages/NotFound/NotFound").then((m) => ({ default: m.NotFound })));
+const AdminDashboard = lazy(() =>
+  import("./pages/Dashboard/AdminDashboard/AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
+);
+const UserDashboard = lazy(() =>
+  import("./pages/Dashboard/UserDashboard/UserDashboard").then((m) => ({ default: m.UserDashboard })),
+);
 const Mundo = lazy(() => import("./pages/Mundo/Mundo"));
 
-function AppContent() {
-  const location = useLocation();
-  const [isLoading, setIsLoading] = useState(true);
-
+/**
+ * Mientras llega el código de una página. Si llega rápido (lo normal), no se ve nada: el aviso solo
+ * aparece pasados 400 ms, para no hacer parpadear la pantalla en cada clic.
+ */
+function CargandoPagina() {
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
-    let mounted = true;
-    let timeoutId: ReturnType<typeof setTimeout>;
+    const id = setTimeout(() => setVisible(true), 400);
+    return () => clearTimeout(id);
+  }, []);
+  return visible ? <LoadingSpinner /> : <div style={{ minHeight: "100dvh" }} />;
+}
 
-    const checkLoadingStatus = async () => {
-      if (document.readyState !== "complete") {
-        return false;
-      }
-
-      const images = Array.from(document.images);
-      const imagePromises = images.map((img) => {
-        if (img.complete) return Promise.resolve();
-        return new Promise((resolve) => {
-          img.onload = img.onerror = resolve;
-        });
-      });
-
-      const videos = Array.from(document.getElementsByTagName("video"));
-      const videoPromises = videos.map((video) => {
-        if (video.readyState >= 3) return Promise.resolve();
-        return new Promise((resolve) => {
-          video.oncanplay = resolve;
-        });
-      });
-
-      try {
-        await Promise.all([...imagePromises, ...videoPromises]);
-        return true;
-      } catch {
-        return true;
-      }
-    };
-
-    const handleContentLoad = async () => {
-      if (!mounted) return;
-      const isFullyLoaded = await checkLoadingStatus();
-      if (mounted && isFullyLoaded) {
-        setIsLoading(false);
-      }
-    };
-
-    // La página de emergencia no pasa por el gate: espera a que carguen
-    // todas las imágenes y, en el peor caso, deja la pantalla en blanco
-    // durante 3 s con el mensaje "Cargando la magia de Chocó". Es el peor
-    // primer contacto posible para quien viene del banner buscando un
-    // teléfono.
-    if (location.pathname.startsWith("/sismo")) {
-      setIsLoading(false);
-      return;
-    }
-
-    const initializeLoading = async () => {
-      setIsLoading(true);
-      await handleContentLoad();
-    };
-
-    initializeLoading();
-
-    window.addEventListener("load", handleContentLoad);
-    document.addEventListener("readystatechange", handleContentLoad);
-
-    // Timeout de seguridad (3 segundos)
-    timeoutId = setTimeout(() => {
-      if (mounted) setIsLoading(false);
-    }, 3000);
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-      window.removeEventListener("load", handleContentLoad);
-      document.removeEventListener("readystatechange", handleContentLoad);
-    };
-  }, [location]);
-
+function AppContent() {
   return (
     <AccentProvider>
     <ErrorBoundary>
-      {isLoading && <LoadingSpinner />}
-      <div
-        className={`transition-opacity duration-200 ${
-          isLoading ? "opacity-0 pointer-events-none select-none" : "opacity-100"
-        }`}
-        aria-hidden={isLoading}
-      >
         <EmergencyBanner />
+        <Suspense fallback={<CargandoPagina />}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -159,7 +96,7 @@ function AppContent() {
           />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </div>
+        </Suspense>
     </ErrorBoundary>
     </AccentProvider>
   );

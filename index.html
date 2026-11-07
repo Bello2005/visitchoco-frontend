@@ -23,6 +23,32 @@
       content="31 municipios, fauna, cultura, historia y directorio de prestadores turísticos del Chocó."
     />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- La primera foto del inicio se pide ya, en paralelo con el JavaScript, en vez de esperar a que
+         React la descubra. Solo en "/" (esta página se sirve para todas las rutas) y con los mismos
+         tamaños que arma <Foto> en HeroSection; si cambia esa foto, cambiar también esta lista. -->
+    <script>
+      if (location.pathname === "/") {
+        var b = "/images/opt/hero/pexels-daniloarenash-18868239";
+        var lista = function (p, anchos) {
+          return anchos.map(function (a) { return b + "-" + p + a + ".avif " + a + "w"; }).join(", ");
+        };
+        [
+          ["(max-aspect-ratio: 3/4)", lista("v", [720, 1080, 1254])],
+          ["not all and (max-aspect-ratio: 3/4)", lista("", [640, 960, 1280, 1920, 2560, 3840])],
+        ].forEach(function (f) {
+          var l = document.createElement("link");
+          l.rel = "preload";
+          l.as = "image";
+          l.type = "image/avif";
+          l.media = f[0];
+          l.setAttribute("imagesrcset", f[1]);
+          l.setAttribute("imagesizes", "100vw");
+          l.setAttribute("fetchpriority", "high");
+          document.head.appendChild(l);
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

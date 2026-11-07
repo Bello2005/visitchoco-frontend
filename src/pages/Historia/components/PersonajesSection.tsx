@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Foto } from "../../../components/common/Foto";
 
 const PERSONAJES = [
   {
@@ -90,7 +91,8 @@ export function PersonajesSection() {
                 style={{ minHeight: 420 }}
               >
                 {/* Imagen de fondo */}
-                <img
+                <Foto
+                  sizes="(min-width: 768px) 50vw, 85vw"
                   src={imagen}
                   alt={nombre}
                   className="absolute inset-0 w-full h-full object-cover

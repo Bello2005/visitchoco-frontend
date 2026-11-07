@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { Foto } from "../../../components/common/Foto";
 
 const CARDS = [
   {
@@ -99,7 +100,8 @@ function ExploreCard({
       className={`relative overflow-hidden rounded-2xl cursor-pointer group block ${className}`}
     >
       {/* Imagen */}
-      <img
+      <Foto
+        sizes="(min-width: 1280px) 640px, (min-width: 768px) 50vw, 100vw"
         src={image}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-105"

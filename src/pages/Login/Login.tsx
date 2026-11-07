@@ -9,6 +9,7 @@ import { LoginForm } from "../../components/auth/LoginForm";
 import { RegisterForm } from "../../components/auth/RegisterForm";
 import { cn } from "../../lib/cn";
 import { buildApiUrl } from "../../utils/api";
+import { Foto } from "../../components/common/Foto";
 
 const STATS = ["46 530 km²", "31 municipios", "577 aves"];
 
@@ -111,7 +112,9 @@ const ChocoLuxuryLogin = () => {
       {/* Shell editorial */}
       <section className="relative min-h-screen overflow-hidden bg-carbon-950">
         {/* Imagen de fondo */}
-        <img
+        <Foto
+          sizes="100vw"
+          prioridad
           src="/images/hero/AGC_20250826_175454037.jpg"
           alt=""
           aria-hidden

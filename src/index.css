@@ -1,4 +1,10 @@
 @import "@fontsource-variable/fraunces/index.css";
+/* Playfair Display: la serif de los titulares (font-serif). Antes venía de Google Fonts por @import dentro
+   de Landing.css: tres viajes en fila antes de poder pintar el texto. Ahora sale del mismo servidor. */
+@import "@fontsource/playfair-display/400.css";
+@import "@fontsource/playfair-display/500.css";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
 @import "./styles/tokens.css";
 
 /* Geist Variable — auto-hosted from node_modules */

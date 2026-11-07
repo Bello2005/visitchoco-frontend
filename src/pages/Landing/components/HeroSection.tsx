@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Foto } from "../../../components/common/Foto";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPinned, Compass } from "lucide-react";
 
@@ -56,38 +57,67 @@ const HERO_SLIDES: HeroSlide[] = [
   },
 ];
 
+const total = HERO_SLIDES.length;
+
 export function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const active = HERO_SLIDES[activeIndex];
+  // Qué fotos ya están en la página y cuáles terminaron de llegar. Al principio solo la primera: las
+  // demás se piden de a una, cuando la anterior ya se ve, así no compiten con la que importa.
+  const [montadas, setMontadas] = useState<Set<number>>(() => new Set([0]));
+  const listas = useRef<Set<number>>(new Set());
+
+  const montar = (i: number) =>
+    setMontadas((m) => (m.has(i) ? m : new Set(m).add(i)));
+
+  const alCargar = (i: number) => {
+    listas.current.add(i);
+    montar((i + 1) % total);
+  };
 
   useEffect(() => {
+    // Avanza cada 5 s, pero solo a una foto que ya llegó: nunca se funde a negro esperando la red
     const id = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % HERO_SLIDES.length);
+      setActiveIndex((prev) => {
+        const sig = (prev + 1) % total;
+        return listas.current.has(sig) ? sig : prev;
+      });
     }, 5000);
     return () => clearInterval(id);
   }, []);
 
+  const elegir = (i: number) => {
+    montar(i);
+    setActiveIndex(i);
+  };
+
   return (
-    <section style={{ height: "100dvh", minHeight: "100dvh", position: "relative", overflow: "hidden" }}>
-      <link rel="preload" as="image" href={HERO_SLIDES[0].src} />
-      {/* Fotos rotando — crossfade */}
-      {HERO_SLIDES.map(({ src, alt }, i) => (
-        <img
-          key={src}
-          src={src}
-          alt={alt}
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: i === activeIndex ? 1 : 0,
-            transition: "opacity 1.2s ease-in-out",
-            zIndex: 0,
-          }}
-        />
-      ))}
+    <section style={{ height: "100dvh", minHeight: "100dvh", position: "relative", overflow: "hidden", background: "#0b0f0d" }}>
+      {/* Fotos rotando — crossfade. La primera ya viene precargada desde index.html */}
+      {HERO_SLIDES.map(({ src, alt }, i) =>
+        montadas.has(i) ? (
+          <Foto
+            key={src}
+            src={src}
+            alt={i === activeIndex ? alt : ""}
+            aria-hidden={i === activeIndex ? undefined : true}
+            prioridad={i === 0}
+            fetchPriority={i === 0 ? "high" : "low"}
+            loading="eager"
+            onLoad={() => alCargar(i)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              opacity: i === activeIndex ? 1 : 0,
+              transition: "opacity 1.2s ease-in-out",
+              zIndex: 0,
+            }}
+          />
+        ) : null,
+      )}
 
       {/* Gradiente base — de abajo hacia arriba */}
       <div
@@ -198,7 +228,7 @@ export function HeroSection() {
         {HERO_SLIDES.map((_, i) => (
           <button
             key={i}
-            onClick={() => setActiveIndex(i)}
+            onClick={() => elegir(i)}
             aria-label={`Slide ${i + 1}`}
             className={`rounded-full transition-all duration-500 ${
               i === activeIndex

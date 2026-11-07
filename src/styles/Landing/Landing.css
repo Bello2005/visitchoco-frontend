@@ -1,5 +1,10 @@
 /* src/pages/Landing.css */
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
+/* Poppins, servida desde el propio sitio (antes Google Fonts). Playfair Display va en src/index.css. */
+@import "@fontsource/poppins/300.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
 
 :root {
   --primary-dark: #15803d; /* Verde-700 de Tailwind */
