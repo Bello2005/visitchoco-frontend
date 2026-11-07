@@ -26,6 +26,15 @@ const CARPETAS = {
   municipios: { anchos: [320, 480, 640, 960, 1280, 1920] },
 };
 
+// Fotos que nunca se muestran completas: se recortan antes de reducirlas, para no mandar píxeles que
+// ninguna tarjeta enseña. `aspecto` es ancho/alto del recorte y `y` su posición vertical (0 arriba,
+// 1 abajo). Si `y` es la misma del object-position de las tarjetas, el encuadre queda idéntico.
+//   quibdo.jpg: vertical 9:16 cuya mitad de abajo es pavimento. Las tarjetas la muestran con
+//   object-position "center 18%", así que un recorte 3:4 al 18 % se ve igual y pesa un 26 % menos.
+const RECORTES = {
+  'municipios/quibdo.jpg': { aspecto: 3 / 4, y: 0.18 },
+};
+
 // Calidad alta: a estos valores no se distinguen del original a tamaño de pantalla.
 const CALIDAD = {
   avif: { quality: 62, effort: 6, chromaSubsampling: '4:4:4' },
@@ -61,9 +70,23 @@ for (const [carpeta, conf] of Object.entries(CARPETAS)) {
     const origen = join(dir, archivo);
     const nombre = basename(archivo).replace(/\.jpe?g$/i, '');
     // rotate() aplica la orientación EXIF de las fotos de teléfono antes de medir
-    const base = sharp(origen).rotate();
+    let base = sharp(origen).rotate();
     const { width: w0, height: h0, orientation } = await base.metadata();
-    const [w, h] = orientation >= 5 ? [h0, w0] : [w0, h0];
+    let [w, h] = orientation >= 5 ? [h0, w0] : [w0, h0];
+
+    const recorte = RECORTES[`${carpeta}/${archivo}`];
+    if (recorte) {
+      const altoR = Math.min(h, Math.round(w / recorte.aspecto));
+      const anchoR = Math.min(w, Math.round(h * recorte.aspecto));
+      const corte = {
+        left: Math.round((w - anchoR) / 2),
+        top: Math.round(recorte.y * (h - altoR)),
+        width: anchoR,
+        height: altoR,
+      };
+      base = base.extract(corte);
+      [w, h] = [anchoR, altoR];
+    }
 
     // Los anchos menores que el original; si el original cabe en la lista, también él completo
     const anchos = conf.anchos.filter((a) => a < w);

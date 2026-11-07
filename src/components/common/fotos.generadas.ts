@@ -276,7 +276,7 @@ export const FOTOS: Record<string, FotoGenerada> = {
   },
   "/images/municipios/quibdo.jpg": {
     "ancho": 2160,
-    "alto": 3840,
+    "alto": 2880,
     "anchos": [
       320,
       480,
