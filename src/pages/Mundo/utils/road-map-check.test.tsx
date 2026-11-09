@@ -6,6 +6,10 @@ import { buildRoad } from "./roadGeometry";
 
 vi.mock("@react-three/rapier", () => ({ RigidBody: () => null }));
 
+// Genera el terreno completo en jsdom: con WORLD_SCALE = 2 tarda ~6 s
+// (con escala 1 eran ~1.6 s), más que los 5 s por defecto de vitest.
+const TERRAIN_TEST_TIMEOUT = 20_000;
+
 it("checks all asphalt triangles against the real map", async () => {
   vi.stubGlobal("fetch", async () => ({
     json: async () => JSON.parse(readFileSync("public/data/chocoRegion.geojson", "utf8")),
@@ -17,4 +21,4 @@ it("checks all asphalt triangles against the real map", async () => {
   const normals = road.layers.asphalt!.attributes.normal;
   const inverted = Array.from({ length: normals.count }, (_, i) => i).filter(i => normals.getY(i) <= 0);
   expect(inverted).toHaveLength(0);
-});
+}, TERRAIN_TEST_TIMEOUT);
