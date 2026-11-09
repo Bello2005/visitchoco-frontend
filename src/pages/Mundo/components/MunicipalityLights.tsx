@@ -2,7 +2,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "rea
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { loadChocoGeo } from "../utils/geo";
-import { terrainHeight, worldGround, WATER_LEVEL } from "./ChocoTerrain";
+import { terrainHeight, worldGround, WATER_LEVEL, isNearRoad, whenHeightFieldReady } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
 
 // TODO: vendrá de la API. Coordenadas aproximadas — el diorama es estilizado.
@@ -43,7 +43,7 @@ function MunicipalityLights() {
   useEffect(() => {
     let cancelled = false;
 
-    loadChocoGeo().then((geo) => {
+    whenHeightFieldReady().then(loadChocoGeo).then((geo) => {
       if (cancelled) return;
 
       const lonC = (geo.bbox.minLon + geo.bbox.maxLon) / 2;
@@ -184,6 +184,7 @@ function Caserios({ towns }: { towns: Town[] }) {
         const oz = (seeded(i * 151 + k * 19 + 8) - 0.5) * 2.4;
         const wx = t.center[0] + ox;
         const wz = t.center[2] + oz;
+        if (isNearRoad(wx, wz, 0.6)) continue;
         const g = worldGround(wx, wz);
         if (g < 0.1) continue; // ni en el agua ni en la playa mojada
         out.push({

@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { loadChocoGeo, localToLonLat, WIDTH, HEIGHT } from "../utils/geo";
-import { worldGround, roadMask } from "./ChocoTerrain";
+import { worldGround, isNearRoad, whenHeightFieldReady } from "./ChocoTerrain";
 import { SPAWN_POS } from "./Vehicle";
 import { applyReveal } from "../utils/applyReveal";
 
@@ -79,7 +79,7 @@ function Garzas({ count, seedBase }: { count: number; seedBase: number }) {
 
   useEffect(() => {
     let cancelled = false;
-    loadChocoGeo().then((geo) => {
+    whenHeightFieldReady().then(loadChocoGeo).then((geo) => {
       if (cancelled) return;
       const out: Placement[] = [];
       let tries = 0;
@@ -92,7 +92,7 @@ function Garzas({ count, seedBase }: { count: number; seedBase: number }) {
         if (!geo.isInside(lon, lat)) continue;
         const h = worldGround(x, -y);
         if (h < 0.04 || h > 0.28) continue; // solo la orilla misma
-        if (roadMask(x, y) > 0.15) continue;
+        if (isNearRoad(x, -y, 0.8)) continue;
         if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 4) continue;
         out.push({
           x,

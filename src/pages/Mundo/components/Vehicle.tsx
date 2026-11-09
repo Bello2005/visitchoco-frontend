@@ -1,3 +1,4 @@
+import Chiva from "./Chiva";
 // Motor del vehículo adaptado de PhysicsVehicle.js de folio-2025
 // (Bruno Simon, MIT). Ver src/pages/Mundo/CREDITS.md para atribución y licencia.
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +18,7 @@ import {
   roadCenterWorldX,
   WATER_LEVEL,
   GATEWAY_Z,
+  GATEWAY_PLAZA_TOP,
   WORLD_HALF_X,
   WORLD_HALF_Z,
 } from "./ChocoTerrain";
@@ -43,16 +45,9 @@ const SPAWN_ROT = { x: 0, y: 1, z: 0, w: 0 };
 
 const CHASSIS_HALF: [number, number, number] = [0.9, 0.35, 1.6];
 const WHEEL_RADIUS = 0.32;
+const DISPLAY_RADIUS = 1.5;
+const DISPLAY_TURN_RATE = 0.6;
 const SUSPENSION_REST = 0.35;
-
-// Proporciones de la carrocería visible (el collider sigue siendo la caja
-// CHASSIS_HALF entera). El cuerpo baja y adelgaza; la cabina se apoya justo
-// encima de su techo para que no queden cajas flotando ni interpenetradas.
-const CAR_BODY_H_RATIO = 0.55;
-const CAR_CABIN_H = CHASSIS_HALF[1] * 2 * 0.45;
-const CAR_BODY_TOP =
-  -CHASSIS_HALF[1] * 0.22 + (CHASSIS_HALF[1] * 2 * CAR_BODY_H_RATIO) / 2;
-const CAR_CABIN_Y = CAR_BODY_TOP + CAR_CABIN_H / 2;
 
 // Puntos de anclaje de las ruedas (esquinas del chasis). Frente = +Z local.
 // Índices 0-1 delanteras (dirección), 2-3 traseras (tracción).
@@ -133,6 +128,7 @@ const _yawQuat = new THREE.Quaternion();
 const _forward = new THREE.Vector3();
 const _up = new THREE.Vector3();
 const _WORLD_UP = new THREE.Vector3(0, 1, 0);
+const _PLANE_NORMAL = new THREE.Vector3(0, 0, 1);
 
 // Auto-enderezado del CARRO (barra espaciadora): si vuelca, el "arriba" local
 // cae por debajo de este umbral (~60° de inclinación) y una pulsación lo pone
@@ -186,6 +182,29 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
   // Momento del último cambio de modo: alimenta el fundido carro↔panga.
   const morphStart = useRef(-1);
   const carGroupRef = useRef<THREE.Group>(null);
+  const wheelMeshes = useRef<(THREE.Mesh | null)[]>([]);
+  const tireShadows = useRef<(THREE.Mesh | null)[]>([]);
+  const wheelCenter = useMemo(() => new THREE.Vector3(), []);
+  const surfaceNormal = useMemo(() => new THREE.Vector3(), []);
+  const surfacePoint = useMemo(() => new THREE.Vector3(), []);
+  const axleDirection = useMemo(() => new THREE.Vector3(), []);
+  const suspensionUp = useMemo(() => new THREE.Vector3(), []);
+  const contactTexture = useMemo(() => {
+    const size = 32;
+    const pixels = new Uint8Array(size * size * 4);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const radius = Math.hypot((x + 0.5) / size - 0.5, (y + 0.5) / size - 0.5) * 2;
+        pixels[(y * size + x) * 4 + 3] = 255 * (1 - THREE.MathUtils.smoothstep(radius, 0.18, 1));
+      }
+    }
+    const texture = new THREE.DataTexture(pixels, size, size);
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+    return texture;
+  }, []);
+  useEffect(() => () => contactTexture.dispose(), [contactTexture]);
   const boatGroupRef = useRef<THREE.Group>(null);
   const [, getKeys] = useKeyboardControls();
 
@@ -446,6 +465,16 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         stepWorld.timestep,
         rapier.QueryFilterFlags.EXCLUDE_SENSORS
       );
+      // El freno de ralentí detiene las ruedas, pero puede quedar giro
+      // residual en el chasis. Estabiliza el rumbo solo al estar apoyado
+      // y casi detenido, dejando libres la inclinación y la suspensión.
+      if (!forward && !backward && !left && !right && speed < 0.35) {
+        const groundedWheels = WHEELS.filter((_, i) => vehicle.wheelIsInContact(i));
+        if (groundedWheels.length >= 2) {
+          const { x, y, z } = chassis.angvel();
+          if (y !== 0) chassis.setAngvel({ x, y: 0, z }, true);
+        }
+      }
       return;
     }
 
@@ -590,6 +619,79 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
     outgoing.scale.setScalar(Math.max(0.001, 1 - k));
   });
 
+  // Giro de exhibición en el centro de la plataforma. Solo rota el
+  // modelo, así el chasis conserva el rumbo para salir hacia la carretera.
+  useFrame((_, delta) => {
+    const car = carGroupRef.current;
+    const chassis = chassisRef.current;
+    if (!car || !chassis) return;
+
+    // The axle center sits one suspension length below its chassis mount.
+    const vehicle = vehicleRef.current;
+    if (vehicle && modeRef.current === "car") {
+      WHEELS.forEach(([, mountY], i) => {
+        const wheel = wheelMeshes.current[i];
+        if (!wheel) return;
+        wheel.position.y = mountY - (vehicle.wheelSuspensionLength(i) ?? SUSPENSION_REST);
+      });
+    }
+
+    const { forward, backward, left, right, reset } = getKeys();
+    const { x, z } = chassis.translation();
+    const velocity = chassis.linvel();
+    const displaying = modeRef.current === "car"
+      && !forward && !backward && !left && !right && !reset
+      && Math.hypot(x - SPAWN_POS.x, z - SPAWN_POS.z) < DISPLAY_RADIUS
+      && Math.hypot(velocity.x, velocity.y, velocity.z) < 0.35;
+    if (displaying) {
+      car.rotation.y += DISPLAY_TURN_RATE * delta;
+    } else {
+      const angle = Math.atan2(Math.sin(car.rotation.y), Math.cos(car.rotation.y));
+      car.rotation.y = THREE.MathUtils.damp(angle, 0, 20, delta);
+    }
+
+    // Anchor the rendered tires to the same contact plane as the physics
+    // wheels. On the display pad the visual wheels rotate independently.
+    car.updateWorldMatrix(true, false);
+    suspensionUp.copy(_WORLD_UP).transformDirection(car.matrixWorld);
+    axleDirection.set(1, 0, 0).transformDirection(car.matrixWorld);
+    tireShadows.current.forEach((shadow, i) => {
+      const wheel = wheelMeshes.current[i];
+      if (!shadow || !wheel) return;
+      shadow.visible = false;
+      if (!vehicle || modeRef.current !== "car" || !vehicle.wheelIsInContact(i)) return;
+
+      wheel.getWorldPosition(wheelCenter);
+      if (displaying) {
+        surfaceNormal.copy(_WORLD_UP);
+        surfacePoint.set(wheelCenter.x, GATEWAY_PLAZA_TOP, wheelCenter.z);
+      } else {
+        const hit = vehicle.wheelContactPoint(i);
+        const normal = vehicle.wheelContactNormal(i);
+        if (!hit || !normal) return;
+        surfacePoint.set(hit.x, hit.y, hit.z);
+        surfaceNormal.set(normal.x, normal.y, normal.z).normalize();
+      }
+
+      const support = suspensionUp.dot(surfaceNormal);
+      if (support < 0.5) return;
+      const axleTilt = Math.min(1, Math.abs(axleDirection.dot(surfaceNormal)));
+      const tireExtent = WHEEL_RADIUS * Math.sqrt(1 - axleTilt ** 2) + 0.12 * axleTilt;
+      const centerHeight = wheelCenter.dot(surfaceNormal) - surfacePoint.dot(surfaceNormal);
+      const correction = (tireExtent - centerHeight) / support;
+      if (Math.abs(correction) > 0.25) return;
+      wheel.position.y += correction;
+
+      // Project the interpolated tire center so the decal stays under the
+      // moving wheel even between physics steps.
+      shadow.position.copy(wheelCenter)
+        .addScaledVector(suspensionUp, correction)
+        .addScaledVector(surfaceNormal, 0.009 - tireExtent);
+      shadow.quaternion.setFromUnitVectors(_PLANE_NORMAL, surfaceNormal);
+      shadow.visible = true;
+    });
+  });
+
   // Estado vivo para la UI HTML (minimapa): posición, rumbo y modo
   useFrame(() => {
     const chassis = chassisRef.current;
@@ -610,6 +712,20 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
 
   return (
     <>
+      {WHEELS.map((_, i) => (
+        <mesh
+          key={i}
+          ref={shadow => { tireShadows.current[i] = shadow; }}
+          visible={false}
+          rotation={[-Math.PI / 2, 0, 0]}
+          renderOrder={3}
+        >
+          <planeGeometry args={[0.52, 0.52]} />
+          <meshBasicMaterial map={contactTexture} transparent opacity={0.48} depthWrite={false}
+            ref={material => { if (material) applyReveal(material); }}
+          />
+        </mesh>
+      ))}
       <RigidBody
         ref={chassisRef}
         colliders={false}
@@ -621,79 +737,17 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
         {/* Todos los materiales del vehículo llevan applyReveal: en la
             oscuridad del intro el carro también está sin materializar y
             aparece con el territorio en la explosión. */}
-        {/* Silueta de camioneta: cuerpo bajo + cabina sobre el tercio trasero
-            (deja capó adelante) + faros. El collider sigue siendo la caja
-            CHASSIS_HALF completa — esto es solo lo visible. Frente = +Z. */}
         <group ref={carGroupRef} visible={modeVisual === "car"}>
-          <mesh castShadow position={[0, -CHASSIS_HALF[1] * 0.22, 0]}>
-            <boxGeometry
-              args={[
-                CHASSIS_HALF[0] * 2,
-                CHASSIS_HALF[1] * 2 * CAR_BODY_H_RATIO,
-                CHASSIS_HALF[2] * 2,
-              ]}
-            />
-            <meshStandardMaterial
-              flatShading
-              color="#d97706"
-              emissive="#d97706"
-              emissiveIntensity={0.15}
-              ref={(m) => {
-                if (m) applyReveal(m);
-              }}
-            />
-          </mesh>
-          {/* Cabina: más angosta y corta, corrida hacia atrás (-Z) */}
-          <mesh
-            castShadow
-            position={[0, CAR_CABIN_Y, -CHASSIS_HALF[2] * 0.25]}
-          >
-            <boxGeometry
-              args={[
-                CHASSIS_HALF[0] * 2 * 0.7,
-                CAR_CABIN_H,
-                CHASSIS_HALF[2] * 2 * 0.5,
-              ]}
-            />
-            <meshStandardMaterial
-              flatShading
-              color="#b8650a"
-              emissive="#b8650a"
-              emissiveIntensity={0.12}
-              ref={(m) => {
-                if (m) applyReveal(m);
-              }}
-            />
-          </mesh>
-          {/* Faros en las esquinas delanteras del cuerpo */}
-          {[-1, 1].map((side) => (
-            <mesh
-              key={side}
-              position={[
-                side * (CHASSIS_HALF[0] - 0.16),
-                -CHASSIS_HALF[1] * 0.22,
-                CHASSIS_HALF[2] - 0.04,
-              ]}
-            >
-              <boxGeometry args={[0.08, 0.08, 0.08]} />
-              <meshStandardMaterial
-                color="#fff4d6"
-                emissive="#fff4d6"
-                emissiveIntensity={0.9}
-                ref={(m) => {
-                  if (m) applyReveal(m);
-                }}
-              />
-            </mesh>
-          ))}
-          {WHEELS.map(([x, , z], i) => (
+          <Chiva />
+          {WHEELS.map(([x, mountY, z], i) => (
             <mesh
               key={i}
               castShadow
-              position={[x, -0.45, z]}
+              ref={wheel => { wheelMeshes.current[i] = wheel; }}
+              position={[x, mountY - SUSPENSION_REST, z]}
               rotation={[0, 0, Math.PI / 2]}
             >
-              <cylinderGeometry args={[WHEEL_RADIUS, WHEEL_RADIUS, 0.24, 12]} />
+              <cylinderGeometry args={[WHEEL_RADIUS, WHEEL_RADIUS, 0.24, 24]} />
               <meshStandardMaterial
                 flatShading
                 color="#111827"
@@ -701,6 +755,16 @@ export default function Vehicle({ chassisRef }: VehicleProps) {
                   if (m) applyReveal(m);
                 }}
               />
+              {[-1, 1].map((side) => (
+                <mesh key={side} position={[0, side * 0.125, 0]}>
+                  <cylinderGeometry args={[0.21, 0.21, 0.025, 20]} />
+                  <meshStandardMaterial color="#bbc7cd" metalness={0.7} roughness={0.3} ref={(m) => { if (m) applyReveal(m); }} />
+                  <mesh position={[0, side * 0.025, 0]}>
+                    <cylinderGeometry args={[0.08, 0.08, 0.05, 10]} />
+                    <meshStandardMaterial color="#33434a" ref={(m) => { if (m) applyReveal(m); }} />
+                  </mesh>
+                </mesh>
+              ))}
             </mesh>
           ))}
         </group>

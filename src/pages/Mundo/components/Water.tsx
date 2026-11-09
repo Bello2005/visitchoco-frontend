@@ -1,3 +1,4 @@
+import { WIDTH, HEIGHT } from "../utils/geo";
 import { memo, useEffect, useRef } from "react";
 import { WATER_LEVEL } from "./ChocoTerrain";
 import { applyReveal } from "../utils/applyReveal";
@@ -40,7 +41,7 @@ function Water() {
       position={[0, WATER_LEVEL, 0]}
       receiveShadow
     >
-      <planeGeometry args={[200, 200, segments, segments]} />
+      <planeGeometry args={[WIDTH + 80, HEIGHT + 80, segments, segments]} />
       <meshStandardMaterial
         transparent
         // El alpha lo decide el shader por profundidad (bajos translúcidos,

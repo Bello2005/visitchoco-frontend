@@ -1,10 +1,11 @@
 // Util geográfico compartido del diorama: polígono del Chocó, conversión
 // lon/lat ↔ espacio local del plano, y test punto-en-polígono.
 // Dimensiones del plano del diorama (alargado N-S como el Chocó).
-// 60×90: mundo 1.5× — todo lo mapeado por polígono (municipios, spawn
-// relativo, río) escala proporcionalmente sin re-layout.
-export const WIDTH = 60;
-export const HEIGHT = 90;
+// Escala horizontal compartida para el territorio y los destinos del recorrido.
+// Los vehículos y las construcciones conservan sus dimensiones locales.
+export const WORLD_SCALE = 2;
+export const WIDTH = 60 * WORLD_SCALE;
+export const HEIGHT = 90 * WORLD_SCALE;
 
 export type Ring = number[][]; // [[lon, lat], ...]
 

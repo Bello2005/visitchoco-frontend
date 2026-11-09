@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { loadChocoGeo, WIDTH, HEIGHT } from "../utils/geo";
 import {
-  roadCenterWorldX,
+  getRoadPlan,
+  whenHeightFieldReady,
   riverCenterWorldX,
   worldGround,
-  WATER_LEVEL,
 } from "./ChocoTerrain";
 import { vehicleState } from "../utils/vehicleState";
 
@@ -29,7 +29,7 @@ export default function MundoMiniMap() {
   // Fondo estático: polígono + agua + carretera (una sola vez)
   useEffect(() => {
     let cancelled = false;
-    loadChocoGeo().then((geo) => {
+    whenHeightFieldReady().then(loadChocoGeo).then((geo) => {
       if (cancelled) return;
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -90,11 +90,16 @@ export default function MundoMiniMap() {
       };
       // Río Atrato (solo existe en el valle; el filtro de suelo lo corta)
       drawPath((z) => riverCenterWorldX(z), "rgba(84, 150, 199, 0.95)", 3);
-      // La Vía del Chocó, de punta a punta
-      drawPath((z) => roadCenterWorldX(z), "rgba(196, 158, 110, 0.95)", 1.8);
-
-      // Marca de agua del nivel del mar (contexto)
-      void WATER_LEVEL;
+      // The minimap follows the same alignment as the drivable surface.
+      ctx.strokeStyle = "rgba(196, 158, 110, 0.95)";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      getRoadPlan()?.points.forEach(({ x, z }, i) => {
+        const { px, py } = worldToMap(x, z);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
     });
     return () => {
       cancelled = true;

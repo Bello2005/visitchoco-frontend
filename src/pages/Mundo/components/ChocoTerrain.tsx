@@ -1,3 +1,6 @@
+import { BRIDGE_HALF_WIDTH, planRoad, sampleRoad } from "../utils/roadGeometry";
+import type { RoadPlan } from "../utils/roadGeometry";
+import { WORLD_SCALE } from "../utils/geo";
 import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { RigidBody } from "@react-three/rapier";
@@ -29,8 +32,8 @@ export const WORLD_HALF_Z = HEIGHT / 2 + SEA_MARGIN; // ±57 en Z
 // acantilado — así el carro sube a tierra manejando por la arena.
 const BEACH = 3.4;
 // Mundo 60×90: más segmentos para conservar la densidad de vértices
-const SEG_X = 120;
-const SEG_Y = 180;
+const SEG_X = 120 * WORLD_SCALE;
+const SEG_Y = 180 * WORLD_SCALE;
 
 // ---------- value noise 2D determinista (seed fija, sin librerías) ----------
 function hash2(ix: number, iy: number): number {
@@ -176,7 +179,7 @@ const ROAD_LEVEL = 0.34;
 // malla — sin geometría y sin collider. worldGround clampa los índices al
 // borde, así que devolvía alturas plausibles para un suelo que no existía y el
 // carro caía al vacío. Aquí caben plaza y rampa enteras.
-export const GATEWAY_Z = 37;
+export const GATEWAY_Z = 37 * WORLD_SCALE;
 // GATEWAY_X se declara MÁS ABAJO, tras ROAD_SPINE: calcularlo aquí caía en la
 // zona muerta temporal del const (roadCenterNx lee ROAD_SPINE) → ReferenceError.
 // Radio de la EXPLANADA del portal: el aplanado de la vía es una franja
@@ -193,7 +196,7 @@ const PLAZA_CLEAR_FADE = 3.2;
 // fragmenta en agua/islotes (agua en -32..-30.5 y en -41..-44), así que una
 // plaza allá flotaba sobre el mar — la explanada no puede crear tierra donde
 // la lógica de costa manda SEA_FLOOR.
-export const NORTH_Z = -22;
+export const NORTH_Z = -22 * WORLD_SCALE;
 const NORTH_CLEAR_R = 6.8;
 // EL MALECÓN DE QUIBDÓ: paseo ribereño a orillas del Atrato. Va al SUR del
 // puente (Z≥4), sobre la orilla — aquí la VÍA queda LEJOS al oeste (X<-4), así
@@ -207,10 +210,10 @@ const MALECON_BAY_EAST = 9.5; // la bahía del Atrato llega hasta aquí al este
 const MALECON_BAY_DEPTH = -0.4; // fondo de la bahía (bajo el agua)
 // σ 0.042 → calzada ancha (~2.5u de núcleo) tipo la road de folio-2025,
 // cómoda para conducir y protagonista en pantalla
-const ROAD_SIGMA_NX = 0.042;
+const ROAD_SIGMA_NX = 0.042 / WORLD_SCALE;
 // Media-meseta PLANA de la calzada (≈1.26u, algo más que el semiancho de la
 // cinta): dentro de esto el terreno queda a cota fija → nada de zanja.
-const ROAD_FLAT_NX = 0.042;
+const ROAD_FLAT_NX = 0.042 / WORLD_SCALE;
 
 // Trazado de la VÍA DEL CHOCÓ: el ESPINAZO REAL del polígono, calculado
 // offline (centro del segmento interior más ancho por fila de latitud,
@@ -511,6 +514,18 @@ export function getHeightField(): {
   return heightField ? { data: heightField, cols: fieldCols, rows: fieldRows } : null;
 }
 
+let roadPlan: RoadPlan | undefined;
+
+export function getRoadPlan(): RoadPlan | undefined {
+  return roadPlan;
+}
+
+export function isNearRoad(x: number, z: number, margin: number): boolean {
+  if (!roadPlan) return false;
+  const sample = sampleRoad(roadPlan, x, z, BRIDGE_HALF_WIDTH + 0.65 + margin);
+  return !!sample && sample.distance < BRIDGE_HALF_WIDTH + 0.65 * sample.bridge + margin;
+}
+
 function publishHeightField(f: Float32Array, cols: number, rows: number): void {
   heightField = f;
   fieldCols = cols;
@@ -694,6 +709,34 @@ export default function ChocoTerrain({ onReady }: ChocoTerrainProps) {
           pos.setZ(i, h);
 
           heightColor(h, sd, roadMask(pos.getX(i), pos.getY(i)), tmpColor);
+          colors[i * 3] = tmpColor.r;
+          colors[i * 3 + 1] = tmpColor.g;
+          colors[i * 3 + 2] = tmpColor.b;
+        }
+
+        // Plan the crossing against the natural banks, then grade the dry
+        // roadbed to that same ribbon. Leave the channel under the deck open.
+        heightField = heights;
+        fieldCols = cols;
+        fieldRows = rows;
+        roadPlan = planRoad({
+          startZ: GATEWAY_Z + 0.5, endZ: NORTH_Z - 0.5,
+          centerX: roadCenterWorldX, ground: worldGround, waterLevel: WATER_LEVEL,
+        });
+        const gradingReach = BRIDGE_HALF_WIDTH + 2.4;
+        for (let i = 0; i < N; i++) {
+          const h = heights[i];
+          if (h <= WATER_LEVEL + 0.04) continue;
+          const sample = sampleRoad(roadPlan, pos.getX(i), -pos.getY(i), gradingReach);
+          if (!sample) continue;
+          const shoulder = BRIDGE_HALF_WIDTH + sample.bridge * 0.65 + 0.2;
+          const weight = 1 - smoothstep(shoulder, gradingReach, sample.distance);
+          const target = sample.height - 0.07;
+          const graded = h + ((sample.bridge > 0 ? Math.min(h, target) : target) - h) * weight;
+          heights[i] = graded;
+          pos.setZ(i, graded);
+          const sd = (inside[i] ? dOut[i] : -dIn[i]) * cellSize;
+          heightColor(graded, sd, weight, tmpColor);
           colors[i * 3] = tmpColor.r;
           colors[i * 3 + 1] = tmpColor.g;
           colors[i * 3 + 2] = tmpColor.b;

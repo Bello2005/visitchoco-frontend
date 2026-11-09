@@ -7,6 +7,7 @@ import type { ChocoGeo } from "../utils/geo";
 import {
   worldGround,
   roadMask,
+  isNearRoad,
   patchNoise,
   whenHeightFieldReady,
   MALECON_FRONT_X,
@@ -392,7 +393,7 @@ function scatter(
     const pn = patchNoise(x, y);
     if (patch === "in" && pn < 0.55) continue; // matas
     if (patch === "out" && pn > 0.5) continue; // claros
-    if (roadMask(x, y) > road) continue;
+    if (isNearRoad(x, -y, scaleMax * 1.65) || roadMask(x, y) > road) continue;
     // Claro del portal: tiene que ir por delante del radio de la plaza-muelle
     // (6.2) o la selva crece ENCIMA de la plataforma.
     if (Math.hypot(x - SPAWN_POS.x, y + SPAWN_POS.z) < 7.6) continue;

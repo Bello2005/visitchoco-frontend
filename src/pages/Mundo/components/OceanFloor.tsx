@@ -1,3 +1,4 @@
+import { WIDTH, HEIGHT } from "../utils/geo";
 import { memo } from "react";
 import { RigidBody } from "@react-three/rapier";
 import { applyReveal } from "../utils/applyReveal";
@@ -7,7 +8,7 @@ function OceanFloor() {
   return (
     <RigidBody type="fixed" colliders="cuboid">
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.4, 0]}>
-        <planeGeometry args={[200, 200]} />
+        <planeGeometry args={[WIDTH + 80, HEIGHT + 80]} />
         <meshStandardMaterial
           color="#0d5f78"
           ref={(m) => {
