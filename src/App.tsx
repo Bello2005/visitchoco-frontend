@@ -13,7 +13,7 @@ import MundoLoader from "./pages/Mundo/components/MundoLoader";
 // y la animación Lottie del 404.
 const Login = lazy(() => import("./pages/Login/Login").then((m) => ({ default: m.Login })));
 const Register = lazy(() => import("./pages/Register/Register"));
-const Map = lazy(() => import("./pages/Map/Map"));
+const MapPage = lazy(() => import("./pages/Map/Map"));
 const Fauna = lazy(() => import("./pages/Fauna/Fauna"));
 const Tourism = lazy(() => import("./pages/Tourism/Tourism"));
 const Festival = lazy(() => import("./pages/Festival/Festival"));
@@ -60,7 +60,7 @@ function AppContent() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/mapa" element={<Map />} />
+          <Route path="/mapa" element={<MapPage />} />
           <Route path="/animales" element={<Fauna />} />
           <Route path="/turismo" element={<Tourism />} />
           <Route path="/cultura" element={<Cultura />} />
