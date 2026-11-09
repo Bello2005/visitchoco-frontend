@@ -14,7 +14,6 @@ export default defineConfig({
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
           leaflet: ["leaflet", "react-leaflet"],
-          swiper: ["swiper", "swiper/react"],
           icons: ["react-icons"],
           lottie: ["lottie-react"],
           utils: ["framer-motion", "react-toastify", "react-responsive"],
