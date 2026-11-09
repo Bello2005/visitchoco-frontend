@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Landing } from "./pages/Landing/Landing";
 import { AccentProvider } from "./providers/AccentProvider";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -48,9 +48,12 @@ function CargandoPagina() {
 }
 
 function AppContent() {
+  const { pathname } = useLocation();
+
   return (
     <AccentProvider>
-    <ErrorBoundary>
+    {/* key por ruta: al navegar se monta un boundary nuevo y el error se limpia */}
+    <ErrorBoundary key={pathname}>
         <EmergencyBanner />
         <Suspense fallback={<CargandoPagina />}>
         <Routes>
